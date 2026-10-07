@@ -74,8 +74,9 @@ final class Cadastro
     public static function opcoes(string $chave, ?int $incluirId = null): array
     {
         $tipo = self::tipo($chave);
+        $extra = !empty($tipo['ficha']) ? ', marca, modelo, ano, foto' : '';
         $sql = sprintf(
-            'SELECT id, %s AS nome, ativo FROM %s WHERE ativo = 1 OR id = ? ORDER BY nome ASC',
+            'SELECT id, %s AS nome, ativo' . $extra . ' FROM %s WHERE ativo = 1 OR id = ? ORDER BY nome ASC',
             $tipo['campo'],
             $tipo['tabela']
         );

@@ -416,7 +416,7 @@ final class Lavra
 
     private static function sqlBase(): string
     {
-        return 'SELECT c.*, k.placa
+        return 'SELECT c.*, k.placa, k.marca, k.modelo, k.ano, k.foto
             FROM ciclos_lavra c
             JOIN caminhoes k ON k.id = c.caminhao_id';
     }

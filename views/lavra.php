@@ -29,10 +29,7 @@
             <?php $etapa = Lavra::etapas()[$ciclo['status']]; ?>
             <?php $desde = Lavra::desde($ciclo); ?>
             <article class="cartao destaque">
-                <header>
-                    <strong><?= e($ciclo['placa']) ?></strong>
-                    <span class="selo status-<?= e($ciclo['status']) ?>"><?= e($etapa['rotulo']) ?></span>
-                </header>
+                <?php $ficha = $ciclo; $selo = $etapa['rotulo']; require __DIR__ . '/trecho_caminhao.php'; ?>
                 <p class="carga">
                     <?php if ($desde): ?>
                         <time data-desde="<?= (int) strtotime($desde) ?>"><?= e(texto_duracao(segundos_entre($desde, agora_sql()))) ?></time>
@@ -54,9 +51,7 @@
     <div class="lista">
         <?php foreach ($livres as $caminhao): ?>
             <article class="cartao">
-                <header>
-                    <strong><?= e($caminhao['nome']) ?></strong>
-                </header>
+                <?php $ficha = $caminhao; $selo = ''; require __DIR__ . '/trecho_caminhao.php'; ?>
                 <form method="post" action="<?= e(url('lavra/caminhoes/' . $caminhao['id'] . '/fila')) ?>">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn primario">Entrou na fila</button>

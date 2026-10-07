@@ -12,13 +12,30 @@
         <fieldset class="maquinas">
             <legend>Pá carregadeira</legend>
             <?php foreach ($pas as $pa): ?>
-                <label class="escolha">
+                <?php
+                $detalhe = [];
+                foreach (['marca', 'modelo', 'ano'] as $campoFicha) {
+                    $valorFicha = trim((string) ($pa[$campoFicha] ?? ''));
+                    if ($valorFicha !== '') {
+                        $detalhe[] = $valorFicha;
+                    }
+                }
+                ?>
+                <label class="escolha escolha-maquina">
                     <input type="radio" name="pa_carregadeira_id" value="<?= (int) $pa['id'] ?>" required <?= (int) $paId === (int) $pa['id'] ? 'checked' : '' ?>>
                     <span>
-                        <?= e($pa['nome']) ?>
-                        <?php if (isset($emUso[(int) $pa['id']])): ?>
-                            <small>Em uso na <?= e($emUso[(int) $pa['id']]) ?></small>
+                        <?php if (!empty($pa['foto'])): ?>
+                            <img class="foto-equipamento" src="<?= e(url('cadastros/pas/' . $pa['id'] . '/foto')) ?>" alt="">
                         <?php endif; ?>
+                        <span class="escolha-texto">
+                            <?= e($pa['nome']) ?>
+                            <?php if ($detalhe !== []): ?>
+                                <small><?= e(implode(' · ', $detalhe)) ?></small>
+                            <?php endif; ?>
+                            <?php if (isset($emUso[(int) $pa['id']])): ?>
+                                <small>Em uso na <?= e($emUso[(int) $pa['id']]) ?></small>
+                            <?php endif; ?>
+                        </span>
                     </span>
                 </label>
             <?php endforeach; ?>

@@ -13,6 +13,9 @@
     <div class="lista">
         <?php foreach ($ordens as $ordem): ?>
             <article class="cartao destaque">
+                <?php if ($ordem['status'] === 'carregando' && !empty($ordem['pa_foto']) && !empty($ordem['pa_carregadeira_id'])): ?>
+                    <img class="foto-equipamento" src="<?= e(url('cadastros/pas/' . $ordem['pa_carregadeira_id'] . '/foto')) ?>" alt="">
+                <?php endif; ?>
                 <header>
                     <strong><?= e($ordem['ordem']) ?></strong>
                     <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
@@ -26,7 +29,24 @@
                 ?>
                 <?php if ($desde): ?>
                     <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $desde) ?>"><?= e(texto_duracao(segundos_entre((string) $desde, agora_sql()))) ?></time></p>
-                    <p class="meta"><?= e($etapa) ?> desde <?= e(hora_curta((string) $desde)) ?><?php if ($ordem['status'] === 'carregando'): ?> · <?= e($ordem['operador'] ?: 'operador') ?> · <?= e($ordem['pa_nome'] ?: 'pá') ?><?php endif; ?></p>
+                    <?php if ($ordem['status'] === 'carregando'): ?>
+                        <?php
+                        $detalhePa = [];
+                        foreach (['pa_marca', 'pa_modelo', 'pa_ano'] as $origem) {
+                            $valorPa = trim((string) ($ordem[$origem] ?? ''));
+                            if ($valorPa !== '') {
+                                $detalhePa[] = $valorPa;
+                            }
+                        }
+                        ?>
+                        <div class="caminhao-nome">
+                            <strong><?= e($ordem['pa_nome'] ?: 'Pá') ?></strong>
+                            <?php if ($detalhePa !== []): ?>
+                                <p class="meta"><?= e(implode(' · ', $detalhePa)) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                    <p class="meta"><?= e($etapa) ?> desde <?= e(hora_curta((string) $desde)) ?><?php if ($ordem['status'] === 'carregando' && $ordem['operador']): ?> · <?= e($ordem['operador']) ?><?php endif; ?></p>
                 <?php endif; ?>
                 <?php if ($ordem['status'] === 'carregando'): ?>
                     <a class="btn concluir" href="<?= e(url('carregamentos/' . $ordem['id'] . '/finalizar')) ?>">Finalizar carregamento</a>

@@ -477,7 +477,11 @@ final class Operacoes
     {
         return 'SELECT f.*,
                 m.material AS material_nome,
-                p.maquina AS pa_nome
+                p.maquina AS pa_nome,
+                p.marca AS pa_marca,
+                p.modelo AS pa_modelo,
+                p.ano AS pa_ano,
+                p.foto AS pa_foto
             FROM fila_carregamentos f
             JOIN materiais m ON m.id = f.material_id
             LEFT JOIN pas_carregadeiras p ON p.id = f.pa_carregadeira_id';
