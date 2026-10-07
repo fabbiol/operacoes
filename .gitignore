@@ -1,0 +1,6 @@
+.env
+storage/*.log
+storage/.schema-ok
+storage/fotos/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,305 @@
+<?php
+
+declare(strict_types=1);
+
+final class Pessoas
+{
+    public static function listar(): array
+    {
+        return Db::pdo()->query(
+            'SELECT id, nome, administrador, motorista, operador, foto, ativo
+             FROM usuarios
+             ORDER BY ativo DESC, administrador DESC, nome ASC'
+        )->fetchAll();
+    }
+
+    public static function buscar(int $id): ?array
+    {
+        $busca = Db::pdo()->prepare(
+            'SELECT id, nome, administrador, motorista, operador, foto, ativo
+             FROM usuarios WHERE id = ? LIMIT 1'
+        );
+        $busca->execute([$id]);
+        $linha = $busca->fetch();
+
+        return $linha ?: null;
+    }
+
+    public static function funcao(array $pessoa): string
+    {
+        if ((int) ($pessoa['administrador'] ?? 0) === 1) {
+            return 'admin';
+        }
+        if ((int) ($pessoa['motorista'] ?? 0) === 1 && (int) ($pessoa['operador'] ?? 0) === 1) {
+            return 'ambos';
+        }
+        if ((int) ($pessoa['motorista'] ?? 0) === 1) {
+            return 'motorista';
+        }
+
+        return 'operador';
+    }
+
+    public static function rotulo(array $pessoa): string
+    {
+        return match (self::funcao($pessoa)) {
+            'admin' => 'Administrativo',
+            'ambos' => 'Motorista e operador',
+            'motorista' => 'Motorista',
+            default => 'Operador',
+        };
+    }
+
+    public static function salvar(?int $id, array $post): int
+    {
+        $atual = null;
+        if ($id !== null) {
+            $atual = self::buscar($id);
+            if ($atual === null) {
+                throw new InvalidArgumentException('Pessoa não encontrada.');
+            }
+        }
+
+        $fixo = $atual !== null && Auth::administradorFixo((string) $atual['nome']);
+        $nome = $fixo
+            ? (string) $atual['nome']
+            : Auth::nomeSimples((string) ($post['nome'] ?? ''));
+        if ($nome === null || $nome === '') {
+            throw new InvalidArgumentException('Use um nome com letras, sem e-mail.');
+        }
+
+        $admin = $atual !== null && (int) $atual['administrador'] === 1;
+        if ($admin) {
+            $motorista = 0;
+            $operador = 0;
+            $papel = 'admin';
+        } else {
+            $funcao = (string) ($post['funcao'] ?? '');
+            if (!in_array($funcao, ['motorista', 'operador', 'ambos'], true)) {
+                throw new InvalidArgumentException('Informe a função.');
+            }
+            $motorista = $funcao === 'motorista' || $funcao === 'ambos' ? 1 : 0;
+            $operador = $funcao === 'operador' || $funcao === 'ambos' ? 1 : 0;
+            $papel = $funcao;
+        }
+
+        $ativo = $fixo ? 1 : (isset($post['ativo']) ? 1 : 0);
+        $senha = (string) ($post['senha'] ?? '');
+        if (trim($senha) !== '') {
+            $senha = trim($senha);
+            if (strlen($senha) < 4 || strlen($senha) > 72) {
+                throw new InvalidArgumentException('A senha precisa ter entre 4 e 72 caracteres.');
+            }
+        } elseif ($id === null) {
+            throw new InvalidArgumentException('Informe a senha.');
+        }
+
+        $pendente = self::prepararFoto();
+        try {
+            if ($id === null) {
+                $idSalvo = self::inserir($nome, $senha, $papel, $motorista, $operador, $ativo);
+            } else {
+                self::atualizar($id, $nome, $senha, $papel, $motorista, $operador, $ativo, $admin);
+                $idSalvo = $id;
+            }
+
+            if ($pendente !== null) {
+                try {
+                    self::gravarFoto($idSalvo, $pendente);
+                    $pendente = null;
+                } catch (Throwable $e) {
+                    if ($id === null) {
+                        self::excluir($idSalvo);
+                    }
+                    throw $e;
+                }
+            } elseif ($id !== null && isset($post['remover_foto'])) {
+                self::apagarFoto($id);
+            }
+
+            return $idSalvo;
+        } finally {
+            if ($pendente !== null && is_file($pendente['tmp'])) {
+                unlink($pendente['tmp']);
+            }
+        }
+    }
+
+    public static function alternarAtivo(int $id): void
+    {
+        $atual = self::buscar($id);
+        if ($atual === null) {
+            throw new InvalidArgumentException('Pessoa não encontrada.');
+        }
+        if (Auth::administradorFixo((string) $atual['nome']) || (int) $atual['administrador'] === 1) {
+            throw new InvalidArgumentException('O acesso administrativo permanece ativo.');
+        }
+        if ((int) $atual['id'] === Auth::id()) {
+            throw new InvalidArgumentException('Você não pode desativar o seu próprio acesso.');
+        }
+        $comando = Db::pdo()->prepare('UPDATE usuarios SET ativo = ? WHERE id = ?');
+        $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
+    }
+
+    public static function arquivoFoto(int $id): ?array
+    {
+        $pessoa = self::buscar($id);
+        if ($pessoa === null || empty($pessoa['foto'])) {
+            return null;
+        }
+        $relativo = str_replace('\\', '/', (string) $pessoa['foto']);
+        if (!preg_match('#^usuarios/(\d+)\.(jpg|png|webp)$#', $relativo, $partes)) {
+            return null;
+        }
+        if ((int) $partes[1] !== $id) {
+            return null;
+        }
+
+        $base = realpath(OPERACOES_ROOT . '/storage/fotos');
+        $arquivo = realpath(OPERACOES_ROOT . '/storage/fotos/' . $relativo);
+        if ($base === false || $arquivo === false || !is_file($arquivo)) {
+            return null;
+        }
+        $baseNormal = rtrim(str_replace('\\', '/', $base), '/');
+        $arquivoNormal = str_replace('\\', '/', $arquivo);
+        if (!str_starts_with($arquivoNormal, $baseNormal . '/')) {
+            return null;
+        }
+
+        $tipos = ['jpg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
+
+        return [
+            'caminho' => $arquivo,
+            'tipo' => $tipos[$partes[2]],
+        ];
+    }
+
+    private static function inserir(string $nome, string $senha, string $papel, int $motorista, int $operador, int $ativo): int
+    {
+        $comando = Db::pdo()->prepare(
+            'INSERT INTO usuarios (nome, senha_hash, administrador, papel, motorista, operador, ativo)
+             VALUES (?, ?, 0, ?, ?, ?, ?)'
+        );
+        try {
+            $comando->execute([$nome, password_hash($senha, PASSWORD_DEFAULT), $papel, $motorista, $operador, $ativo]);
+        } catch (PDOException $e) {
+            self::traduzirDuplicado($e);
+        }
+
+        return (int) Db::pdo()->lastInsertId();
+    }
+
+    private static function atualizar(
+        int $id,
+        string $nome,
+        string $senha,
+        string $papel,
+        int $motorista,
+        int $operador,
+        int $ativo,
+        bool $admin
+    ): void {
+        $sql = 'UPDATE usuarios SET nome = ?, papel = ?, motorista = ?, operador = ?, ativo = ?';
+        $params = [$nome, $papel, $motorista, $operador, $ativo];
+        if ($senha !== '') {
+            $sql .= ', senha_hash = ?';
+            $params[] = password_hash($senha, PASSWORD_DEFAULT);
+        }
+        if ($admin) {
+            $sql .= ', administrador = 1';
+        }
+        $sql .= ' WHERE id = ?';
+        $params[] = $id;
+        $comando = Db::pdo()->prepare($sql);
+        try {
+            $comando->execute($params);
+        } catch (PDOException $e) {
+            self::traduzirDuplicado($e);
+        }
+    }
+
+    private static function excluir(int $id): void
+    {
+        self::limparArquivos($id);
+        Db::pdo()->prepare('DELETE FROM usuarios WHERE id = ? AND administrador = 0')->execute([$id]);
+    }
+
+    /** @return array{tmp: string, ext: string}|null */
+    private static function prepararFoto(): ?array
+    {
+        if (!isset($_FILES['foto']) || !is_array($_FILES['foto'])) {
+            return null;
+        }
+        $erro = (int) ($_FILES['foto']['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($erro === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if ($erro !== UPLOAD_ERR_OK) {
+            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
+        }
+        $tamanho = (int) ($_FILES['foto']['size'] ?? 0);
+        if ($tamanho < 1 || $tamanho > 5 * 1024 * 1024) {
+            throw new InvalidArgumentException('A foto pode ter no máximo 5 MB.');
+        }
+        $origem = (string) ($_FILES['foto']['tmp_name'] ?? '');
+        if ($origem === '' || !is_uploaded_file($origem)) {
+            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
+        }
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($origem);
+        $extensoes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        if (!is_string($mime) || !isset($extensoes[$mime])) {
+            throw new InvalidArgumentException('A foto precisa ser JPG, PNG ou WebP.');
+        }
+        $tmp = tempnam(sys_get_temp_dir(), 'opfoto');
+        if ($tmp === false || !move_uploaded_file($origem, $tmp)) {
+            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
+        }
+
+        return ['tmp' => $tmp, 'ext' => $extensoes[$mime]];
+    }
+
+    private static function gravarFoto(int $id, array $pendente): void
+    {
+        self::limparArquivos($id);
+        $dir = OPERACOES_ROOT . '/storage/fotos/usuarios';
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new InvalidArgumentException('Não foi possível guardar a foto.');
+        }
+        $final = $dir . DIRECTORY_SEPARATOR . $id . '.' . $pendente['ext'];
+        if (!@rename($pendente['tmp'], $final)) {
+            if (!@copy($pendente['tmp'], $final)) {
+                throw new InvalidArgumentException('Não foi possível guardar a foto.');
+            }
+            unlink($pendente['tmp']);
+        }
+        Db::pdo()->prepare('UPDATE usuarios SET foto = ? WHERE id = ?')->execute(['usuarios/' . $id . '.' . $pendente['ext'], $id]);
+    }
+
+    private static function apagarFoto(int $id): void
+    {
+        self::limparArquivos($id);
+        Db::pdo()->prepare('UPDATE usuarios SET foto = NULL WHERE id = ?')->execute([$id]);
+    }
+
+    private static function limparArquivos(int $id): void
+    {
+        if ($id < 1) {
+            return;
+        }
+        $dir = OPERACOES_ROOT . '/storage/fotos/usuarios';
+        foreach (['jpg', 'png', 'webp'] as $ext) {
+            $arquivo = $dir . DIRECTORY_SEPARATOR . $id . '.' . $ext;
+            if (is_file($arquivo)) {
+                unlink($arquivo);
+            }
+        }
+    }
+
+    private static function traduzirDuplicado(PDOException $e): void
+    {
+        if (isset($e->errorInfo[1]) && (int) $e->errorInfo[1] === 1062) {
+            throw new InvalidArgumentException('Já existe uma pessoa com esse nome.');
+        }
+        throw $e;
+    }
+}

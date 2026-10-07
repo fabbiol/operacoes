@@ -1,0 +1,58 @@
+<?php $novo = $item === null || empty($item['id']); ?>
+<?php $artigo = $tipo['artigo'] ?? 'Novo'; ?>
+<?php $ficha = !empty($tipo['ficha']); ?>
+<section class="cabeca">
+    <div>
+        <p class="olho"><?= e($tipo['titulo']) ?></p>
+        <h1><?= $novo ? e($artigo . ' ' . $tipo['singular']) : e((string) $item['nome']) ?></h1>
+    </div>
+</section>
+<form method="post" class="formulario"<?= $ficha ? ' enctype="multipart/form-data"' : '' ?> action="<?= e(url('cadastros/' . $tipo['chave'] . ($novo ? '/novo' : '/' . $item['id']))) ?>">
+    <?= csrf_field() ?>
+    <label class="campo">
+        <span><?= e($tipo['rotulo']) ?></span>
+        <input type="text" name="nome" maxlength="120" required value="<?= e((string) ($item['nome'] ?? '')) ?>" autofocus>
+    </label>
+    <?php if ($ficha): ?>
+        <div class="campo">
+            <span>Foto</span>
+            <?php if (!empty($item['foto']) && !empty($item['id'])): ?>
+                <img class="foto-atual" src="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/foto')) ?>" alt="">
+            <?php endif; ?>
+            <input type="file" name="foto" accept="image/jpeg,image/png,image/webp">
+            <small class="dica">JPG, PNG ou WebP, até 5 MB. Sem arquivo novo, a foto atual permanece.</small>
+        </div>
+        <?php if (!empty($item['foto']) && !empty($item['id'])): ?>
+            <label class="check">
+                <input type="checkbox" name="remover_foto" value="1">
+                <span>Remover foto</span>
+            </label>
+        <?php endif; ?>
+        <div class="grade">
+            <label class="campo">
+                <span>Marca</span>
+                <input type="text" name="marca" maxlength="80" value="<?= e((string) ($item['marca'] ?? '')) ?>">
+            </label>
+            <label class="campo">
+                <span>Modelo</span>
+                <input type="text" name="modelo" maxlength="80" value="<?= e((string) ($item['modelo'] ?? '')) ?>">
+            </label>
+        </div>
+        <label class="campo">
+            <span>Ano</span>
+            <input type="text" name="ano" inputmode="numeric" maxlength="4" value="<?= e((string) ($item['ano'] ?? '')) ?>">
+        </label>
+    <?php endif; ?>
+    <label class="campo">
+        <span>Observações</span>
+        <textarea name="observacoes" rows="4" maxlength="4000"><?= e((string) ($item['observacoes'] ?? '')) ?></textarea>
+    </label>
+    <label class="check">
+        <input type="checkbox" name="ativo" value="1" <?= $item === null || (int) ($item['ativo'] ?? 1) === 1 ? 'checked' : '' ?>>
+        <span>Ativo</span>
+    </label>
+    <div class="botoes">
+        <button type="submit" class="btn primario">Salvar</button>
+        <a class="btn secundario" href="<?= e(url('cadastros/' . $tipo['chave'])) ?>">Voltar</a>
+    </div>
+</form>
