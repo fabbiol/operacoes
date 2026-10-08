@@ -3,6 +3,27 @@
 <?php if ($ordem['status'] !== 'liberado'): ?>
     <p class="aviso erro">Essa ordem não está liberada. O início só vale com status liberado.</p>
     <p><a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar ao pátio</a></p>
+<?php elseif ($paFixa === false): ?>
+    <p class="aviso erro">A máquina do menu não é uma pá. Troque para uma pá carregadeira para carregar no pátio.</p>
+    <p><a class="btn secundario" href="<?= e(url('maquina')) ?>">Trocar</a></p>
+<?php elseif (is_array($paFixa)): ?>
+    <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
+        <?= csrf_field() ?>
+        <input type="hidden" name="pa_carregadeira_id" value="<?= (int) $paFixa['id'] ?>">
+        <p class="nota">Pá carregadeira</p>
+        <p class="cliente"><?= e((string) $paFixa['nome']) ?></p>
+        <?php if (($paFixa['detalhe'] ?? '') !== ''): ?>
+            <p class="meta"><?= e((string) $paFixa['detalhe']) ?></p>
+        <?php endif; ?>
+        <label class="campo">
+            <span>Operador</span>
+            <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na pá">
+        </label>
+        <div class="botoes">
+            <button type="submit" class="btn primario">Iniciar carregamento</button>
+            <a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar</a>
+        </div>
+    </form>
 <?php elseif ($pas === []): ?>
     <p class="aviso erro">Nenhuma pá carregadeira ativa. O administrativo precisa cadastrar a máquina.</p>
     <p><a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar ao pátio</a></p>

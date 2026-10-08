@@ -28,7 +28,7 @@
         <p class="nota">Conclua esta carga antes de pegar outro caminhão.</p>
     <?php endif; ?>
 <?php else: ?>
-    <?php if (!empty($retroEscolhida)): ?>
+    <?php if (Auth::admin() && !empty($retroEscolhida)): ?>
         <div class="retro-escolhida">
             <span><?= e((string) $retroEscolhida['nome']) ?></span>
             <form method="post" action="<?= e(url('lavra/retro/trocar')) ?>">

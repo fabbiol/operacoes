@@ -187,6 +187,7 @@ final class Operacoes
         }
 
         return [
+            'id' => (int) $linha['id'],
             'nome' => (string) $linha['nome'],
             'foto' => !empty($linha['foto']) ? url('cadastros/pas/' . (int) $linha['id'] . '/foto') : null,
         ];

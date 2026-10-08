@@ -56,6 +56,9 @@
                                 <img src="<?= e((string) $maquina['foto']) ?>" alt="">
                             <?php endif; ?>
                             <?= e((string) $maquina['nome']) ?>
+                            <?php if (!Auth::admin()): ?>
+                                <a class="link-discreto" href="<?= e(url('maquina')) ?>">Trocar</a>
+                            <?php endif; ?>
                         </span>
                     <?php endforeach; ?>
                 </span>

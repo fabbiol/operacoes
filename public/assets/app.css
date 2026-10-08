@@ -153,6 +153,7 @@ a { color: inherit; }
     flex: none;
     background: #e7e1d6;
 }
+.site-maquina .link-discreto { margin-top: 0; font-size: 13px; }
 .link { font-weight: 700; text-decoration: none; }
 
 .folha {

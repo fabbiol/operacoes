@@ -104,45 +104,194 @@ function url_foto_retro(array $linha): ?string
     return url('cadastros/retros/' . $id . '/foto');
 }
 
-function maquinas_do_usuario(): array
+function maquina_chave(string $tipo): ?string
 {
-    if (!Auth::ok()) {
+    return match ($tipo) {
+        'caminhao' => 'caminhoes',
+        'pa' => 'pas',
+        'retro' => 'retros',
+        default => null,
+    };
+}
+
+function maquina_tipos_do_usuario(): array
+{
+    if (!Auth::ok() || Auth::admin()) {
         return [];
     }
-
-    $nome = Auth::usuario();
-    $itens = [];
+    $tipos = [];
     if (Auth::motorista()) {
-        $caminhao = Lavra::caminhaoDoMotorista($nome);
-        if ($caminhao !== null) {
-            $itens[] = $caminhao;
+        $tipos[] = 'caminhao';
+    }
+    if (Auth::operador()) {
+        $tipos[] = 'pa';
+        $tipos[] = 'retro';
+    }
+
+    return $tipos;
+}
+
+function maquina_item(string $tipo, string $chave, array $cadastro): array
+{
+    $id = (int) $cadastro['id'];
+    $detalhe = [];
+    foreach (['marca', 'modelo', 'ano'] as $campo) {
+        $valor = trim((string) ($cadastro[$campo] ?? ''));
+        if ($valor !== '') {
+            $detalhe[] = $valor;
         }
     }
+    $rotulos = [
+        'caminhao' => 'Caminhão',
+        'pa' => 'Pá carregadeira',
+        'retro' => 'Retroescavadeira',
+    ];
+
+    return [
+        'tipo' => $tipo,
+        'id' => $id,
+        'nome' => (string) $cadastro['nome'],
+        'detalhe' => implode(' · ', $detalhe),
+        'foto' => !empty($cadastro['foto']) ? url('cadastros/' . $chave . '/' . $id . '/foto') : null,
+        'rotulo' => $rotulos[$tipo] ?? 'Máquina',
+    ];
+}
+
+function maquina_limpar(): void
+{
+    unset($_SESSION['maquina'], $_SESSION['retroescavadeira_id']);
+}
+
+function maquina_definir(string $tipo, int $id): void
+{
+    $_SESSION['maquina'] = ['tipo' => $tipo, 'id' => $id];
+    if ($tipo === 'retro') {
+        $_SESSION['retroescavadeira_id'] = $id;
+    } else {
+        unset($_SESSION['retroescavadeira_id']);
+    }
+}
+
+function maquina_escolhida(): ?array
+{
+    $bruta = $_SESSION['maquina'] ?? null;
+    if (!is_array($bruta)) {
+        return null;
+    }
+    $tipo = (string) ($bruta['tipo'] ?? '');
+    $id = (int) ($bruta['id'] ?? 0);
+    $chave = maquina_chave($tipo);
+    if ($chave === null || $id < 1 || !in_array($tipo, maquina_tipos_do_usuario(), true)) {
+        maquina_limpar();
+
+        return null;
+    }
+    $cadastro = Cadastro::buscar($chave, $id);
+    if ($cadastro === null || (int) ($cadastro['ativo'] ?? 0) !== 1) {
+        maquina_limpar();
+
+        return null;
+    }
+    if ($tipo === 'retro') {
+        $_SESSION['retroescavadeira_id'] = $id;
+    }
+
+    return maquina_item($tipo, $chave, $cadastro);
+}
+
+function maquinas_livres(): array
+{
+    $lista = [];
+    $tipos = maquina_tipos_do_usuario();
+    if (in_array('caminhao', $tipos, true)) {
+        $ocupados = [];
+        foreach (Lavra::abertos() as $ciclo) {
+            $ocupados[(int) $ciclo['caminhao_id']] = true;
+        }
+        foreach (Cadastro::opcoes('caminhoes') as $item) {
+            if (isset($ocupados[(int) $item['id']])) {
+                continue;
+            }
+            $lista[] = maquina_item('caminhao', 'caminhoes', $item);
+        }
+    }
+    if (in_array('pa', $tipos, true)) {
+        $ocupados = Operacoes::pasEmUso();
+        foreach (Cadastro::opcoes('pas') as $item) {
+            if (isset($ocupados[(int) $item['id']])) {
+                continue;
+            }
+            $lista[] = maquina_item('pa', 'pas', $item);
+        }
+    }
+    if (in_array('retro', $tipos, true)) {
+        $ocupados = Lavra::retrosEmUso();
+        foreach (Cadastro::opcoes('retros') as $item) {
+            if (isset($ocupados[(int) $item['id']])) {
+                continue;
+            }
+            $lista[] = maquina_item('retro', 'retros', $item);
+        }
+    }
+
+    return $lista;
+}
+
+function maquina_esta_livre(string $tipo, int $id): bool
+{
+    foreach (maquinas_livres() as $item) {
+        if ($item['tipo'] === $tipo && (int) $item['id'] === $id) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function maquina_do_trabalho(): ?array
+{
+    if (!Auth::ok() || Auth::admin()) {
+        return null;
+    }
+    $nome = Auth::usuario();
     if (Auth::operador()) {
         $pa = Operacoes::paEmOperacao($nome);
         if ($pa !== null) {
-            $itens[] = $pa;
-        } else {
-            $carga = Lavra::cargaDoOperador($nome);
-            if ($carga !== null && trim((string) ($carga['retro_nome'] ?? '')) !== '') {
-                $itens[] = [
-                    'nome' => (string) $carga['retro_nome'],
-                    'foto' => url_foto_retro($carga),
-                ];
-            } else {
-                $retroId = (int) ($_SESSION['retroescavadeira_id'] ?? 0);
-                $retro = $retroId > 0 ? Cadastro::buscar('retros', $retroId) : null;
-                if ($retro !== null && (int) ($retro['ativo'] ?? 0) === 1) {
-                    $itens[] = [
-                        'nome' => (string) $retro['nome'],
-                        'foto' => !empty($retro['foto']) ? url('cadastros/retros/' . $retroId . '/foto') : null,
-                    ];
-                }
-            }
+            return ['tipo' => 'pa', 'id' => (int) $pa['id']];
+        }
+        $carga = Lavra::cargaDoOperador($nome);
+        $retroId = (int) ($carga['retroescavadeira_id'] ?? 0);
+        if ($carga !== null && $retroId > 0) {
+            return ['tipo' => 'retro', 'id' => $retroId];
+        }
+    }
+    if (Auth::motorista()) {
+        $caminhao = Lavra::caminhaoDoMotorista($nome);
+        if ($caminhao !== null) {
+            return ['tipo' => 'caminhao', 'id' => (int) $caminhao['id']];
         }
     }
 
-    return $itens;
+    return null;
+}
+
+function maquina_destino(): string
+{
+    return match (maquina_escolhida()['tipo'] ?? '') {
+        'pa' => '/patio',
+        'caminhao', 'retro' => '/lavra',
+        default => Auth::inicio(),
+    };
+}
+
+function maquinas_do_usuario(): array
+{
+    $maquina = maquina_escolhida();
+    if ($maquina === null) {
+        return [];
+    }
+
+    return [$maquina];
 }
 
 function url_foto_operador_carga(array $linha): ?string

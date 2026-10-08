@@ -61,6 +61,13 @@ function despachar(string $path, string $method): void
         redirect('/login');
     }
 
+    if ($path === 'maquina') {
+        tela_maquina($method);
+        return;
+    }
+
+    exigir_maquina();
+
     if ($path === '' || $path === 'inicio') {
         redirect(Auth::inicio());
     }
@@ -110,6 +117,10 @@ function despachar(string $path, string $method): void
         exigir_papel('motorista');
         csrf_check();
         try {
+            $maquina = maquina_escolhida();
+            if (!Auth::admin() && ($maquina === null || $maquina['tipo'] !== 'caminhao' || (int) $maquina['id'] !== (int) $m[1])) {
+                throw new InvalidArgumentException('Entre na fila com o caminhão que está no menu.');
+            }
             Lavra::entrarNaFila((int) $m[1], Auth::usuario(), Auth::motorista());
             flash_set('Caminhão entrou na fila.');
         } catch (InvalidArgumentException $e) {
@@ -140,10 +151,13 @@ function despachar(string $path, string $method): void
         csrf_check();
         $retroId = (int) ($_POST['retroescavadeira_id'] ?? 0);
         $retro = $retroId > 0 ? Cadastro::buscar('retros', $retroId) : null;
-        if ($retro === null || (int) ($retro['ativo'] ?? 0) !== 1) {
-            flash_set('Selecione a retroescavadeira.', 'erro');
-        } else {
+        $ativa = $retro !== null && (int) ($retro['ativo'] ?? 0) === 1;
+        if (Auth::admin() && $ativa) {
             $_SESSION['retroescavadeira_id'] = $retroId;
+        } elseif ($ativa && maquina_esta_livre('retro', $retroId)) {
+            maquina_definir('retro', $retroId);
+        } else {
+            flash_set('Selecione a retroescavadeira.', 'erro');
         }
         redirect('/lavra');
     }
@@ -151,8 +165,11 @@ function despachar(string $path, string $method): void
     if ($path === 'lavra/retro/trocar' && $method === 'POST') {
         exigir_papel('operador');
         csrf_check();
-        unset($_SESSION['retroescavadeira_id']);
-        redirect('/lavra');
+        if (Auth::admin()) {
+            unset($_SESSION['retroescavadeira_id']);
+            redirect('/lavra');
+        }
+        redirect('/maquina');
     }
 
     if (preg_match('#^lavra/ciclos/(\d+)/carga$#', $path, $m)) {
@@ -401,8 +418,18 @@ function tela_iniciar(int $id, string $method): void
     $erro = null;
     $operador = (string) ($_POST['operador'] ?? Auth::usuario());
     $paId = (int) ($_POST['pa_carregadeira_id'] ?? 0);
+    $paFixa = null;
+    if (!Auth::admin()) {
+        $maquina = maquina_escolhida();
+        if ($maquina === null || $maquina['tipo'] !== 'pa') {
+            $paFixa = false;
+        } else {
+            $paFixa = $maquina;
+            $paId = (int) $maquina['id'];
+        }
+    }
 
-    if ($method === 'POST') {
+    if ($method === 'POST' && $paFixa !== false) {
         csrf_check();
         try {
             Operacoes::iniciar($id, $paId, $operador);
@@ -422,6 +449,7 @@ function tela_iniciar(int $id, string $method): void
         'emUso' => Operacoes::pasEmUso($id),
         'operador' => $operador,
         'paId' => $paId,
+        'paFixa' => $paFixa,
         'erro' => $erro,
     ]);
 }
@@ -455,7 +483,12 @@ function tela_finalizar(int $id, string $method): void
 
 function retro_escolhida(): ?array
 {
-    $id = (int) ($_SESSION['retroescavadeira_id'] ?? 0);
+    if (Auth::admin()) {
+        $id = (int) ($_SESSION['retroescavadeira_id'] ?? 0);
+    } else {
+        $maquina = maquina_escolhida();
+        $id = ($maquina !== null && $maquina['tipo'] === 'retro') ? (int) $maquina['id'] : 0;
+    }
     if ($id < 1) {
         return null;
     }
@@ -469,26 +502,104 @@ function retro_escolhida(): ?array
     return $retro;
 }
 
+function exigir_maquina(): void
+{
+    $path = route_path();
+    if (preg_match('#^(usuarios/\d+/foto|cadastros/[a-z]+/\d+/foto)$#', $path)) {
+        return;
+    }
+    if (Auth::admin()) {
+        return;
+    }
+    $trabalho = maquina_do_trabalho();
+    if ($trabalho !== null) {
+        maquina_definir($trabalho['tipo'], $trabalho['id']);
+
+        return;
+    }
+    $escolhida = maquina_escolhida();
+    if ($escolhida !== null && maquina_esta_livre($escolhida['tipo'], (int) $escolhida['id'])) {
+        return;
+    }
+    if ($escolhida !== null) {
+        maquina_limpar();
+    }
+    redirect('/maquina');
+}
+
+function tela_maquina(string $method): void
+{
+    if (Auth::admin()) {
+        redirect('/painel');
+    }
+
+    $travada = maquina_do_trabalho();
+    if ($travada !== null) {
+        maquina_definir($travada['tipo'], $travada['id']);
+    }
+
+    $erro = null;
+    if ($method === 'POST' && $travada === null) {
+        csrf_check();
+        $bruto = (string) ($_POST['maquina'] ?? '');
+        if (preg_match('/^(caminhao|pa|retro):(\d+)$/', $bruto, $partes) && maquina_esta_livre($partes[1], (int) $partes[2])) {
+            maquina_definir($partes[1], (int) $partes[2]);
+            redirect(maquina_destino());
+        }
+        $erro = 'Escolha uma máquina livre.';
+    }
+
+    render('maquina', [
+        'titulo' => 'Máquina',
+        'corpo' => 'lavra',
+        'maquinas' => $travada === null ? maquinas_livres() : [],
+        'atual' => maquina_escolhida(),
+        'travada' => $travada !== null,
+        'erro' => $erro,
+    ]);
+}
+
 function tela_lavra(): void
 {
-    $mostraCiclo = Auth::admin() || Auth::motorista();
-    $mostraCarga = Auth::admin() || Auth::operador();
+    $tipo = maquina_escolhida()['tipo'] ?? '';
+    $mostraCiclo = Auth::admin() || ($tipo === 'caminhao');
+    $mostraCarga = Auth::admin() || ($tipo === 'retro');
     $carga = $mostraCarga ? [
         'filaCarga' => Lavra::naFila(),
         'minhaCarga' => Lavra::cargaDoOperador(Auth::usuario()),
         'retroEscolhida' => retro_escolhida(),
         'retros' => Cadastro::opcoes('retros'),
     ] : [];
+    if (!$mostraCiclo && !$mostraCarga) {
+        render('lavra_carga', [
+            'titulo' => 'Carga na lavra',
+            'corpo' => 'lavra',
+            'foraDaMaquina' => maquina_escolhida(),
+            'filaCarga' => [],
+            'minhaCarga' => null,
+            'retroEscolhida' => null,
+            'retros' => [],
+        ]);
+        return;
+    }
     if (!$mostraCiclo) {
         render('lavra_carga', [
             'titulo' => 'Carga na lavra',
             'corpo' => 'lavra',
+            'foraDaMaquina' => null,
         ] + $carga);
         return;
     }
 
-    $motorista = Auth::motorista();
+    $motorista = !Auth::admin() && Auth::motorista();
     $painel = $motorista ? Lavra::painelDoMotorista(Auth::usuario()) : Lavra::painel();
+    if ($tipo === 'caminhao') {
+        $id = (int) (maquina_escolhida()['id'] ?? 0);
+        $painel['livres'] = array_values(array_filter(
+            $painel['livres'],
+            static fn (array $caminhao): bool => (int) $caminhao['id'] === $id
+        ));
+    }
     render('lavra', [
         'titulo' => 'Ciclo de lavra',
         'corpo' => 'lavra',
@@ -518,6 +629,11 @@ function tela_lavra_iniciar(int $id, string $method): void
     csrf_check();
     $operador = (string) ($_POST['operador'] ?? Auth::usuario());
     $retroId = (int) ($_POST['retroescavadeira_id'] ?? 0);
+    if (!Auth::admin()) {
+        $maquina = maquina_escolhida();
+        $retroId = ($maquina !== null && $maquina['tipo'] === 'retro') ? (int) $maquina['id'] : 0;
+        $operador = Auth::usuario();
+    }
     try {
         Lavra::iniciarCarga($id, $retroId, $operador);
         flash_set('Carga iniciada.');

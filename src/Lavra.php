@@ -557,6 +557,7 @@ final class Lavra
         }
 
         return [
+            'id' => (int) $ciclo['caminhao_id'],
             'nome' => (string) $ciclo['placa'],
             'foto' => url_foto_caminhao($ciclo),
         ];
