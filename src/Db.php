@@ -267,6 +267,12 @@ final class Db
         if (!in_array('encerramento', $colunas, true)) {
             $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN encerramento VARCHAR(160) NULL AFTER operador_carga');
         }
+        if (!in_array('encerramento_ciente_em', $colunas, true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN encerramento_ciente_em DATETIME NULL AFTER encerramento');
+        }
+        if (!in_array('encerramento_ciente_por', $colunas, true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN encerramento_ciente_por VARCHAR(120) NULL AFTER encerramento_ciente_em');
+        }
 
         $restricoes = [];
         $busca = $pdo->query(

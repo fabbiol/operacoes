@@ -125,6 +125,8 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     retroescavadeira_id INT UNSIGNED NULL,
     operador_carga VARCHAR(120) NULL,
     encerramento VARCHAR(160) NULL,
+    encerramento_ciente_em DATETIME NULL,
+    encerramento_ciente_por VARCHAR(120) NULL,
     observacoes TEXT NULL,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

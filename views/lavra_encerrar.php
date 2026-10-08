@@ -26,7 +26,7 @@
             <input type="text" name="outro" maxlength="120" value="<?= e($outro) ?>" placeholder="Obrigatório quando o motivo é outro">
         </label>
         <div class="botoes">
-            <button type="submit" class="btn primario">Encerrar viagem</button>
+            <button type="submit" class="btn encerrar-viagem">Encerrar viagem</button>
             <a class="btn secundario" href="<?= e(url('lavra')) ?>">Voltar</a>
         </div>
     </form>

@@ -76,6 +76,36 @@
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
+    <?php if (($semRetorno ?? []) !== []): ?>
+        <h2>Não volta</h2>
+        <div class="lista">
+            <?php foreach ($semRetorno as $caminhao): ?>
+                <article class="cartao">
+                    <?php
+                    $cancelarCiclo = null;
+                    $ficha = $caminhao;
+                    $ficha['status'] = 'sem_retorno';
+                    $selo = 'Não volta';
+                    require __DIR__ . '/trecho_caminhao.php';
+                    ?>
+                    <p class="cliente"><?= e($caminhao['operador'] ?: 'Sem motorista') ?></p>
+                    <p>Encerrou a viagem e não volta vazio.</p>
+                    <p class="meta"><?php
+                        $aviso = trim((string) ($caminhao['encerramento'] ?? ''));
+                        if (!empty($caminhao['fim_ciclo'])) {
+                            $hora = hora_curta((string) $caminhao['fim_ciclo']);
+                            $aviso = $aviso !== '' ? $aviso . ' · às ' . $hora : 'Às ' . $hora;
+                        }
+                        echo e($aviso);
+                    ?></p>
+                    <form method="post" action="<?= e(url('lavra/ciclos/' . (int) $caminhao['ciclo_id'] . '/ciente')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn primario">Ok</button>
+                    </form>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
     <?php if (($chegou ?? []) !== []): ?>
         <h2>Chegou</h2>
         <div class="lista">

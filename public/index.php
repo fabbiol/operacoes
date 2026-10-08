@@ -205,6 +205,18 @@ function despachar(string $path, string $method): void
         redirect('/lavra');
     }
 
+    if (preg_match('#^lavra/ciclos/(\d+)/ciente$#', $path, $m) && $method === 'POST') {
+        exigir_papel('operador');
+        csrf_check();
+        try {
+            Lavra::cienteSemRetorno((int) $m[1], Auth::usuario());
+            flash_set('Aviso recebido.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/lavra');
+    }
+
     if ($path === 'cadastros') {
         tela_hub();
         return;
@@ -478,6 +490,11 @@ function lavra_marca(): string
             (int) $caminhao['id'],
             $caminhao['fim_ciclo'] ?? null,
         ], Lavra::chegouHoje());
+        $partes['semRetorno'] = array_map(static fn (array $caminhao): array => [
+            (int) $caminhao['id'],
+            $caminhao['fim_ciclo'] ?? null,
+            $caminhao['encerramento'] ?? null,
+        ], Lavra::semRetornoHoje());
     }
     if ($mostraCiclo) {
         $motorista = !Auth::admin() && Auth::motorista();
@@ -815,6 +832,7 @@ function tela_lavra(): void
             'mostrarMovimento' => true,
             'voltando' => Lavra::voltando(),
             'chegou' => Lavra::chegouHoje(),
+            'semRetorno' => Lavra::semRetornoHoje(),
             'fluxoUrl' => url('lavra/situacao'),
             'fluxoMarca' => lavra_marca(),
         ] + $carga);

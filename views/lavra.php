@@ -31,7 +31,7 @@
             <?php $desde = Lavra::desde($ciclo); ?>
             <article class="cartao destaque">
                 <?php if ($ciclo['status'] === 'em_viagem'): ?>
-                    <p class="encerrar"><a class="link-discreto" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a></p>
+                    <a class="btn encerrar-viagem" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a>
                 <?php endif; ?>
                 <?php
                 $cancelarCiclo = in_array($ciclo['status'], ['na_fila', 'carregando'], true)

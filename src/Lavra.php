@@ -417,6 +417,53 @@ final class Lavra
         return Db::pdo()->query($sql)->fetchAll();
     }
 
+    public static function semRetornoHoje(): array
+    {
+        $sql = "SELECT k.id, k.placa AS nome, k.placa, k.ativo, k.marca, k.modelo, k.ano, k.foto, k.capacidade_t,
+                c.id AS ciclo_id, c.fim_ciclo, c.encerramento, c.operador
+            FROM caminhoes k
+            JOIN ciclos_lavra c ON c.caminhao_id = k.id
+                AND c.status = 'concluido'
+                AND c.inicio_retorno IS NULL
+                AND c.encerramento IS NOT NULL
+                AND c.encerramento <> ''
+                AND c.encerramento_ciente_em IS NULL
+                AND c.fim_ciclo >= CURDATE()
+            WHERE k.ativo = 1
+              AND c.id = (
+                    SELECT c2.id FROM ciclos_lavra c2
+                    WHERE c2.caminhao_id = k.id AND c2.status = 'concluido'
+                    ORDER BY c2.fim_ciclo DESC, c2.id DESC
+                    LIMIT 1
+              )
+              AND NOT EXISTS (
+                    SELECT 1 FROM ciclos_lavra aberto
+                    WHERE aberto.caminhao_id = k.id
+                      AND aberto.status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')
+              )
+            ORDER BY c.fim_ciclo DESC, k.placa ASC";
+
+        return Db::pdo()->query($sql)->fetchAll();
+    }
+
+    public static function cienteSemRetorno(int $id, string $operador): void
+    {
+        $ciclo = self::exigir($id);
+        $encerramento = trim((string) ($ciclo['encerramento'] ?? ''));
+        if ($ciclo['status'] !== 'concluido' || $encerramento === '' || !empty($ciclo['inicio_retorno'])) {
+            throw new InvalidArgumentException('Esse aviso já não está na tela.');
+        }
+        if (!empty($ciclo['encerramento_ciente_em'])) {
+            return;
+        }
+        $comando = Db::pdo()->prepare(
+            'UPDATE ciclos_lavra
+             SET encerramento_ciente_em = ?, encerramento_ciente_por = ?
+             WHERE id = ? AND encerramento_ciente_em IS NULL'
+        );
+        $comando->execute([agora_sql(), $operador, $id]);
+    }
+
     public static function cargaDoOperador(string $operador): ?array
     {
         $comando = Db::pdo()->prepare(
