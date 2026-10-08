@@ -1,4 +1,5 @@
 .env
+.hostinger/token
 storage/*.log
 storage/.schema-ok
 storage/fotos/
