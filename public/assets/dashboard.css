@@ -8,7 +8,21 @@ body.dashboard .folha {
     width: min(1280px, calc(100% - 28px));
     padding-bottom: 40px;
 }
-.monitor-nota { margin: 0 0 14px; color: #8b98a5; font-size: 13px; }
+.monitor-topo { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 0 0 14px; }
+.monitor-nota { margin: 0; color: #8b98a5; font-size: 13px; }
+.ampliar {
+    flex: none;
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 1px solid #3a4654;
+    border-radius: 10px;
+    background: #1b2430;
+    color: #f4f7fb;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+.ampliar:hover { border-color: #e0b03a; color: #e0b03a; }
 .estrada-medidas {
     display: flex;
     flex-wrap: wrap;
@@ -152,9 +166,36 @@ body.dashboard .folha {
 .ranking li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid #2c3848; }
 .vazio-monitor { color: #8b98a5; }
 .relogio { margin: 0; color: #8b98a5; font-size: 13px; }
+@media (min-width: 1100px) {
+    body.dashboard .folha { width: min(1920px, calc(100% - 32px)); }
+    .monitor { grid-template-columns: 1.4fr 1fr; align-items: start; }
+    .inds, .horarios, .relogio { grid-column: 1 / -1; }
+}
+body.dashboard.tela-cheia .site,
+body.dashboard.tela-cheia .monitor-nota,
+body.dashboard.tela-cheia .estrada-medidas { display: none; }
+body.dashboard.tela-cheia .folha {
+    width: 100%;
+    max-width: none;
+    padding: 16px 20px 24px;
+}
+body.dashboard.tela-cheia .monitor { grid-template-columns: 1.4fr 1fr; align-items: start; }
+body.dashboard.tela-cheia .inds,
+body.dashboard.tela-cheia .horarios,
+body.dashboard.tela-cheia .relogio { grid-column: 1 / -1; }
+body.dashboard.tela-cheia .ampliar {
+    position: fixed;
+    top: 14px;
+    right: 18px;
+    z-index: 40;
+    background: #10141be6;
+}
+body.dashboard.tela-cheia .ind strong { font-size: 32px; }
+body.dashboard.tela-cheia .cena h2 { font-size: 32px; }
 @media (max-width: 980px) {
     .inds, .expedicao, .horarios { grid-template-columns: 1fr 1fr; }
     .cena h2 { font-size: 22px; }
+    body.dashboard.tela-cheia .monitor { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
     .inds, .expedicao, .horarios, .detalhes { grid-template-columns: 1fr; }

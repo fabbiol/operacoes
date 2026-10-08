@@ -1,4 +1,7 @@
-<p class="monitor-nota">O caminhão na estrada acompanha a etapa do ciclo, o tempo desde o último toque e a distância de cada trecho.</p>
+<div class="monitor-topo">
+    <p class="monitor-nota">O caminhão na estrada acompanha a etapa do ciclo, o tempo desde o último toque e a distância de cada trecho.</p>
+    <button type="button" id="ampliar" class="ampliar">Ampliar</button>
+</div>
 <form class="estrada-medidas" method="post" action="<?= e(url('dashboard/estrada')) ?>">
     <?= csrf_field() ?>
     <label>Ida até o britador

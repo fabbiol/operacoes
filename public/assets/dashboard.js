@@ -212,6 +212,29 @@
             '<p class="relogio">Atualizado às ' + esc(estado.agora) + '</p>';
     }
 
+    var ampliar = document.getElementById('ampliar');
+
+    function telaCheia(ligar) {
+        document.body.classList.toggle('tela-cheia', ligar);
+        if (ampliar) ampliar.textContent = ligar ? 'Reduzir' : 'Ampliar';
+    }
+
+    if (ampliar) {
+        ampliar.addEventListener('click', function () {
+            var ligar = !document.body.classList.contains('tela-cheia');
+            telaCheia(ligar);
+            if (!ligar) {
+                if (document.fullscreenElement) document.exitFullscreen();
+                return;
+            }
+            var pedido = document.documentElement.requestFullscreen;
+            if (pedido) pedido.call(document.documentElement).catch(function () {});
+        });
+        document.addEventListener('fullscreenchange', function () {
+            if (!document.fullscreenElement) telaCheia(false);
+        });
+    }
+
     desenhar(dados);
     setInterval(function () {
         fetch(endereco, { headers: { 'Accept': 'application/json' } })
