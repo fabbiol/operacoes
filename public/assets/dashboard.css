@@ -1,0 +1,129 @@
+body.dashboard { background: #10141b; color: #e7edf2; }
+body.dashboard .site { background: #10141b; border-bottom-color: #2a3340; }
+body.dashboard .brand-name, body.dashboard .brand-name strong { color: #f4f7f8; }
+body.dashboard .menu .link, body.dashboard .menu-rotulo, body.dashboard .site-usuario { color: #c5d0d8; }
+body.dashboard .menu button { color: #e7edf2; border-color: #3a4654; background: transparent; }
+body.dashboard .menu-grupo { background: #1b2430; border-color: #2c3848; }
+body.dashboard .folha {
+    width: min(1280px, calc(100% - 28px));
+    padding-bottom: 40px;
+}
+.monitor-nota { margin: 0 0 14px; color: #8b98a5; font-size: 13px; }
+.monitor { display: grid; gap: 16px; }
+.inds { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.ind {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #1b2430;
+    border: 1px solid #2c3848;
+}
+.ind span, .ind small { display: block; color: #8b98a5; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.ind strong { display: block; margin-top: 4px; font-size: 26px; line-height: 1.1; }
+.cena, .horarios article {
+    padding: 16px;
+    border-radius: 18px;
+    background: #171f2b;
+    border: 1px solid #2c3848;
+}
+.cena header, .horarios { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.cena h2, .horarios h2 { margin: 0; font-size: 28px; }
+.cena header span {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #243140;
+    color: #d5dee6;
+    font-size: 13px;
+    font-weight: 700;
+}
+.pista { position: relative; margin-top: 12px; }
+.pista svg { width: 100%; height: auto; display: block; }
+.pista-corpo { fill: none; stroke: #5d7384; stroke-width: 52; }
+.pista-eixo { fill: none; stroke: #e0d2a2; stroke-width: 3; stroke-dasharray: 16 14; }
+.posto, .miolo { position: absolute; }
+.legenda { margin: 8px 0 0; }
+.posto {
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.posto small { display: block; margin-top: 4px; letter-spacing: 0; text-transform: none; font-size: 12px; font-weight: 700; }
+.posto.lavra { left: 8%; top: 18px; background: #6b4e3a; }
+.posto.britador { right: 8%; top: 18px; background: #3e6670; }
+.miolo { left: 50%; top: 46%; transform: translate(-50%, -50%); text-align: center; color: #d5dee6; font-weight: 700; }
+.miolo small { color: #8b98a5; font-weight: 600; }
+.legenda { left: 16px; bottom: 8px; color: #c5d0d8; font-size: 13px; font-weight: 700; }
+.legenda i { display: inline-block; width: 10px; height: 10px; margin: 0 4px 0 10px; border-radius: 99px; }
+.veiculo {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 8px;
+    border: 2px solid #1b1408;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: default;
+    transition: left 1.6s linear, top 1.6s linear;
+}
+.veiculo i { width: 14px; height: 12px; border-radius: 2px; background: #243140; }
+.veiculo.carregado { background: #e0b03a; color: #1b1408; }
+.veiculo.espera { background: #c9b48a; color: #1b1408; }
+.veiculo.vazio { background: #3cbfa8; color: #06241f; }
+.legenda .ponto-carregado { background: #e0b03a; }
+.legenda .ponto-fila { background: #c9b48a; }
+.legenda .ponto-volta { background: #3cbfa8; }
+.detalhes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 8px; }
+.ficha-veiculo, .cliente-fila, .pa, .pilha {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #121922;
+    border: 1px solid #2c3848;
+}
+.ficha-veiculo header, .cliente-fila { display: flex; justify-content: space-between; gap: 8px; }
+.ficha-veiculo p, .cliente-fila p, .pa p { margin: 4px 0 0; color: #d5dee6; }
+.ficha-veiculo span, .cliente-fila small, .pa small { color: #8b98a5; font-size: 12px; font-weight: 700; }
+.expedicao { display: grid; grid-template-columns: 0.8fr 1.1fr 1fr; gap: 14px; margin-top: 14px; }
+.coluna h3, .horarios h2 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: #8b98a5; }
+.pilha { display: grid; gap: 6px; margin-bottom: 8px; }
+.pilha.ativa { border-color: #e0b03a; }
+.monte {
+    height: 54px;
+    border-radius: 10px;
+    background:
+        linear-gradient(#8ea0ae, #8ea0ae) 20% 70% / 46% 18% no-repeat,
+        linear-gradient(#6e8494, #6e8494) 55% 62% / 58% 22% no-repeat,
+        #243140;
+}
+.pa { margin-bottom: 8px; }
+.pa strong, .pa small { display: block; }
+.pa.ocupada { border-color: #e0b03a; }
+.pa.retro { border-color: #3cbfa8; }
+.cliente-fila { display: block; margin-bottom: 8px; }
+.horarios { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.barras { display: flex; align-items: end; gap: 12px; min-height: 168px; }
+.coluna-hora { flex: 1; max-width: 88px; display: flex; flex-direction: column; align-items: center; }
+.coluna-hora .marca { margin: 0 0 6px; text-align: center; line-height: 1.25; }
+.coluna-hora .marca strong { display: block; font-size: 14px; color: #f4f7fb; }
+.coluna-hora .marca small { color: #8b98a5; font-size: 11px; }
+.trilho { display: flex; align-items: end; width: 28px; height: 88px; }
+.trilho i { display: block; width: 100%; border-radius: 6px 6px 0 0; }
+.barra-lavra { background: #e0b03a; }
+.barra-patio { background: #3cbfa8; }
+.coluna-hora .hora { margin-top: 4px; color: #8b98a5; font-size: 11px; }
+.ranking { list-style: none; margin: 12px 0 0; padding: 0; }
+.ranking li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid #2c3848; }
+.vazio-monitor { color: #8b98a5; }
+.relogio { margin: 0; color: #8b98a5; font-size: 13px; }
+@media (max-width: 980px) {
+    .inds, .expedicao, .horarios { grid-template-columns: 1fr 1fr; }
+    .cena h2 { font-size: 22px; }
+}
+@media (max-width: 640px) {
+    .inds, .expedicao, .horarios, .detalhes { grid-template-columns: 1fr; }
+}

@@ -276,6 +276,20 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'dashboard') {
+        exigir_admin();
+        tela_dashboard();
+        return;
+    }
+
+    if ($path === 'dashboard/dados') {
+        exigir_admin();
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(Dashboard::instantaneo(), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     if ($path === 'fila') {
         tela_fila();
         return;
@@ -816,6 +830,15 @@ function tela_trabalhos(): void
         'itens' => $itens,
         'patio' => $patio,
         'lavra' => $lavra,
+    ]);
+}
+
+function tela_dashboard(): void
+{
+    render('dashboard', [
+        'titulo' => 'Monitor',
+        'corpo' => 'dashboard',
+        'instantaneo' => Dashboard::instantaneo(),
     ]);
 }
 

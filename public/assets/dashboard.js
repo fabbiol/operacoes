@@ -1,0 +1,185 @@
+(function () {
+    var raiz = document.getElementById('monitor');
+    var bruto = document.getElementById('monitor-dados');
+    var dados = JSON.parse(bruto.textContent);
+    var endereco = bruto.getAttribute('data-url');
+
+    function esc(valor) {
+        return String(valor == null ? '' : valor).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function numero(valor, casas) {
+        if (valor == null || valor === '') return '—';
+        return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+    }
+
+    function tempo(segundos) {
+        if (segundos == null) return '—';
+        segundos = Math.max(0, Math.round(segundos));
+        var h = Math.floor(segundos / 3600);
+        var m = Math.floor((segundos % 3600) / 60);
+        if (h > 0) return h + ' h ' + String(m).padStart(2, '0') + ' min';
+        if (m > 0) return m + ' min';
+        return segundos + ' s';
+    }
+
+    function cartao(rotulo, valor, extra) {
+        return '<article class="ind"><span>' + esc(rotulo) + '</span><strong>' + valor + '</strong>' +
+            (extra ? '<small>' + extra + '</small>' : '') + '</article>';
+    }
+
+    function lugar(item, slot, total) {
+        var desvio = (slot - (total - 1) / 2) * 7;
+        if (item.faixa === 'lavra') {
+            return { x: 21, y: 50 + desvio };
+        }
+        var saida = 21;
+        var chegada = 79;
+        if (item.faixa === 'ida') {
+            return { x: saida + item.progresso * (chegada - saida), y: 24 };
+        }
+        return { x: chegada - item.progresso * (chegada - saida), y: 74 };
+    }
+
+    function caminhoes(lista) {
+        var grupos = { lavra: [], ida: [], volta: [] };
+        lista.forEach(function (item) { (grupos[item.faixa] || grupos.lavra).push(item); });
+        return lista.map(function (item) {
+            var grupo = grupos[item.faixa] || [item];
+            var ponto = lugar(item, grupo.indexOf(item), grupo.length);
+            var cor = item.faixa === 'volta' ? 'vazio' : (item.status === 'na_fila' ? 'espera' : 'carregado');
+            return '<button type="button" class="veiculo ' + cor + '" style="left:' + ponto.x + '%;top:' + ponto.y + '%" data-id="' + item.id + '">' +
+                '<b>' + esc(item.placa) + '</b><i></i></button>';
+        }).join('');
+    }
+
+    function detalheLavra(lista, escolhido) {
+        if (!lista.length) return '<p class="vazio-monitor">Nenhum caminhão em ciclo.</p>';
+        return lista.map(function (item) {
+            var cap = item.capacidade == null ? 'Sem capacidade' : numero(item.capacidade, 2) + ' t';
+            var tons = item.toneladas == null ? '—' : numero(item.toneladas, 2) + ' t hoje';
+            return '<article class="ficha-veiculo' + (escolhido === item.id ? ' escolhido' : '') + '" data-id="' + item.id + '">' +
+                '<header><strong>' + esc(item.placa) + '</strong><span>' + esc(item.estado) + '</span></header>' +
+                '<p>' + esc(item.motorista || 'Sem motorista') + ' · ' + cap + '</p>' +
+                '<p>' + item.viagens + ' viagens · ' + tons + ' · parado ' + esc(item.parado) + ' desde ' + esc(item.desde) + '</p>' +
+                (item.retro ? '<p>Retro ' + esc(item.retro) + (item.operador_carga ? ' · ' + esc(item.operador_carga) : '') + '</p>' : '') +
+                '</article>';
+        }).join('');
+    }
+
+    function barras(horas, classe) {
+        if (!horas.length) return '<p class="vazio-monitor">Sem movimento hoje.</p>';
+        var topo = Math.max.apply(null, horas.map(function (h) { return h.toneladas || h.viagens; }));
+        topo = topo > 0 ? topo : 1;
+        return '<div class="barras">' + horas.map(function (h) {
+            var altura = Math.max(8, Math.round(((h.toneladas || h.viagens) / topo) * 100));
+            var texto = h.viagens === 1 ? '1 viagem' : h.viagens + ' viagens';
+            return '<div class="coluna-hora">' +
+                '<p class="marca"><strong>' + numero(h.toneladas, 2) + ' t</strong><small>' + texto + '</small></p>' +
+                '<span class="trilho"><i style="height:' + altura + '%" class="' + classe + '"></i></span>' +
+                '<small class="hora">' + h.hora + 'h</small>' +
+                '</div>';
+        }).join('') + '</div>';
+    }
+
+    function pilhas(materiais, ativo) {
+        if (!materiais.length) return '<p class="vazio-monitor">Nenhum material ativo.</p>';
+        return materiais.map(function (item) {
+            return '<article class="pilha' + (ativo === item.nome ? ' ativa' : '') + '"><span class="monte"></span><strong>' + esc(item.nome) + '</strong></article>';
+        }).join('');
+    }
+
+    function maquinas(lista) {
+        if (!lista.length) return '<p class="vazio-monitor">Nenhuma pá ativa.</p>';
+        return lista.map(function (item) {
+            var ordem = item.ordem;
+            return '<article class="pa ' + item.tipo + (ordem ? ' ocupada' : '') + '">' +
+                '<strong>' + esc(item.nome) + '</strong>' +
+                '<small>' + (item.tipo === 'retro' ? 'Retro no pátio' : 'Pá carregadeira') + '</small>' +
+                (ordem
+                    ? '<p>' + esc(ordem.ordem) + ' · ' + esc(ordem.cliente) + '</p><p>' + esc(ordem.produto) + ' · ' + numero(ordem.quantidade, 2) + ' ' + esc(ordem.unidade) + '</p>'
+                    : '<p>Livre</p>') +
+                '</article>';
+        }).join('');
+    }
+
+    function fila(lista, titulo) {
+        if (!lista.length) return '';
+        return '<h3>' + esc(titulo) + '</h3>' + lista.map(function (item) {
+            return '<article class="cliente-fila"><strong>' + esc(item.ordem) + '</strong>' +
+                '<p>' + esc(item.cliente) + '</p>' +
+                '<p>' + esc(item.produto) + ' · ' + numero(item.quantidade, 2) + ' ' + esc(item.unidade) + '</p>' +
+                '<small>Pedido ' + esc(item.pedido) + ' · NF ' + esc(item.nf) + ' · ' + esc(item.chegada) + '</small></article>';
+        }).join('');
+    }
+
+    function desenhar(estado) {
+        var lavra = estado.lavra;
+        var patio = estado.patio;
+        var ind = lavra.indicadores;
+        var indP = patio.indicadores;
+        var produtoAtivo = '';
+        patio.maquinas.forEach(function (item) {
+            if (item.ordem) produtoAtivo = item.ordem.produto;
+        });
+        raiz.innerHTML =
+            '<section class="inds">' +
+                cartao('Em ciclo', ind.operacao) +
+                cartao('Viagens', ind.viagens) +
+                cartao('Lavra hoje', ind.toneladas == null ? '—' : numero(ind.toneladas, 2) + ' t', ind.volume == null ? '' : numero(ind.volume, 2) + ' m³') +
+                cartao('t/h lavra', ind.por_hora == null ? '—' : numero(ind.por_hora, 1)) +
+                cartao('Ciclo médio', tempo(ind.ciclo)) +
+                cartao('Na fila', ind.parados) +
+                cartao('Aguardando', indP.aguardando) +
+                cartao('Sem autorização', indP.sem_autorizacao) +
+                cartao('Carregando', indP.carregando) +
+                cartao('Expedidas', indP.expedidas) +
+                cartao('Pátio hoje', indP.toneladas == null ? '—' : numero(indP.toneladas, 2) + ' t', indP.volume == null ? '' : numero(indP.volume, 2) + ' m³') +
+                cartao('Espera média', tempo(indP.espera)) +
+            '</section>' +
+            '<section class="cena">' +
+                '<header><h2>01 — Ciclo de lavra</h2><span>Transporte interno</span></header>' +
+                '<div class="pista">' +
+                    '<svg viewBox="0 0 800 360" aria-hidden="true"><path class="pista-corpo" d="M170 80 H630 A100 100 0 0 1 630 280 H170 A100 100 0 0 1 170 80Z"/><path class="pista-eixo" d="M170 80 H630 A100 100 0 0 1 630 280 H170 A100 100 0 0 1 170 80Z"/></svg>' +
+                    '<div class="posto lavra">Lavra' + (lavra.retros.length ? '<small>' + lavra.retros.map(function (r) {
+                        return esc(r.nome) + ' · ' + esc(r.placa);
+                    }).join('<br>') + '</small>' : '') + '</div>' +
+                    '<div class="posto britador">Britador</div>' +
+                    '<p class="miolo">Ciclo de transporte<br><small>Lavra → Britador → Retorno</small></p>' +
+                    caminhoes(lavra.caminhoes) +
+                '</div>' +
+                '<p class="legenda"><i class="ponto-carregado"></i> Carregado <i class="ponto-fila"></i> Na fila <i class="ponto-volta"></i> Retornando</p>' +
+                '<div class="detalhes">' + detalheLavra(lavra.caminhoes, null) + '</div>' +
+            '</section>' +
+            '<section class="cena patio">' +
+                '<header><h2>02 — Expedição no pátio</h2><span>Fila de clientes</span></header>' +
+                '<div class="expedicao">' +
+                    '<div class="coluna"><h3>Pilhas</h3>' + pilhas(patio.materiais, produtoAtivo) + '</div>' +
+                    '<div class="coluna"><h3>Máquinas</h3>' + maquinas(patio.maquinas) + '</div>' +
+                    '<div class="coluna"><h3>Fila</h3>' +
+                        (patio.fila.length ? fila(patio.fila, 'Liberados') : '<p class="vazio-monitor">Nenhum cliente na fila.</p>') +
+                        fila(patio.sem_autorizacao, 'Aguardando autorização') +
+                    '</div>' +
+                '</div>' +
+            '</section>' +
+            '<section class="horarios">' +
+                '<article><h2>Lavra por hora</h2>' + barras(lavra.horas, 'barra-lavra') + '</article>' +
+                '<article><h2>Pátio por hora</h2>' + barras(patio.horas, 'barra-patio') +
+                    (patio.pas.length ? '<ul class="ranking">' + patio.pas.map(function (pa) {
+                        return '<li><span>' + esc(pa.nome) + '</span><strong>' + pa.cargas + '</strong></li>';
+                    }).join('') + '</ul>' : '') +
+                '</article>' +
+            '</section>' +
+            '<p class="relogio">Atualizado às ' + esc(estado.agora) + '</p>';
+    }
+
+    desenhar(dados);
+    setInterval(function () {
+        fetch(endereco, { headers: { 'Accept': 'application/json' } })
+            .then(function (resposta) { return resposta.json(); })
+            .then(desenhar)
+            .catch(function () {});
+    }, 8000);
+})();

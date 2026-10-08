@@ -11,6 +11,9 @@
     <title><?= e($titulo) ?> · Próspera</title>
     <link rel="icon" href="<?= e(url('favicon.svg')) ?>" type="image/svg+xml">
     <link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">
+    <?php if (($corpo ?? '') === 'dashboard'): ?>
+        <link rel="stylesheet" href="<?= e(asset('assets/dashboard.css')) ?>">
+    <?php endif; ?>
 </head>
 <body class="<?= e((string) $corpo) ?>">
     <header class="site">
@@ -26,6 +29,7 @@
                 <?php $caminho = route_path(); ?>
                 <?php if (Auth::admin()): ?>
                     <a class="link<?= $caminho === 'painel' ? ' ativo' : '' ?>" href="<?= e(url('painel')) ?>">Painel</a>
+                    <a class="link<?= $caminho === 'dashboard' ? ' ativo' : '' ?>" href="<?= e(url('dashboard')) ?>">Monitor</a>
                     <div class="menu-grupo">
                         <span class="menu-rotulo">Fila</span>
                         <a class="link<?= ($caminho === 'lavra' || str_starts_with($caminho, 'lavra/')) ? ' ativo' : '' ?>" href="<?= e(url('lavra/fila')) ?>">Lavra</a>
