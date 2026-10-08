@@ -12,11 +12,13 @@ final class Dashboard
         $abertos = Lavra::abertos();
         $medias = $lavra['caminhao']['medias'];
         $viagensHoje = self::viagensPorPlaca($lavra);
+        $estrada = self::estrada();
 
         return [
             'agora' => date('H:i'),
+            'estrada' => $estrada,
             'lavra' => [
-                'caminhoes' => array_map(static fn (array $ciclo): array => self::caminhao($ciclo, $medias, $viagensHoje), $abertos),
+                'caminhoes' => array_map(static fn (array $ciclo): array => self::caminhao($ciclo, $medias, $viagensHoje, $estrada), $abertos),
                 'retros' => self::retrosNaLavra($abertos),
                 'indicadores' => self::indicadoresLavra($abertos, $lavra),
                 'horas' => self::horasLavra($dia),
@@ -25,7 +27,31 @@ final class Dashboard
         ];
     }
 
-    private static function caminhao(array $ciclo, array $medias, array $viagensHoje): array
+    public static function estrada(): array
+    {
+        $linha = Db::pdo()->query('SELECT ida_km, retorno_km FROM estrada WHERE id = 1')->fetch();
+        if (!$linha) {
+            Db::pdo()->exec('INSERT INTO estrada (id, ida_km, retorno_km) VALUES (1, NULL, NULL)');
+
+            return ['ida_km' => null, 'retorno_km' => null];
+        }
+
+        return [
+            'ida_km' => $linha['ida_km'] !== null ? (float) $linha['ida_km'] : null,
+            'retorno_km' => $linha['retorno_km'] !== null ? (float) $linha['retorno_km'] : null,
+        ];
+    }
+
+    public static function salvarEstrada(?float $ida, ?float $retorno): void
+    {
+        self::estrada();
+        Db::pdo()->prepare('UPDATE estrada SET ida_km = ?, retorno_km = ? WHERE id = 1')->execute([
+            $ida,
+            $retorno,
+        ]);
+    }
+
+    private static function caminhao(array $ciclo, array $medias, array $viagensHoje, array $estrada): array
     {
         $status = (string) $ciclo['status'];
         $desde = match ($status) {
@@ -34,6 +60,8 @@ final class Dashboard
             'retornando' => $ciclo['inicio_retorno'] ?? $ciclo['fim_carga'],
             default => $ciclo['inicio_fila'],
         };
+        $naEstrada = in_array($status, ['em_viagem', 'retornando'], true);
+        $distancia = $status === 'em_viagem' ? $estrada['ida_km'] : ($status === 'retornando' ? $estrada['retorno_km'] : null);
         $base = match ($status) {
             'em_viagem' => (int) ($medias['ida'] ?? 0),
             'retornando' => (int) ($medias['retorno'] ?? 0),
@@ -43,9 +71,7 @@ final class Dashboard
             $base = 900;
         }
         $decorrido = segundos_entre((string) $desde, agora_sql()) ?? 0;
-        $progresso = in_array($status, ['em_viagem', 'retornando'], true)
-            ? min(0.92, $decorrido / $base)
-            : 0.0;
+        $progresso = $naEstrada ? min(1, $decorrido / $base) : 0.0;
         $placa = (string) $ciclo['placa'];
         $hoje = $viagensHoje[$placa] ?? ['viagens' => 0, 'toneladas' => null];
 
@@ -62,6 +88,7 @@ final class Dashboard
                 default => 'lavra',
             },
             'progresso' => round($progresso, 3),
+            'km' => $distancia !== null && $naEstrada ? round($progresso * $distancia, 2) : null,
             'retro' => (string) ($ciclo['retro_nome'] ?? ''),
             'operador_carga' => (string) ($ciclo['operador_carga'] ?? ''),
             'desde' => hora_curta((string) $desde),

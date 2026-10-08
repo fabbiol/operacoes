@@ -282,6 +282,12 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'dashboard/estrada' && $method === 'POST') {
+        exigir_admin();
+        tela_dashboard_estrada();
+        return;
+    }
+
     if ($path === 'dashboard/dados') {
         exigir_admin();
         header('Content-Type: application/json; charset=utf-8');
@@ -835,11 +841,43 @@ function tela_trabalhos(): void
 
 function tela_dashboard(): void
 {
+    $estrada = Dashboard::estrada();
     render('dashboard', [
         'titulo' => 'Monitor',
         'corpo' => 'dashboard',
         'instantaneo' => Dashboard::instantaneo(),
+        'idaKm' => $estrada['ida_km'],
+        'retornoKm' => $estrada['retorno_km'],
     ]);
+}
+
+function tela_dashboard_estrada(): void
+{
+    csrf_check();
+    Dashboard::salvarEstrada(km_estrada($_POST['ida_km'] ?? ''), km_estrada($_POST['retorno_km'] ?? ''));
+    flash_set('Distâncias da estrada salvas.');
+    redirect('dashboard');
+}
+
+function km_estrada(string $bruto): ?float
+{
+    $bruto = trim(str_replace([' ', "\xc2\xa0"], '', $bruto));
+    if ($bruto === '') {
+        return null;
+    }
+    if (str_contains($bruto, ',') && str_contains($bruto, '.')) {
+        $bruto = str_replace('.', '', $bruto);
+    }
+    $bruto = str_replace(',', '.', $bruto);
+    if (!preg_match('/^\d+(\.\d+)?$/', $bruto)) {
+        throw new InvalidArgumentException('A distância precisa ser um número em quilômetros.');
+    }
+    $numero = round((float) $bruto, 2);
+    if ($numero <= 0 || $numero > 100) {
+        throw new InvalidArgumentException('A distância precisa ser maior que zero e de até 100 km.');
+    }
+
+    return $numero;
 }
 
 function tela_painel(): void

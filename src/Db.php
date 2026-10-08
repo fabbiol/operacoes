@@ -74,6 +74,7 @@ final class Db
         self::garantirPessoa($pdo);
         self::garantirFicha($pdo);
         self::garantirRetro($pdo);
+        self::garantirEstrada($pdo);
 
         if (!is_dir(dirname($marca))) {
             mkdir(dirname($marca), 0775, true);
@@ -315,5 +316,17 @@ final class Db
                  FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)'
             );
         }
+    }
+
+    private static function garantirEstrada(PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS estrada (
+                id TINYINT UNSIGNED NOT NULL,
+                ida_km DECIMAL(6,2) NULL,
+                retorno_km DECIMAL(6,2) NULL,
+                PRIMARY KEY (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
     }
 }

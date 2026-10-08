@@ -30,25 +30,57 @@
             (extra ? '<small>' + extra + '</small>' : '') + '</article>';
     }
 
-    function lugar(item, slot, total) {
-        var desvio = (slot - (total - 1) / 2) * 7;
-        if (item.faixa === 'lavra') {
-            return { x: 21, y: 50 + desvio };
+    function geometria(estrada) {
+        var ida = estrada && estrada.ida_km > 0 ? estrada.ida_km : 0;
+        var retorno = estrada && estrada.retorno_km > 0 ? estrada.retorno_km : 0;
+        var x0 = 170;
+        var topo = 80;
+        var base = 280;
+        var largura = 460;
+        var idaFim = x0 + largura;
+        var retFim = idaFim;
+        if (ida > 0 && retorno > 0) {
+            var escala = largura / Math.max(ida, retorno);
+            idaFim = x0 + ida * escala;
+            retFim = x0 + retorno * escala;
         }
-        var saida = 21;
-        var chegada = 79;
-        if (item.faixa === 'ida') {
-            return { x: saida + item.progresso * (chegada - saida), y: 24 };
-        }
-        return { x: chegada - item.progresso * (chegada - saida), y: 74 };
+        var direita = Math.max(idaFim, retFim) + 70;
+        var esquerda = x0 - 70;
+        var caminho = 'M' + x0 + ' ' + topo + ' H' + idaFim +
+            ' C' + direita + ' ' + topo + ' ' + direita + ' ' + base + ' ' + retFim + ' ' + base +
+            ' H' + x0 +
+            ' C' + esquerda + ' ' + base + ' ' + esquerda + ' ' + topo + ' ' + x0 + ' ' + topo + ' Z';
+        return {
+            caminho: caminho,
+            ida: ida,
+            retorno: retorno,
+            lavraX: (x0 - 28) / 800 * 100,
+            britadorX: (direita - 28) / 800 * 100,
+            yIda: topo / 360 * 100,
+            yVolta: base / 360 * 100,
+            xSaida: x0 / 800 * 100,
+            xIdaFim: idaFim / 800 * 100,
+            xRetFim: retFim / 800 * 100
+        };
     }
 
-    function caminhoes(lista) {
+    function lugar(item, slot, total, geo) {
+        var desvio = (slot - (total - 1) / 2) * 7;
+        if (item.faixa === 'lavra') {
+            return { x: geo.lavraX, y: 50 + desvio };
+        }
+        if (item.faixa === 'ida') {
+            return { x: geo.xSaida + item.progresso * (geo.xIdaFim - geo.xSaida), y: geo.yIda };
+        }
+        return { x: geo.xRetFim - item.progresso * (geo.xRetFim - geo.xSaida), y: geo.yVolta };
+    }
+
+    function caminhoes(lista, geo) {
         var grupos = { lavra: [], ida: [], volta: [] };
         lista.forEach(function (item) { (grupos[item.faixa] || grupos.lavra).push(item); });
         return lista.map(function (item) {
             var grupo = grupos[item.faixa] || [item];
-            var ponto = lugar(item, grupo.indexOf(item), grupo.length);
+            var ponto = lugar(item, grupo.indexOf(item), grupo.length, geo);
             var cor = item.faixa === 'volta' ? 'vazio' : (item.status === 'na_fila' ? 'espera' : 'carregado');
             return '<button type="button" class="veiculo ' + cor + '" style="left:' + ponto.x + '%;top:' + ponto.y + '%" data-id="' + item.id + '">' +
                 '<b>' + esc(item.placa) + '</b><i></i></button>';
@@ -64,6 +96,7 @@
                 '<header><strong>' + esc(item.placa) + '</strong><span>' + esc(item.estado) + '</span></header>' +
                 '<p>' + esc(item.motorista || 'Sem motorista') + ' · ' + cap + '</p>' +
                 '<p>' + item.viagens + ' viagens · ' + tons + ' · parado ' + esc(item.parado) + ' desde ' + esc(item.desde) + '</p>' +
+                (item.km != null ? '<p>Cerca de ' + numero(item.km, 2) + ' km ' + (item.faixa === 'volta' ? 'do britador' : 'da lavra') + '</p>' : '') +
                 (item.retro ? '<p>Retro ' + esc(item.retro) + (item.operador_carga ? ' · ' + esc(item.operador_carga) : '') + '</p>' : '') +
                 '</article>';
         }).join('');
@@ -124,6 +157,10 @@
         patio.maquinas.forEach(function (item) {
             if (item.ordem) produtoAtivo = item.ordem.produto;
         });
+        var geo = geometria(estado.estrada);
+        var medidas = (geo.ida ? 'Ida ' + numero(geo.ida, 2) + ' km' : '') +
+            (geo.ida && geo.retorno ? ' · ' : '') +
+            (geo.retorno ? 'Retorno ' + numero(geo.retorno, 2) + ' km' : '');
         raiz.innerHTML =
             '<section class="inds">' +
                 cartao('Em ciclo', ind.operacao) +
@@ -142,13 +179,13 @@
             '<section class="cena">' +
                 '<header><h2>01 — Ciclo de lavra</h2><span>Transporte interno</span></header>' +
                 '<div class="pista">' +
-                    '<svg viewBox="0 0 800 360" aria-hidden="true"><path class="pista-corpo" d="M170 80 H630 A100 100 0 0 1 630 280 H170 A100 100 0 0 1 170 80Z"/><path class="pista-eixo" d="M170 80 H630 A100 100 0 0 1 630 280 H170 A100 100 0 0 1 170 80Z"/></svg>' +
-                    '<div class="posto lavra">Lavra' + (lavra.retros.length ? '<small>' + lavra.retros.map(function (r) {
+                    '<svg viewBox="0 0 800 360" aria-hidden="true"><path class="pista-corpo" d="' + geo.caminho + '"/><path class="pista-eixo" d="' + geo.caminho + '"/></svg>' +
+                    '<div class="posto lavra" style="left:' + geo.lavraX + '%">Lavra' + (lavra.retros.length ? '<small>' + lavra.retros.map(function (r) {
                         return esc(r.nome) + ' · ' + esc(r.placa);
                     }).join('<br>') + '</small>' : '') + '</div>' +
-                    '<div class="posto britador">Britador</div>' +
-                    '<p class="miolo">Ciclo de transporte<br><small>Lavra → Britador → Retorno</small></p>' +
-                    caminhoes(lavra.caminhoes) +
+                    '<div class="posto britador" style="left:' + geo.britadorX + '%;right:auto">Britador</div>' +
+                    '<p class="miolo">Ciclo de transporte<br><small>' + (medidas || 'Lavra → Britador → Retorno') + '</small></p>' +
+                    caminhoes(lavra.caminhoes, geo) +
                 '</div>' +
                 '<p class="legenda"><i class="ponto-carregado"></i> Carregado <i class="ponto-fila"></i> Na fila <i class="ponto-volta"></i> Retornando</p>' +
                 '<div class="detalhes">' + detalheLavra(lavra.caminhoes, null) + '</div>' +

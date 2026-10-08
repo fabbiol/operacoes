@@ -105,6 +105,13 @@ CREATE TABLE IF NOT EXISTS caminhoes (
     UNIQUE KEY uniq_caminhao_placa (placa)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS estrada (
+    id TINYINT UNSIGNED NOT NULL,
+    ida_km DECIMAL(6,2) NULL,
+    retorno_km DECIMAL(6,2) NULL,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ciclos_lavra (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     caminhao_id INT UNSIGNED NOT NULL,

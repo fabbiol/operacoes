@@ -9,6 +9,38 @@ body.dashboard .folha {
     padding-bottom: 40px;
 }
 .monitor-nota { margin: 0 0 14px; color: #8b98a5; font-size: 13px; }
+.estrada-medidas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    align-items: end;
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #1b2430;
+    border: 1px solid #2c3848;
+}
+.estrada-medidas label { display: grid; gap: 4px; color: #8b98a5; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+.estrada-medidas input {
+    width: 120px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #3a4654;
+    background: #10141b;
+    color: #f4f7fb;
+    font: inherit;
+}
+.estrada-medidas button {
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: #e0b03a;
+    color: #1b1408;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+.estrada-medidas p { flex-basis: 100%; margin: 0; color: #8b98a5; font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 600; }
 .monitor { display: grid; gap: 16px; }
 .inds { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
 .ind {
@@ -49,8 +81,8 @@ body.dashboard .folha {
     text-transform: uppercase;
 }
 .posto small { display: block; margin-top: 4px; letter-spacing: 0; text-transform: none; font-size: 12px; font-weight: 700; }
-.posto.lavra { left: 8%; top: 18px; background: #6b4e3a; }
-.posto.britador { right: 8%; top: 18px; background: #3e6670; }
+.posto.lavra { top: 18px; background: #6b4e3a; transform: translateX(-50%); }
+.posto.britador { top: 18px; background: #3e6670; transform: translateX(-50%); }
 .miolo { left: 50%; top: 46%; transform: translate(-50%, -50%); text-align: center; color: #d5dee6; font-weight: 700; }
 .miolo small { color: #8b98a5; font-weight: 600; }
 .legenda { left: 16px; bottom: 8px; color: #c5d0d8; font-size: 13px; font-weight: 700; }
