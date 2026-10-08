@@ -30,7 +30,12 @@
                 <?php $ordem = $item['ordem']; ?>
                 <article class="cartao">
                     <header>
-                        <strong><?= e($ordem['ordem']) ?></strong>
+                        <?php
+                        $fotos = [url_foto_pa($ordem)];
+                        $legenda = (string) $ordem['ordem'];
+                        $destaque = true;
+                        require __DIR__ . '/trecho_quem.php';
+                        ?>
                         <span class="selo status-liberado">Pátio</span>
                     </header>
                     <p class="cliente"><?= e($ordem['cliente']) ?></p>
@@ -46,7 +51,12 @@
                 <?php $ciclo = $item['ciclo']; ?>
                 <article class="cartao">
                     <header>
-                        <strong><?= e($ciclo['placa']) ?></strong>
+                        <?php
+                        $fotos = [url_foto_caminhao($ciclo)];
+                        $legenda = (string) $ciclo['placa'];
+                        $destaque = true;
+                        require __DIR__ . '/trecho_quem.php';
+                        ?>
                         <span class="selo status-em_viagem">Lavra</span>
                     </header>
                     <p class="cliente">Viagem concluída</p>

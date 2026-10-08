@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS usuarios (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     nome VARCHAR(40) NOT NULL,
+    nome_completo VARCHAR(120) NULL,
     senha_hash VARCHAR(255) NOT NULL,
     administrador TINYINT(1) NOT NULL DEFAULT 0,
     papel VARCHAR(20) NOT NULL DEFAULT 'operador',

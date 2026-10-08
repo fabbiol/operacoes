@@ -65,6 +65,35 @@ function url(string $caminho = ''): string
     return $base . '/' . ltrim($caminho, '/');
 }
 
+function url_foto_pessoa(array $linha): ?string
+{
+    if (empty($linha['pessoa_foto']) || (int) ($linha['pessoa_id'] ?? 0) < 1) {
+        return null;
+    }
+
+    return url('usuarios/' . (int) $linha['pessoa_id'] . '/foto');
+}
+
+function url_foto_caminhao(array $linha): ?string
+{
+    $id = (int) ($linha['caminhao_id'] ?? 0);
+    if (empty($linha['foto']) || $id < 1) {
+        return null;
+    }
+
+    return url('cadastros/caminhoes/' . $id . '/foto');
+}
+
+function url_foto_pa(array $linha): ?string
+{
+    $id = (int) ($linha['pa_carregadeira_id'] ?? 0);
+    if (empty($linha['pa_foto']) || $id < 1) {
+        return null;
+    }
+
+    return url('cadastros/pas/' . $id . '/foto');
+}
+
 function asset(string $caminho): string
 {
     $arquivo = OPERACOES_ROOT . '/public/' . ltrim($caminho, '/');

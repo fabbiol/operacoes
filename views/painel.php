@@ -37,14 +37,24 @@
                 <?php foreach ($carregando as $ordem): ?>
                     <article class="cartao">
                         <header>
-                            <strong><?= e($ordem['ordem']) ?></strong>
+                            <?php
+                            $fotos = [url_foto_pa($ordem), url_foto_pessoa($ordem)];
+                            $legenda = (string) $ordem['ordem'];
+                            $destaque = true;
+                            require __DIR__ . '/trecho_quem.php';
+                            ?>
                             <span class="selo status-carregando">Carregando</span>
                         </header>
                         <p class="cliente"><?= e($ordem['cliente']) ?></p>
                         <?php if ($ordem['inicio_carregamento']): ?>
                             <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $ordem['inicio_carregamento']) ?>"><?= e(texto_duracao(segundos_entre((string) $ordem['inicio_carregamento'], agora_sql()))) ?></time></p>
                         <?php endif; ?>
-                        <p class="meta"><?= e($ordem['pa_nome'] ?: 'Sem pá') ?> · <?= e($ordem['operador'] ?: 'Sem operador') ?></p>
+                        <p class="meta"><?php
+                            $fotos = [];
+                            $legenda = ($ordem['pa_nome'] ?: 'Sem pá') . ' · ' . ($ordem['operador'] ?: 'Sem operador');
+                            $destaque = false;
+                            require __DIR__ . '/trecho_quem.php';
+                        ?></p>
                     </article>
                 <?php endforeach; ?>
             </div>
@@ -74,7 +84,12 @@
                     ?>
                     <article class="cartao">
                         <header>
-                            <strong><?= e($ciclo['placa']) ?></strong>
+                            <?php
+                            $fotos = [url_foto_caminhao($ciclo), url_foto_pessoa($ciclo)];
+                            $legenda = (string) $ciclo['placa'];
+                            $destaque = true;
+                            require __DIR__ . '/trecho_quem.php';
+                            ?>
                             <span class="selo status-<?= e($ciclo['status']) ?>"><?= e($etapa['rotulo'] ?? '') ?></span>
                         </header>
                         <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
@@ -114,14 +129,26 @@
         <?php if ($cargaDia['maquina']['grupos'] !== []): ?>
             <p class="recortes">
                 <?php foreach ($cargaDia['maquina']['grupos'] as $grupo): ?>
-                    <span><?= e($grupo['titulo']) ?> · <?= (int) $grupo['total'] ?></span>
+                    <span><?php
+                        $amostra = $grupo['linhas'][0] ?? [];
+                        $fotos = [url_foto_pa($amostra)];
+                        $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['total'];
+                        $destaque = false;
+                        require __DIR__ . '/trecho_quem.php';
+                    ?></span>
                 <?php endforeach; ?>
             </p>
         <?php endif; ?>
         <?php if ($cargaDia['operador']['grupos'] !== []): ?>
             <p class="recortes">
                 <?php foreach ($cargaDia['operador']['grupos'] as $grupo): ?>
-                    <span><?= e($grupo['titulo']) ?> · <?= (int) $grupo['total'] ?></span>
+                    <span><?php
+                        $amostra = $grupo['linhas'][0] ?? [];
+                        $fotos = [url_foto_pessoa($amostra)];
+                        $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['total'];
+                        $destaque = false;
+                        require __DIR__ . '/trecho_quem.php';
+                    ?></span>
                 <?php endforeach; ?>
             </p>
         <?php endif; ?>
@@ -158,14 +185,26 @@
         <?php if ($lavraDia['caminhao']['grupos'] !== []): ?>
             <p class="recortes">
                 <?php foreach ($lavraDia['caminhao']['grupos'] as $grupo): ?>
-                    <span><?= e($grupo['titulo']) ?> · <?= (int) $grupo['viagens'] ?></span>
+                    <span><?php
+                        $amostra = $grupo['linhas'][0] ?? [];
+                        $fotos = [url_foto_caminhao($amostra)];
+                        $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['viagens'];
+                        $destaque = false;
+                        require __DIR__ . '/trecho_quem.php';
+                    ?></span>
                 <?php endforeach; ?>
             </p>
         <?php endif; ?>
         <?php if ($lavraDia['motorista']['grupos'] !== []): ?>
             <p class="recortes">
                 <?php foreach ($lavraDia['motorista']['grupos'] as $grupo): ?>
-                    <span><?= e($grupo['titulo']) ?> · <?= (int) $grupo['viagens'] ?></span>
+                    <span><?php
+                        $amostra = $grupo['linhas'][0] ?? [];
+                        $fotos = [url_foto_pessoa($amostra)];
+                        $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['viagens'];
+                        $destaque = false;
+                        require __DIR__ . '/trecho_quem.php';
+                    ?></span>
                 <?php endforeach; ?>
             </p>
         <?php endif; ?>

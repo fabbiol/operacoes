@@ -416,8 +416,10 @@ final class Lavra
 
     private static function sqlBase(): string
     {
-        return 'SELECT c.*, k.placa, k.marca, k.modelo, k.ano, k.foto
+        return 'SELECT c.*, k.placa, k.marca, k.modelo, k.ano, k.foto,
+                u.id AS pessoa_id, u.foto AS pessoa_foto
             FROM ciclos_lavra c
-            JOIN caminhoes k ON k.id = c.caminhao_id';
+            JOIN caminhoes k ON k.id = c.caminhao_id
+            LEFT JOIN usuarios u ON u.nome = c.operador';
     }
 }

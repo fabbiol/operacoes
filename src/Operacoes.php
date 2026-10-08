@@ -481,10 +481,12 @@ final class Operacoes
                 p.marca AS pa_marca,
                 p.modelo AS pa_modelo,
                 p.ano AS pa_ano,
-                p.foto AS pa_foto
+                p.foto AS pa_foto,
+                u.id AS pessoa_id, u.foto AS pessoa_foto
             FROM fila_carregamentos f
             JOIN materiais m ON m.id = f.material_id
-            LEFT JOIN pas_carregadeiras p ON p.id = f.pa_carregadeira_id';
+            LEFT JOIN pas_carregadeiras p ON p.id = f.pa_carregadeira_id
+            LEFT JOIN usuarios u ON u.nome = f.operador';
     }
 
     private static function escaparLike(string $termo): string

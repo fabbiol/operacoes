@@ -14,9 +14,9 @@
 
 <?php if ($emCiclo === [] && $livres === []): ?>
     <?php if (!empty($semCadastro)): ?>
-        <p class="vazio">Nenhum caminhão cadastrado.
+        <p class="vazio">Nenhum caminhão cadastrado.<?php if (Auth::admin()): ?>
             <a href="<?= e(url('cadastros/caminhoes/novo')) ?>">Cadastrar o primeiro</a>.
-        </p>
+        <?php endif; ?></p>
     <?php else: ?>
         <p class="vazio">Nenhum caminhão disponível agora.</p>
     <?php endif; ?>
@@ -29,18 +29,27 @@
             <?php $etapa = Lavra::etapas()[$ciclo['status']]; ?>
             <?php $desde = Lavra::desde($ciclo); ?>
             <article class="cartao destaque">
-                <?php $ficha = $ciclo; $selo = $etapa['rotulo']; require __DIR__ . '/trecho_caminhao.php'; ?>
+                <?php
+                $cancelarCiclo = url('lavra/ciclos/' . $ciclo['id'] . '/cancelar');
+                $ficha = $ciclo;
+                $selo = $etapa['rotulo'];
+                require __DIR__ . '/trecho_caminhao.php';
+                ?>
                 <p class="carga">
                     <?php if ($desde): ?>
                         <time data-desde="<?= (int) strtotime($desde) ?>"><?= e(texto_duracao(segundos_entre($desde, agora_sql()))) ?></time>
                     <?php endif; ?>
                 </p>
-                <p class="meta">Desde <?= e(hora_curta($desde)) ?><?php if ($ciclo['operador']): ?> · <?= e($ciclo['operador']) ?><?php endif; ?></p>
+                <p class="meta"><?php
+                    $fotos = [url_foto_pessoa($ciclo)];
+                    $legenda = 'Desde ' . hora_curta($desde) . ($ciclo['operador'] ? ' · ' . $ciclo['operador'] : '');
+                    $destaque = false;
+                    require __DIR__ . '/trecho_quem.php';
+                ?></p>
                 <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn primario"><?= e($etapa['acao']) ?></button>
                 </form>
-                <a class="link-discreto" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/cancelar')) ?>">Cancelar ciclo</a>
             </article>
         <?php endforeach; ?>
     </div>
@@ -51,7 +60,7 @@
     <div class="lista">
         <?php foreach ($livres as $caminhao): ?>
             <article class="cartao">
-                <?php $ficha = $caminhao; $selo = ''; require __DIR__ . '/trecho_caminhao.php'; ?>
+                <?php $cancelarCiclo = null; $ficha = $caminhao; $selo = ''; require __DIR__ . '/trecho_caminhao.php'; ?>
                 <form method="post" action="<?= e(url('lavra/caminhoes/' . $caminhao['id'] . '/fila')) ?>">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn primario">Entrou na fila</button>

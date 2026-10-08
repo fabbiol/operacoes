@@ -14,9 +14,7 @@
             <span>Motivo</span>
             <input type="text" name="motivo" maxlength="300" value="<?= e($motivo) ?>" placeholder="Opcional">
         </label>
-        <div class="botoes">
-            <button type="submit" class="btn perigo">Cancelar ciclo</button>
-            <a class="btn secundario" href="<?= e(url('lavra')) ?>">Voltar</a>
-        </div>
+        <a class="btn primario" href="<?= e(url('lavra')) ?>">Voltar</a>
+        <button type="submit" class="acao-perigosa">Cancelar ciclo</button>
     </form>
 <?php endif; ?>

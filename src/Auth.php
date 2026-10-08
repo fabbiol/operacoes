@@ -106,17 +106,7 @@ final class Auth
 
     public static function podeCadastro(string $chave): bool
     {
-        if (self::admin()) {
-            return true;
-        }
-        if ($chave === 'caminhoes' && self::motorista()) {
-            return true;
-        }
-        if ($chave === 'pas' && self::operador()) {
-            return true;
-        }
-
-        return false;
+        return self::admin();
     }
 
     public static function inicio(): string
@@ -199,11 +189,7 @@ final class Auth
         }
 
         if ($linha) {
-            session_regenerate_id(true);
-            $_SESSION['auth'] = true;
-            $_SESSION['usuario'] = (string) $linha['nome'];
-            $_SESSION['visto'] = time();
-            unset($_SESSION['login_falhas'], $_SESSION['login_bloqueado_ate']);
+            self::abrirSessao((string) $linha['nome']);
 
             return true;
         }
@@ -216,6 +202,19 @@ final class Auth
         }
 
         return false;
+    }
+
+    public static function entrarPorPessoa(int $id): bool
+    {
+        self::garantirUsuarios();
+        self::$falhaLogin = '';
+        $pessoa = Pessoas::elegivelEntrada($id);
+        if ($pessoa === null) {
+            return false;
+        }
+        self::abrirSessao((string) $pessoa['nome']);
+
+        return true;
     }
 
     public static function renovar(): void
@@ -263,8 +262,8 @@ final class Auth
         $pdo = Db::pdo();
         $existe = $pdo->prepare('SELECT id FROM usuarios WHERE nome = ? LIMIT 1');
         $inserir = $pdo->prepare(
-            'INSERT INTO usuarios (nome, senha_hash, administrador, papel, motorista, operador, ativo)
-             VALUES (?, ?, ?, ?, ?, ?, 1)'
+            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, ativo)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 1)'
         );
         $fixarAdmin = $pdo->prepare(
             "UPDATE usuarios SET administrador = 1, papel = 'admin', motorista = 0, operador = 0 WHERE nome = ?"
@@ -283,6 +282,7 @@ final class Auth
             $papel = $admin ? 'admin' : $item['papel'];
             $inserir->execute([
                 $nome,
+                $nome,
                 password_hash($item['senha'], PASSWORD_DEFAULT),
                 $admin ? 1 : 0,
                 $papel,
@@ -290,6 +290,15 @@ final class Auth
                 $operador,
             ]);
         }
+    }
+
+    private static function abrirSessao(string $nome): void
+    {
+        session_regenerate_id(true);
+        $_SESSION['auth'] = true;
+        $_SESSION['usuario'] = $nome;
+        $_SESSION['visto'] = time();
+        unset($_SESSION['login_falhas'], $_SESSION['login_bloqueado_ate']);
     }
 
     private static function eu(): ?array

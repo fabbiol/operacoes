@@ -149,6 +149,7 @@ final class Db
             'operador' => 'TINYINT(1) NOT NULL DEFAULT 0',
             'foto' => 'VARCHAR(80) NULL',
             'ativo' => 'TINYINT(1) NOT NULL DEFAULT 1',
+            'nome_completo' => 'VARCHAR(120) NULL',
         ];
         foreach ($novas as $nome => $tipo) {
             if (!in_array($nome, $colunas, true)) {
@@ -156,10 +157,63 @@ final class Db
             }
         }
 
+        $pdo->exec("UPDATE usuarios SET nome_completo = nome WHERE nome_completo IS NULL OR nome_completo = ''");
+        self::separarUsuario($pdo);
+
         $pdo->exec("UPDATE usuarios SET motorista = 1 WHERE papel = 'motorista' AND motorista = 0 AND operador = 0");
         $pdo->exec("UPDATE usuarios SET operador = 1 WHERE papel = 'operador' AND motorista = 0 AND operador = 0");
         $pdo->exec("UPDATE usuarios SET motorista = 1, operador = 1 WHERE papel = 'ambos' AND motorista = 0 AND operador = 0");
         $pdo->exec("UPDATE usuarios SET administrador = 1, papel = 'admin' WHERE papel = 'admin' AND administrador = 0");
+    }
+
+    private static function separarUsuario(PDO $pdo): void
+    {
+        $temEspaco = $pdo->query("SELECT id FROM usuarios WHERE administrador = 0 AND nome LIKE '% %' LIMIT 1")->fetch();
+        if (!$temEspaco) {
+            return;
+        }
+
+        $linhas = $pdo->query('SELECT id, nome, nome_completo FROM usuarios WHERE administrador = 0')->fetchAll();
+        $ocupados = [];
+        foreach ($linhas as $linha) {
+            $ocupados[mb_strtolower((string) $linha['nome'], 'UTF-8')] = (int) $linha['id'];
+        }
+        $atualizar = $pdo->prepare('UPDATE usuarios SET nome = ?, nome_completo = ? WHERE id = ? AND nome = ?');
+        $ciclo = $pdo->prepare('UPDATE ciclos_lavra SET operador = ? WHERE operador = ?');
+        $fila = $pdo->prepare('UPDATE fila_carregamentos SET operador = ? WHERE operador = ?');
+        foreach ($linhas as $linha) {
+            $nome = (string) $linha['nome'];
+            if (!str_contains($nome, ' ')) {
+                continue;
+            }
+            $partes = preg_split('/\s+/u', $nome) ?: [];
+            $usuario = (string) ($partes[0] ?? '');
+            if ($usuario === '' || !preg_match('/^[\p{L}][\p{L}\p{N}]{0,39}$/u', $usuario)) {
+                continue;
+            }
+            $chave = mb_strtolower($usuario, 'UTF-8');
+            if (isset($ocupados[$chave]) && $ocupados[$chave] !== (int) $linha['id']) {
+                continue;
+            }
+            $completo = trim((string) ($linha['nome_completo'] ?? ''));
+            if ($completo === '') {
+                $completo = $nome;
+            }
+            $pdo->beginTransaction();
+            try {
+                $ciclo->execute([$usuario, $nome]);
+                $fila->execute([$usuario, $nome]);
+                $atualizar->execute([$usuario, $completo, (int) $linha['id'], $nome]);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
+            }
+            unset($ocupados[mb_strtolower($nome, 'UTF-8')]);
+            $ocupados[$chave] = (int) $linha['id'];
+        }
     }
 
     private static function garantirFicha(PDO $pdo): void

@@ -7,7 +7,7 @@ final class Pessoas
     public static function listar(): array
     {
         return Db::pdo()->query(
-            'SELECT id, nome, administrador, motorista, operador, foto, ativo
+            'SELECT id, nome, nome_completo, administrador, motorista, operador, foto, ativo
              FROM usuarios
              ORDER BY ativo DESC, administrador DESC, nome ASC'
         )->fetchAll();
@@ -16,13 +16,52 @@ final class Pessoas
     public static function buscar(int $id): ?array
     {
         $busca = Db::pdo()->prepare(
-            'SELECT id, nome, administrador, motorista, operador, foto, ativo
+            'SELECT id, nome, nome_completo, administrador, motorista, operador, foto, ativo
              FROM usuarios WHERE id = ? LIMIT 1'
         );
         $busca->execute([$id]);
         $linha = $busca->fetch();
 
         return $linha ?: null;
+    }
+
+    public static function paraEntrada(): array
+    {
+        $linhas = Db::pdo()->query(
+            'SELECT id, nome, nome_completo, foto, motorista, operador
+             FROM usuarios
+             WHERE ativo = 1 AND administrador = 0 AND (motorista = 1 OR operador = 1)
+             ORDER BY nome ASC'
+        )->fetchAll();
+
+        return array_values(array_filter(
+            $linhas,
+            static fn (array $pessoa): bool => !Auth::administradorFixo((string) $pessoa['nome'])
+        ));
+    }
+
+    public static function elegivelEntrada(int $id): ?array
+    {
+        if ($id < 1) {
+            return null;
+        }
+        $busca = Db::pdo()->prepare(
+            'SELECT id, nome, nome_completo, foto, motorista, operador, administrador, ativo
+             FROM usuarios WHERE id = ? LIMIT 1'
+        );
+        $busca->execute([$id]);
+        $pessoa = $busca->fetch();
+        if (!$pessoa || (int) $pessoa['ativo'] !== 1 || (int) $pessoa['administrador'] === 1) {
+            return null;
+        }
+        if ((int) $pessoa['motorista'] !== 1 && (int) $pessoa['operador'] !== 1) {
+            return null;
+        }
+        if (Auth::administradorFixo((string) $pessoa['nome'])) {
+            return null;
+        }
+
+        return $pessoa;
     }
 
     public static function funcao(array $pessoa): string
@@ -64,9 +103,10 @@ final class Pessoas
         $nome = $fixo
             ? (string) $atual['nome']
             : Auth::nomeSimples((string) ($post['nome'] ?? ''));
-        if ($nome === null || $nome === '') {
-            throw new InvalidArgumentException('Use um nome com letras, sem e-mail.');
+        if ($nome === null || $nome === '' || preg_match('/\s/u', $nome)) {
+            throw new InvalidArgumentException('O usuário é o primeiro nome, sem sobrenome.');
         }
+        $completo = self::nomeCompleto((string) ($post['nome_completo'] ?? ''));
 
         $admin = $atual !== null && (int) $atual['administrador'] === 1;
         if ($admin) {
@@ -97,9 +137,9 @@ final class Pessoas
         $pendente = self::prepararFoto();
         try {
             if ($id === null) {
-                $idSalvo = self::inserir($nome, $senha, $papel, $motorista, $operador, $ativo);
+                $idSalvo = self::inserir($nome, $completo, $senha, $papel, $motorista, $operador, $ativo);
             } else {
-                self::atualizar($id, $nome, $senha, $papel, $motorista, $operador, $ativo, $admin);
+                self::atualizar($id, $nome, $completo, $senha, $papel, $motorista, $operador, $ativo, $admin);
                 $idSalvo = $id;
             }
 
@@ -174,14 +214,14 @@ final class Pessoas
         ];
     }
 
-    private static function inserir(string $nome, string $senha, string $papel, int $motorista, int $operador, int $ativo): int
+    private static function inserir(string $nome, string $completo, string $senha, string $papel, int $motorista, int $operador, int $ativo): int
     {
         $comando = Db::pdo()->prepare(
-            'INSERT INTO usuarios (nome, senha_hash, administrador, papel, motorista, operador, ativo)
-             VALUES (?, ?, 0, ?, ?, ?, ?)'
+            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, ativo)
+             VALUES (?, ?, ?, 0, ?, ?, ?, ?)'
         );
         try {
-            $comando->execute([$nome, password_hash($senha, PASSWORD_DEFAULT), $papel, $motorista, $operador, $ativo]);
+            $comando->execute([$nome, $completo, password_hash($senha, PASSWORD_DEFAULT), $papel, $motorista, $operador, $ativo]);
         } catch (PDOException $e) {
             self::traduzirDuplicado($e);
         }
@@ -192,6 +232,7 @@ final class Pessoas
     private static function atualizar(
         int $id,
         string $nome,
+        string $completo,
         string $senha,
         string $papel,
         int $motorista,
@@ -199,8 +240,8 @@ final class Pessoas
         int $ativo,
         bool $admin
     ): void {
-        $sql = 'UPDATE usuarios SET nome = ?, papel = ?, motorista = ?, operador = ?, ativo = ?';
-        $params = [$nome, $papel, $motorista, $operador, $ativo];
+        $sql = 'UPDATE usuarios SET nome = ?, nome_completo = ?, papel = ?, motorista = ?, operador = ?, ativo = ?';
+        $params = [$nome, $completo, $papel, $motorista, $operador, $ativo];
         if ($senha !== '') {
             $sql .= ', senha_hash = ?';
             $params[] = password_hash($senha, PASSWORD_DEFAULT);
@@ -295,10 +336,20 @@ final class Pessoas
         }
     }
 
+    private static function nomeCompleto(string $valor): string
+    {
+        $valor = trim((string) (preg_replace('/\s+/u', ' ', $valor) ?? ''));
+        if ($valor === '' || str_contains($valor, '@') || !preg_match('/^[\p{L}][\p{L}\p{N} ]{0,119}$/u', $valor)) {
+            throw new InvalidArgumentException('Informe o nome completo da pessoa, sem e-mail.');
+        }
+
+        return $valor;
+    }
+
     private static function traduzirDuplicado(PDOException $e): void
     {
         if (isset($e->errorInfo[1]) && (int) $e->errorInfo[1] === 1062) {
-            throw new InvalidArgumentException('Já existe uma pessoa com esse nome.');
+            throw new InvalidArgumentException('Já existe uma pessoa com esse usuário.');
         }
         throw $e;
     }

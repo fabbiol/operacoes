@@ -43,6 +43,11 @@ function despachar(string $path, string $method): void
         exit;
     }
 
+    if (preg_match('#^entrada/(\d+)/foto$#', $path, $m) && $method === 'GET') {
+        tela_entrada_foto((int) $m[1]);
+        return;
+    }
+
     if ($path === 'login') {
         tela_login($method);
         return;
@@ -148,7 +153,6 @@ function despachar(string $path, string $method): void
     }
 
     if (preg_match('#^cadastros/([a-z]+)/(\d+)/foto$#', $path, $m)) {
-        exigir_cadastro($m[1]);
         tela_cadastro_foto($m[1], (int) $m[2]);
         return;
     }
@@ -285,13 +289,20 @@ function tela_login(string $method): void
     $usuario = '';
     if ($method === 'POST') {
         csrf_check();
-        $usuario = trim((string) ($_POST['usuario'] ?? ''));
-        if (str_contains($usuario, '@')) {
-            $erro = 'Use o nome da pessoa, sem e-mail.';
-        } elseif (Auth::tentar($usuario, (string) ($_POST['senha'] ?? ''))) {
-            redirect('/');
+        if (isset($_POST['pessoa'])) {
+            if (Auth::entrarPorPessoa((int) $_POST['pessoa'])) {
+                redirect('/');
+            }
+            $erro = 'Não foi possível entrar com essa pessoa.';
         } else {
-            $erro = Auth::falhaLogin() !== '' ? Auth::falhaLogin() : 'Usuário ou senha não conferem.';
+            $usuario = trim((string) ($_POST['usuario'] ?? ''));
+            if (str_contains($usuario, '@')) {
+                $erro = 'Use o usuário, sem e-mail.';
+            } elseif (Auth::tentar($usuario, (string) ($_POST['senha'] ?? ''))) {
+                redirect('/');
+            } else {
+                $erro = Auth::falhaLogin() !== '' ? Auth::falhaLogin() : 'Usuário ou senha não conferem.';
+            }
         }
     }
 
@@ -299,7 +310,18 @@ function tela_login(string $method): void
         'titulo' => 'Entrar',
         'erro' => $erro,
         'usuario' => $usuario,
+        'pessoas' => Pessoas::paraEntrada(),
     ]);
+}
+
+function tela_entrada_foto(int $id): void
+{
+    $pessoa = Pessoas::elegivelEntrada($id);
+    if ($pessoa === null || empty($pessoa['foto'])) {
+        http_response_code(404);
+        exit;
+    }
+    tela_pessoa_foto($id);
 }
 
 function tela_patio(): void
@@ -701,6 +723,7 @@ function tela_pessoa_form(?int $id, string $method): void
             $pessoa = [
                 'id' => $id,
                 'nome' => (string) ($_POST['nome'] ?? ($pessoa['nome'] ?? '')),
+                'nome_completo' => (string) ($_POST['nome_completo'] ?? ($pessoa['nome_completo'] ?? '')),
                 'funcao' => (string) ($_POST['funcao'] ?? ''),
                 'ativo' => isset($_POST['ativo']) ? 1 : 0,
                 'foto' => is_array($pessoa) ? ($pessoa['foto'] ?? null) : null,
@@ -717,7 +740,7 @@ function tela_pessoa_form(?int $id, string $method): void
     }
 
     render('pessoa_form', [
-        'titulo' => $pessoa === null || $id === null ? 'Nova pessoa' : (string) $pessoa['nome'],
+        'titulo' => $pessoa === null || $id === null ? 'Nova pessoa' : (string) (($pessoa['nome_completo'] ?? '') !== '' ? $pessoa['nome_completo'] : $pessoa['nome']),
         'pessoa' => $pessoa,
         'erro' => $erro,
     ]);
@@ -726,7 +749,7 @@ function tela_pessoa_form(?int $id, string $method): void
 function tela_pessoa_foto(int $id): void
 {
     $pessoa = Pessoas::buscar($id);
-    if ($pessoa === null || (!Auth::admin() && (int) $pessoa['id'] !== Auth::id())) {
+    if ($pessoa === null) {
         http_response_code(404);
         exit;
     }

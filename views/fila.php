@@ -46,7 +46,12 @@ $filtros = [
         <?php foreach ($ordens as $ordem): ?>
             <a class="cartao" href="<?= e(url('ordens/' . $ordem['id'])) ?>">
                 <header>
-                    <strong><?= e($ordem['ordem']) ?></strong>
+                    <?php
+                    $fotos = [url_foto_pa($ordem), url_foto_pessoa($ordem)];
+                    $legenda = (string) $ordem['ordem'];
+                    $destaque = true;
+                    require __DIR__ . '/trecho_quem.php';
+                    ?>
                     <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
                 </header>
                 <p class="cliente"><?= e($ordem['cliente']) ?></p>

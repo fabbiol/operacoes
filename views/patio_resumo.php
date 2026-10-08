@@ -47,7 +47,13 @@
 
 <?php foreach ($grupos as $grupo): ?>
     <section>
-        <h2><?= e($grupo['titulo']) ?> · <?= (int) $grupo['total'] ?> <?= $grupo['total'] === 1 ? 'carregamento' : 'carregamentos' ?></h2>
+        <h2><?php
+            $amostra = $grupo['linhas'][0] ?? [];
+            $fotos = [$visao === 'operador' ? url_foto_pessoa($amostra) : url_foto_pa($amostra)];
+            $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['total'] . ' ' . ($grupo['total'] === 1 ? 'carregamento' : 'carregamentos');
+            $destaque = true;
+            require __DIR__ . '/trecho_quem.php';
+        ?></h2>
         <div class="tempos">
             <div>
                 <span>Ciclo médio</span>

@@ -9,16 +9,20 @@
 <?php if ($pessoas === []): ?>
     <p class="vazio">Nenhuma pessoa cadastrada.</p>
 <?php else: ?>
-    <ul class="cadastro">
+    <ul class="cadastro pessoas">
         <?php foreach ($pessoas as $pessoa): ?>
             <li class="<?= (int) $pessoa['ativo'] === 1 ? '' : 'inativo' ?>">
                 <a href="<?= e(url('usuarios/' . $pessoa['id'])) ?>">
                     <?php if (!empty($pessoa['foto'])): ?>
-                        <img class="miniatura" src="<?= e(url('usuarios/' . $pessoa['id'] . '/foto')) ?>" alt="">
+                        <img class="pessoa-foto" src="<?= e(url('usuarios/' . $pessoa['id'] . '/foto')) ?>" alt="">
                     <?php endif; ?>
+                    <?php
+                    $completo = trim((string) ($pessoa['nome_completo'] ?? ''));
+                    $usuario = (string) $pessoa['nome'];
+                    ?>
                     <span class="cadastro-texto">
-                        <strong><?= e($pessoa['nome']) ?></strong>
-                        <small><?= e(Pessoas::rotulo($pessoa)) ?></small>
+                        <strong><?= e($completo !== '' ? $completo : $usuario) ?></strong>
+                        <small><?php if ($completo !== '' && $completo !== $usuario): ?><?= e($usuario) ?> · <?php endif; ?><?= e(Pessoas::rotulo($pessoa)) ?></small>
                     </span>
                     <?php if ((int) $pessoa['ativo'] !== 1): ?><span class="selo">Inativo</span><?php endif; ?>
                 </a>

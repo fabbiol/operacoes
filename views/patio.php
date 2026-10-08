@@ -46,7 +46,15 @@
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
-                    <p class="meta"><?= e($etapa) ?> desde <?= e(hora_curta((string) $desde)) ?><?php if ($ordem['status'] === 'carregando' && $ordem['operador']): ?> · <?= e($ordem['operador']) ?><?php endif; ?></p>
+                    <p class="meta"><?php
+                        $fotos = [url_foto_pessoa($ordem)];
+                        $legenda = $etapa . ' desde ' . hora_curta((string) $desde);
+                        if ($ordem['status'] === 'carregando' && $ordem['operador']) {
+                            $legenda .= ' · ' . $ordem['operador'];
+                        }
+                        $destaque = false;
+                        require __DIR__ . '/trecho_quem.php';
+                    ?></p>
                 <?php endif; ?>
                 <?php if ($ordem['status'] === 'carregando'): ?>
                     <a class="btn concluir" href="<?= e(url('carregamentos/' . $ordem['id'] . '/finalizar')) ?>">Finalizar carregamento</a>
@@ -63,10 +71,35 @@
         <h2>Enviadas hoje</h2>
         <ul class="enviadas">
             <?php foreach ($enviadas as $ordem): ?>
+                <?php
+                $fotoPa = url_foto_pa($ordem);
+                $saida = [];
+                if (trim((string) ($ordem['pa_nome'] ?? '')) !== '') {
+                    $saida[] = (string) $ordem['pa_nome'];
+                }
+                if (trim((string) ($ordem['operador'] ?? '')) !== '') {
+                    $saida[] = (string) $ordem['operador'];
+                }
+                $horaSaida = hora_curta($ordem['fim_carregamento'] ?? null);
+                if ($horaSaida !== '') {
+                    $saida[] = $horaSaida;
+                }
+                ?>
                 <li>
-                    <strong><?= e($ordem['ordem']) ?></strong>
-                    <?= e($ordem['cliente']) ?>
-                    <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
+                    <?php if ($fotoPa): ?>
+                        <img class="mini" src="<?= e($fotoPa) ?>" alt="">
+                    <?php endif; ?>
+                    <div class="enviada">
+                        <div class="enviada-topo">
+                            <strong><?= e($ordem['ordem']) ?></strong>
+                            <span><?= e($ordem['cliente']) ?></span>
+                            <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
+                        </div>
+                        <p><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                        <?php if ($saida !== []): ?>
+                            <p class="meta"><?= e(implode(' · ', $saida)) ?></p>
+                        <?php endif; ?>
+                    </div>
                 </li>
             <?php endforeach; ?>
         </ul>

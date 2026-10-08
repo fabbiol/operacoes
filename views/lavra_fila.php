@@ -52,7 +52,12 @@ $etapas = Lavra::etapas();
             ?>
             <article class="cartao">
                 <header>
-                    <strong><?= e($ciclo['placa']) ?></strong>
+                    <?php
+                    $fotos = [url_foto_caminhao($ciclo), url_foto_pessoa($ciclo)];
+                    $legenda = (string) $ciclo['placa'];
+                    $destaque = true;
+                    require __DIR__ . '/trecho_quem.php';
+                    ?>
                     <span class="selo status-<?= e($ciclo['status']) ?>"><?= e($rotulo) ?></span>
                 </header>
                 <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>

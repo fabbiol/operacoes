@@ -35,17 +35,13 @@
                     <a class="link<?= str_starts_with($caminho, 'cadastros') ? ' ativo' : '' ?>" href="<?= e(url('cadastros')) ?>">Cadastros</a>
                 <?php elseif (Auth::ambos()): ?>
                     <a class="link<?= ($caminho === 'lavra' || str_starts_with($caminho, 'lavra/')) ? ' ativo' : '' ?>" href="<?= e(url('lavra')) ?>">Lavra</a>
-                    <a class="link<?= str_starts_with($caminho, 'cadastros/caminhoes') ? ' ativo' : '' ?>" href="<?= e(url('cadastros/caminhoes')) ?>">Caminhões</a>
                     <a class="link<?= ($caminho === 'patio' || str_starts_with($caminho, 'carregamentos/')) ? ' ativo' : '' ?>" href="<?= e(url('patio')) ?>">Pátio</a>
-                    <a class="link<?= str_starts_with($caminho, 'cadastros/pas') ? ' ativo' : '' ?>" href="<?= e(url('cadastros/pas')) ?>">Pás</a>
                     <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
                 <?php elseif (Auth::motorista()): ?>
                     <a class="link<?= ($caminho === 'lavra' || str_starts_with($caminho, 'lavra/')) ? ' ativo' : '' ?>" href="<?= e(url('lavra')) ?>">Lavra</a>
-                    <a class="link<?= str_starts_with($caminho, 'cadastros/caminhoes') ? ' ativo' : '' ?>" href="<?= e(url('cadastros/caminhoes')) ?>">Caminhões</a>
                     <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
                 <?php elseif (Auth::operador()): ?>
                     <a class="link<?= ($caminho === 'patio' || str_starts_with($caminho, 'carregamentos/')) ? ' ativo' : '' ?>" href="<?= e(url('patio')) ?>">Pátio</a>
-                    <a class="link<?= str_starts_with($caminho, 'cadastros/pas') ? ' ativo' : '' ?>" href="<?= e(url('cadastros/pas')) ?>">Pás</a>
                     <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
                 <?php endif; ?>
                 <span class="site-usuario">

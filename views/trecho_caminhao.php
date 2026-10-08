@@ -18,6 +18,9 @@ $placaFicha = (string) ($ficha['placa'] ?? $ficha['nome'] ?? '');
         <?php if ($detalhe !== []): ?>
             <p class="meta"><?= e(implode(' · ', $detalhe)) ?></p>
         <?php endif; ?>
+        <?php if (!empty($cancelarCiclo)): ?>
+            <a class="link-discreto" href="<?= e($cancelarCiclo) ?>">Cancelar ciclo</a>
+        <?php endif; ?>
     </div>
     <?php if (!empty($selo)): ?>
         <span class="selo status-<?= e((string) ($ficha['status'] ?? '')) ?>"><?= e($selo) ?></span>
