@@ -12,6 +12,7 @@
 </section>
 <p class="nota">Fila na lavra, carga na retroescavadeira, ida até o britador e retorno vazio. O tempo de cada etapa é o intervalo entre os toques.</p>
 
+<div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($emCiclo === [] && $livres === []): ?>
     <?php if (!empty($semCadastro)): ?>
         <p class="vazio">Nenhum caminhão cadastrado.<?php if (Auth::admin()): ?>
@@ -103,6 +104,7 @@
         <?php require __DIR__ . '/trecho_carga_lavra.php'; ?>
     </section>
 <?php endif; ?>
+</div>
 
 <script>
 (function () {

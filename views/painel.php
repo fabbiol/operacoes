@@ -6,6 +6,7 @@
     <p class="data"><?= e(data_por_extenso()) ?></p>
 </section>
 
+<div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($autorizar > 0 || $conferir > 0): ?>
     <nav class="parado" aria-label="Esperando o administrativo">
         <?php if ($autorizar > 0): ?>
@@ -236,6 +237,7 @@
             </p>
         <?php endif; ?>
     </section>
+</div>
 </div>
 
 <script>

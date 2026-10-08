@@ -31,6 +31,7 @@ $filtros = [
     <button type="submit" class="btn secundario">Buscar</button>
 </form>
 
+<div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <nav class="filtros" aria-label="Situação">
     <?php foreach ($filtros as $chave => [$rotulo, $total]): ?>
         <a class="<?= $situacao === $chave ? 'ativo' : '' ?>" href="<?= e(url('fila?situacao=' . $chave . ($busca !== '' ? '&q=' . rawurlencode($busca) : ''))) ?>">
@@ -61,3 +62,4 @@ $filtros = [
         <?php endforeach; ?>
     </div>
 <?php endif; ?>
+</div>

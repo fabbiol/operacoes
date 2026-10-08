@@ -82,5 +82,8 @@
         <?php endif; ?>
         <?php require $viewFile; ?>
     </main>
+    <?php if (!empty($fluxoUrl)): ?>
+        <script src="<?= e(asset('assets/fluxo.js')) ?>"></script>
+    <?php endif; ?>
 </body>
 </html>

@@ -83,6 +83,11 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'patio/situacao') {
+        exigir_papel('operador');
+        fluxo_json(patio_marca());
+    }
+
     if ($path === 'patio/resumo') {
         exigir_papel('operador');
         tela_patio_resumo();
@@ -105,6 +110,11 @@ function despachar(string $path, string $method): void
         exigir_papel('motorista', 'operador');
         tela_lavra();
         return;
+    }
+
+    if ($path === 'lavra/situacao') {
+        exigir_papel('motorista', 'operador');
+        fluxo_json(lavra_marca());
     }
 
     if ($path === 'lavra/resumo') {
@@ -276,6 +286,11 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'painel/situacao') {
+        exigir_admin();
+        fluxo_json(painel_marca());
+    }
+
     if ($path === 'dashboard') {
         exigir_admin();
         tela_dashboard();
@@ -299,6 +314,11 @@ function despachar(string $path, string $method): void
     if ($path === 'fila') {
         tela_fila();
         return;
+    }
+
+    if ($path === 'fila/situacao') {
+        exigir_admin();
+        fluxo_json(fila_marca());
     }
 
     if ($path === 'lavra/fila') {
@@ -404,14 +424,172 @@ function tela_entrada_foto(int $id): void
     tela_pessoa_foto($id);
 }
 
+function fluxo_json(string $marca): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode(['marca' => $marca], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function marca_de(array $partes): string
+{
+    $json = json_encode($partes, JSON_UNESCAPED_UNICODE);
+
+    return hash('sha256', $json === false ? '' : $json);
+}
+
+function lavra_marca(): string
+{
+    $tipo = maquina_escolhida()['tipo'] ?? '';
+    $mostraCiclo = Auth::admin() || ($tipo === 'caminhao');
+    $mostraCarga = Auth::admin() || ($tipo === 'retro');
+    $partes = ['ciclo' => $mostraCiclo, 'carga' => $mostraCarga];
+    if (!$mostraCiclo && !$mostraCarga) {
+        $maquina = maquina_escolhida();
+        $partes['fora'] = $maquina['tipo'] ?? '';
+        $partes['id'] = (int) ($maquina['id'] ?? 0);
+
+        return marca_de($partes);
+    }
+    if ($mostraCarga) {
+        $minha = Lavra::cargaDoOperador(Auth::usuario());
+        $retro = retro_escolhida();
+        $partes['fila'] = array_map(static fn (array $ciclo): array => [
+            (int) $ciclo['id'],
+            (string) $ciclo['status'],
+            $ciclo['inicio_fila'] ?? null,
+            $ciclo['operador'] ?? null,
+        ], Lavra::naFila());
+        $partes['minha'] = $minha === null ? null : [
+            (int) $minha['id'],
+            $minha['inicio_carga'] ?? null,
+            (int) ($minha['retroescavadeira_id'] ?? 0),
+        ];
+        $partes['retro'] = (int) ($retro['id'] ?? 0);
+    }
+    if ($mostraCarga && !$mostraCiclo) {
+        $partes['voltando'] = array_map(static fn (array $ciclo): array => [
+            (int) $ciclo['id'],
+            $ciclo['inicio_retorno'] ?? null,
+            $ciclo['placa'] ?? null,
+        ], Lavra::voltando());
+        $partes['chegou'] = array_map(static fn (array $caminhao): array => [
+            (int) $caminhao['id'],
+            $caminhao['fim_ciclo'] ?? null,
+        ], Lavra::chegouHoje());
+    }
+    if ($mostraCiclo) {
+        $motorista = !Auth::admin() && Auth::motorista();
+        $painel = $motorista ? Lavra::painelDoMotorista(Auth::usuario()) : Lavra::painel();
+        if ($tipo === 'caminhao') {
+            $id = (int) (maquina_escolhida()['id'] ?? 0);
+            $painel['livres'] = array_values(array_filter(
+                $painel['livres'],
+                static fn (array $caminhao): bool => (int) $caminhao['id'] === $id
+            ));
+        }
+        $partes['em'] = array_map(static fn (array $ciclo): array => [
+            (int) $ciclo['id'],
+            (string) $ciclo['status'],
+            $ciclo['inicio_carga'] ?? null,
+            $ciclo['fim_carga'] ?? null,
+            $ciclo['inicio_retorno'] ?? null,
+            $ciclo['operador_carga'] ?? null,
+            (int) ($ciclo['retroescavadeira_id'] ?? 0),
+        ], $painel['emCiclo']);
+        $partes['livres'] = array_map(static fn (array $caminhao): int => (int) $caminhao['id'], $painel['livres']);
+    }
+
+    return marca_de($partes);
+}
+
+function patio_marca(): string
+{
+    return marca_de([
+        'ordens' => array_map(static fn (array $ordem): array => [
+            (int) $ordem['id'],
+            (string) $ordem['status'],
+            $ordem['inicio_carregamento'] ?? null,
+            $ordem['operador'] ?? null,
+            (int) ($ordem['pa_carregadeira_id'] ?? 0),
+            (int) ($ordem['retroescavadeira_id'] ?? 0),
+        ], Operacoes::patio()),
+        'enviadas' => array_map(static fn (array $ordem): array => [
+            (int) $ordem['id'],
+            (string) $ordem['status'],
+            $ordem['fim_carregamento'] ?? null,
+        ], Operacoes::enviadasHoje()),
+    ]);
+}
+
+function painel_marca(): string
+{
+    $lavra = Lavra::painel();
+    $dia = date('Y-m-d');
+    $cargaDia = Operacoes::resumo($dia);
+    $lavraDia = Lavra::resumo($dia);
+
+    return marca_de([
+        'contagens' => Operacoes::contagens(),
+        'carregando' => array_map(static fn (array $ordem): array => [
+            (int) $ordem['id'],
+            (string) $ordem['status'],
+            $ordem['inicio_carregamento'] ?? null,
+            $ordem['operador'] ?? null,
+        ], Operacoes::listar('carregando', '')),
+        'ciclos' => array_map(static fn (array $ciclo): array => [
+            (int) $ciclo['id'],
+            (string) $ciclo['status'],
+            $ciclo['inicio_carga'] ?? null,
+            $ciclo['fim_carga'] ?? null,
+            $ciclo['inicio_retorno'] ?? null,
+        ], $lavra['emCiclo']),
+        'livres' => count($lavra['livres']),
+        'patio' => (int) ($cargaDia['maquina']['total'] ?? 0),
+        'viagens' => (int) ($lavraDia['caminhao']['viagens'] ?? 0),
+        'toneladas' => $lavraDia['caminhao']['producao']['toneladas'] ?? null,
+    ]);
+}
+
+function fila_consulta(): array
+{
+    $situacao = (string) ($_GET['situacao'] ?? 'abertas');
+    $busca = trim((string) ($_GET['q'] ?? ''));
+    if (!in_array($situacao, ['abertas', 'todas', ...array_keys(status_lista())], true)) {
+        $situacao = 'abertas';
+    }
+
+    return [$situacao, $busca];
+}
+
+function fila_marca(): string
+{
+    [$situacao, $busca] = fila_consulta();
+
+    return marca_de([
+        'situacao' => $situacao,
+        'q' => $busca,
+        'contagens' => Operacoes::contagens(),
+        'ordens' => array_map(static fn (array $ordem): array => [
+            (int) $ordem['id'],
+            (string) $ordem['status'],
+            $ordem['atualizado_em'] ?? null,
+            $ordem['operador'] ?? null,
+            (int) ($ordem['pa_carregadeira_id'] ?? 0),
+        ], Operacoes::listar($situacao, $busca)),
+    ]);
+}
+
 function tela_patio(): void
 {
     render('patio', [
         'titulo' => 'Pátio',
         'corpo' => 'patio',
-        'atualizar' => 30,
         'ordens' => Operacoes::patio(),
         'enviadas' => Operacoes::enviadasHoje(),
+        'fluxoUrl' => url('patio/situacao'),
+        'fluxoMarca' => patio_marca(),
     ]);
 }
 
@@ -634,6 +812,11 @@ function tela_lavra(): void
             'titulo' => 'Carga na lavra',
             'corpo' => 'lavra',
             'foraDaMaquina' => null,
+            'mostrarMovimento' => true,
+            'voltando' => Lavra::voltando(),
+            'chegou' => Lavra::chegouHoje(),
+            'fluxoUrl' => url('lavra/situacao'),
+            'fluxoMarca' => lavra_marca(),
         ] + $carga);
         return;
     }
@@ -654,6 +837,8 @@ function tela_lavra(): void
         'livres' => $painel['livres'],
         'semCadastro' => Cadastro::listar('caminhoes') === [],
         'mostraCarga' => $mostraCarga,
+        'fluxoUrl' => url('lavra/situacao'),
+        'fluxoMarca' => lavra_marca(),
     ] + $carga);
 }
 
@@ -889,7 +1074,8 @@ function tela_painel(): void
     render('painel', [
         'titulo' => 'Painel',
         'corpo' => 'painel',
-        'atualizar' => 30,
+        'fluxoUrl' => url('painel/situacao'),
+        'fluxoMarca' => painel_marca(),
         'autorizar' => (int) ($contagens['aguardando_autorizacao'] ?? 0),
         'conferir' => (int) ($contagens['aguardando_conferencia'] ?? 0),
         'liberadas' => (int) ($contagens['liberado'] ?? 0),
@@ -903,11 +1089,7 @@ function tela_painel(): void
 
 function tela_fila(): void
 {
-    $situacao = (string) ($_GET['situacao'] ?? 'abertas');
-    $busca = trim((string) ($_GET['q'] ?? ''));
-    if (!in_array($situacao, ['abertas', 'todas', ...array_keys(status_lista())], true)) {
-        $situacao = 'abertas';
-    }
+    [$situacao, $busca] = fila_consulta();
 
     render('fila', [
         'titulo' => 'Fila',
@@ -916,6 +1098,8 @@ function tela_fila(): void
         'contagens' => Operacoes::contagens(),
         'situacao' => $situacao,
         'busca' => $busca,
+        'fluxoUrl' => url('fila/situacao?' . http_build_query(['situacao' => $situacao, 'q' => $busca])),
+        'fluxoMarca' => fila_marca(),
     ]);
 }
 

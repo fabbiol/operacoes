@@ -60,3 +60,39 @@
     </div>
     <?php endif; ?>
 <?php endif; ?>
+<?php if (!empty($mostrarMovimento)): ?>
+    <?php if (($voltando ?? []) !== []): ?>
+        <h2>Voltando</h2>
+        <div class="lista">
+            <?php foreach ($voltando as $ciclo): ?>
+                <article class="cartao">
+                    <?php $cancelarCiclo = null; $ficha = $ciclo; $selo = 'Voltando'; require __DIR__ . '/trecho_caminhao.php'; ?>
+                    <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
+                    <?php if (!empty($ciclo['inicio_retorno'])): ?>
+                        <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $ciclo['inicio_retorno']) ?>"><?= e(texto_duracao(segundos_entre((string) $ciclo['inicio_retorno'], agora_sql()))) ?></time></p>
+                        <p class="meta">Retorno desde <?= e(hora_curta((string) $ciclo['inicio_retorno'])) ?></p>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+    <?php if (($chegou ?? []) !== []): ?>
+        <h2>Chegou</h2>
+        <div class="lista">
+            <?php foreach ($chegou as $caminhao): ?>
+                <article class="cartao">
+                    <?php
+                    $cancelarCiclo = null;
+                    $ficha = $caminhao;
+                    $ficha['status'] = 'concluido';
+                    $selo = 'Chegou';
+                    require __DIR__ . '/trecho_caminhao.php';
+                    ?>
+                    <?php if (!empty($caminhao['fim_ciclo'])): ?>
+                        <p class="meta">Chegou às <?= e(hora_curta((string) $caminhao['fim_ciclo'])) ?></p>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+<?php endif; ?>

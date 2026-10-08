@@ -385,6 +385,38 @@ final class Lavra
         return Db::pdo()->query($sql)->fetchAll();
     }
 
+    public static function voltando(): array
+    {
+        $sql = self::sqlBase() . " WHERE c.status = 'retornando' ORDER BY c.inicio_retorno ASC, c.id ASC";
+
+        return Db::pdo()->query($sql)->fetchAll();
+    }
+
+    public static function chegouHoje(): array
+    {
+        $sql = "SELECT k.id, k.placa AS nome, k.placa, k.ativo, k.marca, k.modelo, k.ano, k.foto, k.capacidade_t, c.fim_ciclo
+            FROM caminhoes k
+            JOIN ciclos_lavra c ON c.caminhao_id = k.id
+                AND c.status = 'concluido'
+                AND c.inicio_retorno IS NOT NULL
+                AND c.fim_ciclo >= CURDATE()
+            WHERE k.ativo = 1
+              AND c.id = (
+                    SELECT c2.id FROM ciclos_lavra c2
+                    WHERE c2.caminhao_id = k.id AND c2.status = 'concluido'
+                    ORDER BY c2.fim_ciclo DESC, c2.id DESC
+                    LIMIT 1
+              )
+              AND NOT EXISTS (
+                    SELECT 1 FROM ciclos_lavra aberto
+                    WHERE aberto.caminhao_id = k.id
+                      AND aberto.status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')
+              )
+            ORDER BY c.fim_ciclo DESC, k.placa ASC";
+
+        return Db::pdo()->query($sql)->fetchAll();
+    }
+
     public static function cargaDoOperador(string $operador): ?array
     {
         $comando = Db::pdo()->prepare(

@@ -7,6 +7,7 @@
 </section>
 <p class="nota">A fila começa na liberação e a carga no toque de iniciar. Finalize quando a carga estiver no caminhão.</p>
 
+<div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($ordens === []): ?>
     <p class="vazio">Nenhuma ordem liberada no momento.</p>
 <?php else: ?>
@@ -106,6 +107,7 @@
         </ul>
     </section>
 <?php endif; ?>
+</div>
 
 <script>
 (function () {
