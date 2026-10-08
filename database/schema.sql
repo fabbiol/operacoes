@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,
     pa_carregadeira_id INT UNSIGNED NULL,
+    retroescavadeira_id INT UNSIGNED NULL,
     operador VARCHAR(120) NULL,
     status ENUM(
         'aguardando_autorizacao',

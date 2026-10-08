@@ -3,8 +3,29 @@
 <?php if ($ordem['status'] !== 'liberado'): ?>
     <p class="aviso erro">Essa ordem não está liberada. O início só vale com status liberado.</p>
     <p><a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar ao pátio</a></p>
+<?php elseif (is_array($retroPatio ?? null)): ?>
+    <?php if (!empty($erro)): ?><p class="aviso erro"><?= e($erro) ?></p><?php endif; ?>
+    <p class="nota">Nenhuma pá livre. A carga segue com a retro do menu.</p>
+    <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
+        <?= csrf_field() ?>
+        <input type="hidden" name="retroescavadeira_id" value="<?= (int) $retroPatio['id'] ?>">
+        <p class="cliente"><?= e((string) $retroPatio['nome']) ?></p>
+        <?php if (($retroPatio['detalhe'] ?? '') !== ''): ?>
+            <p class="meta"><?= e((string) $retroPatio['detalhe']) ?></p>
+        <?php endif; ?>
+        <label class="campo">
+            <span>Operador</span>
+            <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na retro">
+        </label>
+        <div class="botoes">
+            <button type="submit" class="btn primario">Iniciar carregamento</button>
+            <a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar</a>
+        </div>
+    </form>
 <?php elseif ($paFixa === false): ?>
-    <p class="aviso erro">A máquina do menu não é uma pá. Troque para uma pá carregadeira para carregar no pátio.</p>
+    <p class="aviso erro"><?= !empty($semPa)
+        ? 'Nenhuma pá livre. Troque para uma retroescavadeira para carregar no pátio.'
+        : 'A máquina do menu não é uma pá. Troque para uma pá carregadeira para carregar no pátio.' ?></p>
     <p><a class="btn secundario" href="<?= e(url('maquina')) ?>">Trocar</a></p>
 <?php elseif (is_array($paFixa)): ?>
     <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
@@ -18,6 +39,48 @@
         <label class="campo">
             <span>Operador</span>
             <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na pá">
+        </label>
+        <div class="botoes">
+            <button type="submit" class="btn primario">Iniciar carregamento</button>
+            <a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar</a>
+        </div>
+    </form>
+<?php elseif ($pas === [] && ($retros ?? []) !== []): ?>
+    <?php if (!empty($erro)): ?><p class="aviso erro"><?= e($erro) ?></p><?php endif; ?>
+    <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
+        <?= csrf_field() ?>
+        <p class="nota">Nenhuma pá livre. A carga segue com a retroescavadeira.</p>
+        <fieldset class="maquinas">
+            <legend>Retroescavadeira</legend>
+            <?php foreach ($retros as $retro): ?>
+                <?php
+                $detalhe = [];
+                foreach (['marca', 'modelo', 'ano'] as $campoFicha) {
+                    $valorFicha = trim((string) ($retro[$campoFicha] ?? ''));
+                    if ($valorFicha !== '') {
+                        $detalhe[] = $valorFicha;
+                    }
+                }
+                ?>
+                <label class="escolha escolha-maquina">
+                    <input type="radio" name="retroescavadeira_id" value="<?= (int) $retro['id'] ?>" required>
+                    <span>
+                        <?php if (!empty($retro['foto'])): ?>
+                            <img class="foto-equipamento" src="<?= e(url('cadastros/retros/' . $retro['id'] . '/foto')) ?>" alt="">
+                        <?php endif; ?>
+                        <span class="escolha-texto">
+                            <?= e($retro['nome']) ?>
+                            <?php if ($detalhe !== []): ?>
+                                <small><?= e(implode(' · ', $detalhe)) ?></small>
+                            <?php endif; ?>
+                        </span>
+                    </span>
+                </label>
+            <?php endforeach; ?>
+        </fieldset>
+        <label class="campo">
+            <span>Operador</span>
+            <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na retro">
         </label>
         <div class="botoes">
             <button type="submit" class="btn primario">Iniciar carregamento</button>

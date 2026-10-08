@@ -282,5 +282,35 @@ final class Db
                  FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)'
             );
         }
+
+        $fila = $pdo->query("SHOW TABLES LIKE 'fila_carregamentos'")->fetch();
+        if (!$fila) {
+            return;
+        }
+        $colunasFila = [];
+        foreach ($pdo->query('SHOW COLUMNS FROM fila_carregamentos') as $coluna) {
+            $colunasFila[] = (string) ($coluna['Field'] ?? $coluna['field']);
+        }
+        if (!in_array('retroescavadeira_id', $colunasFila, true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN retroescavadeira_id INT UNSIGNED NULL AFTER pa_carregadeira_id');
+        }
+        $restricoesFila = [];
+        $buscaFila = $pdo->query(
+            "SELECT CONSTRAINT_NAME AS nome
+             FROM information_schema.TABLE_CONSTRAINTS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'fila_carregamentos'
+               AND CONSTRAINT_TYPE = 'FOREIGN KEY'"
+        );
+        foreach ($buscaFila as $linha) {
+            $restricoesFila[] = strtolower((string) $linha['nome']);
+        }
+        if (!in_array('fk_fila_retro', $restricoesFila, true)) {
+            $pdo->exec(
+                'ALTER TABLE fila_carregamentos
+                 ADD CONSTRAINT fk_fila_retro
+                 FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)'
+            );
+        }
     }
 }

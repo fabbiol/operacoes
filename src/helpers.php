@@ -87,11 +87,15 @@ function url_foto_caminhao(array $linha): ?string
 function url_foto_pa(array $linha): ?string
 {
     $id = (int) ($linha['pa_carregadeira_id'] ?? 0);
-    if (empty($linha['pa_foto']) || $id < 1) {
-        return null;
+    if (!empty($linha['pa_foto']) && $id > 0) {
+        return url('cadastros/pas/' . $id . '/foto');
+    }
+    $retroId = (int) ($linha['retroescavadeira_id'] ?? 0);
+    if (!empty($linha['pa_foto']) && $retroId > 0) {
+        return url('cadastros/retros/' . $retroId . '/foto');
     }
 
-    return url('cadastros/pas/' . $id . '/foto');
+    return null;
 }
 
 function url_foto_retro(array $linha): ?string
@@ -257,7 +261,7 @@ function maquina_do_trabalho(): ?array
     if (Auth::operador()) {
         $pa = Operacoes::paEmOperacao($nome);
         if ($pa !== null) {
-            return ['tipo' => 'pa', 'id' => (int) $pa['id']];
+            return ['tipo' => (string) ($pa['tipo'] ?? 'pa'), 'id' => (int) $pa['id']];
         }
         $carga = Lavra::cargaDoOperador($nome);
         $retroId = (int) ($carga['retroescavadeira_id'] ?? 0);

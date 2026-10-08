@@ -376,6 +376,13 @@ final class Lavra
         foreach ($comando->fetchAll() as $linha) {
             $mapa[(int) $linha['retroescavadeira_id']] = (string) $linha['placa'];
         }
+        $patio = Db::pdo()->query(
+            "SELECT retroescavadeira_id, ordem FROM fila_carregamentos
+             WHERE status = 'carregando' AND retroescavadeira_id IS NOT NULL"
+        );
+        foreach ($patio as $linha) {
+            $mapa[(int) $linha['retroescavadeira_id']] = (string) $linha['ordem'];
+        }
 
         return $mapa;
     }

@@ -418,18 +418,36 @@ function tela_iniciar(int $id, string $method): void
     $erro = null;
     $operador = (string) ($_POST['operador'] ?? Auth::usuario());
     $paId = (int) ($_POST['pa_carregadeira_id'] ?? 0);
+    $pas = Cadastro::opcoes('pas');
+    $semPa = $pas === [];
     $paFixa = null;
+    $retroPatio = null;
     if (!Auth::admin()) {
         $maquina = maquina_escolhida();
-        if ($maquina === null || $maquina['tipo'] !== 'pa') {
-            $paFixa = false;
-        } else {
+        if ($maquina !== null && $maquina['tipo'] === 'pa') {
             $paFixa = $maquina;
             $paId = (int) $maquina['id'];
+        } elseif ($semPa && $maquina !== null && $maquina['tipo'] === 'retro') {
+            $retroPatio = $maquina;
+        } else {
+            $paFixa = false;
         }
     }
 
-    if ($method === 'POST' && $paFixa !== false) {
+    if ($method === 'POST' && ($retroPatio !== null || (Auth::admin() && $semPa))) {
+        csrf_check();
+        try {
+            $retroId = $retroPatio !== null
+                ? (int) $retroPatio['id']
+                : (int) ($_POST['retroescavadeira_id'] ?? 0);
+            Operacoes::iniciarComRetro($id, $retroId, $operador);
+            flash_set('Carregamento iniciado.');
+            redirect('/patio');
+        } catch (InvalidArgumentException $e) {
+            $erro = $e->getMessage();
+            $ordem = Operacoes::buscar($id) ?? $ordem;
+        }
+    } elseif ($method === 'POST' && $paFixa !== false) {
         csrf_check();
         try {
             Operacoes::iniciar($id, $paId, $operador);
@@ -445,11 +463,14 @@ function tela_iniciar(int $id, string $method): void
         'titulo' => 'Iniciar ' . $ordem['ordem'],
         'corpo' => 'patio',
         'ordem' => $ordem,
-        'pas' => Cadastro::opcoes('pas'),
+        'pas' => $pas,
+        'retros' => $semPa ? Cadastro::opcoes('retros') : [],
         'emUso' => Operacoes::pasEmUso($id),
         'operador' => $operador,
         'paId' => $paId,
         'paFixa' => $paFixa,
+        'retroPatio' => $retroPatio,
+        'semPa' => $semPa,
         'erro' => $erro,
     ]);
 }

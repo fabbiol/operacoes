@@ -173,10 +173,13 @@ final class Operacoes
     public static function paEmOperacao(string $operador): ?array
     {
         $comando = Db::pdo()->prepare(
-            "SELECT p.id, p.maquina AS nome, p.foto
+            "SELECT p.id AS pa_id, p.maquina AS pa_nome, p.foto AS pa_foto,
+                    r.id AS retro_id, r.maquina AS retro_nome, r.foto AS retro_foto
              FROM fila_carregamentos f
-             JOIN pas_carregadeiras p ON p.id = f.pa_carregadeira_id
+             LEFT JOIN pas_carregadeiras p ON p.id = f.pa_carregadeira_id
+             LEFT JOIN retroescavadeiras r ON r.id = f.retroescavadeira_id
              WHERE f.status = 'carregando' AND f.operador = ?
+               AND (f.pa_carregadeira_id IS NOT NULL OR f.retroescavadeira_id IS NOT NULL)
              ORDER BY f.inicio_carregamento DESC, f.id DESC
              LIMIT 1"
         );
@@ -185,11 +188,24 @@ final class Operacoes
         if (!$linha) {
             return null;
         }
+        if ((int) ($linha['pa_id'] ?? 0) > 0) {
+            $id = (int) $linha['pa_id'];
+
+            return [
+                'tipo' => 'pa',
+                'id' => $id,
+                'nome' => (string) $linha['pa_nome'],
+                'foto' => !empty($linha['pa_foto']) ? url('cadastros/pas/' . $id . '/foto') : null,
+            ];
+        }
+
+        $id = (int) $linha['retro_id'];
 
         return [
-            'id' => (int) $linha['id'],
-            'nome' => (string) $linha['nome'],
-            'foto' => !empty($linha['foto']) ? url('cadastros/pas/' . (int) $linha['id'] . '/foto') : null,
+            'tipo' => 'retro',
+            'id' => $id,
+            'nome' => (string) $linha['retro_nome'],
+            'foto' => !empty($linha['retro_foto']) ? url('cadastros/retros/' . $id . '/foto') : null,
         ];
     }
 
@@ -331,10 +347,45 @@ final class Operacoes
 
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
-             SET status = 'carregando', pa_carregadeira_id = ?, operador = ?, inicio_carregamento = ?
+             SET status = 'carregando', pa_carregadeira_id = ?, retroescavadeira_id = NULL, operador = ?, inicio_carregamento = ?
              WHERE id = ? AND status = 'liberado'"
         );
         $comando->execute([$paId, $operador, agora_sql(), $id]);
+        self::exigirAlteracao($comando);
+    }
+
+    public static function iniciarComRetro(int $id, int $retroId, string $operador): void
+    {
+        $ordem = self::exigir($id);
+        if ($ordem['status'] !== 'liberado') {
+            throw new InvalidArgumentException('Só dá para iniciar uma ordem que está liberada.');
+        }
+        if ((int) Db::pdo()->query('SELECT COUNT(*) FROM pas_carregadeiras WHERE ativo = 1')->fetchColumn() > 0) {
+            throw new InvalidArgumentException('Há uma pá ativa. Use a pá carregadeira para carregar no pátio.');
+        }
+        if ($retroId < 1) {
+            throw new InvalidArgumentException('Selecione a retroescavadeira.');
+        }
+        $operador = limpar_texto($operador, 120, true, 'o nome do operador');
+        if (Lavra::operadorEmCarga($operador)) {
+            throw new InvalidArgumentException('Esse operador já está carregando um caminhão na lavra.');
+        }
+        $retro = Db::pdo()->prepare('SELECT id FROM retroescavadeiras WHERE id = ? AND ativo = 1');
+        $retro->execute([$retroId]);
+        if (!$retro->fetch()) {
+            throw new InvalidArgumentException('Essa retroescavadeira não está disponível.');
+        }
+        $emUso = Lavra::retrosEmUso();
+        if (isset($emUso[$retroId])) {
+            throw new InvalidArgumentException('Essa retroescavadeira já está carregando o ' . $emUso[$retroId] . '.');
+        }
+
+        $comando = Db::pdo()->prepare(
+            "UPDATE fila_carregamentos
+             SET status = 'carregando', pa_carregadeira_id = NULL, retroescavadeira_id = ?, operador = ?, inicio_carregamento = ?
+             WHERE id = ? AND status = 'liberado'"
+        );
+        $comando->execute([$retroId, $operador, agora_sql(), $id]);
         self::exigirAlteracao($comando);
     }
 
@@ -508,15 +559,17 @@ final class Operacoes
     {
         return 'SELECT f.*,
                 m.material AS material_nome,
-                p.maquina AS pa_nome,
-                p.marca AS pa_marca,
-                p.modelo AS pa_modelo,
-                p.ano AS pa_ano,
-                p.foto AS pa_foto,
+                COALESCE(p.maquina, r.maquina) AS pa_nome,
+                COALESCE(p.marca, r.marca) AS pa_marca,
+                COALESCE(p.modelo, r.modelo) AS pa_modelo,
+                COALESCE(p.ano, r.ano) AS pa_ano,
+                COALESCE(p.foto, r.foto) AS pa_foto,
+                r.foto AS retro_foto,
                 u.id AS pessoa_id, u.foto AS pessoa_foto
             FROM fila_carregamentos f
             JOIN materiais m ON m.id = f.material_id
             LEFT JOIN pas_carregadeiras p ON p.id = f.pa_carregadeira_id
+            LEFT JOIN retroescavadeiras r ON r.id = f.retroescavadeira_id
             LEFT JOIN usuarios u ON u.nome = f.operador';
     }
 

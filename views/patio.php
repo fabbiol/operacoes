@@ -13,8 +13,9 @@
     <div class="lista">
         <?php foreach ($ordens as $ordem): ?>
             <article class="cartao destaque">
-                <?php if ($ordem['status'] === 'carregando' && !empty($ordem['pa_foto']) && !empty($ordem['pa_carregadeira_id'])): ?>
-                    <img class="foto-equipamento" src="<?= e(url('cadastros/pas/' . $ordem['pa_carregadeira_id'] . '/foto')) ?>" alt="">
+                <?php $fotoMaquina = $ordem['status'] === 'carregando' ? url_foto_pa($ordem) : null; ?>
+                <?php if ($fotoMaquina): ?>
+                    <img class="foto-equipamento" src="<?= e($fotoMaquina) ?>" alt="">
                 <?php endif; ?>
                 <header>
                     <strong><?= e($ordem['ordem']) ?></strong>
