@@ -165,6 +165,33 @@ final class Operacoes
         return $mapa;
     }
 
+    public static function operadorEmCarga(string $operador): bool
+    {
+        return self::paEmOperacao($operador) !== null;
+    }
+
+    public static function paEmOperacao(string $operador): ?array
+    {
+        $comando = Db::pdo()->prepare(
+            "SELECT p.id, p.maquina AS nome, p.foto
+             FROM fila_carregamentos f
+             JOIN pas_carregadeiras p ON p.id = f.pa_carregadeira_id
+             WHERE f.status = 'carregando' AND f.operador = ?
+             ORDER BY f.inicio_carregamento DESC, f.id DESC
+             LIMIT 1"
+        );
+        $comando->execute([$operador]);
+        $linha = $comando->fetch();
+        if (!$linha) {
+            return null;
+        }
+
+        return [
+            'nome' => (string) $linha['nome'],
+            'foto' => !empty($linha['foto']) ? url('cadastros/pas/' . (int) $linha['id'] . '/foto') : null,
+        ];
+    }
+
     public static function criar(array $post, string $responsavel): int
     {
         $dados = self::lerOrdem($post);
@@ -292,6 +319,9 @@ final class Operacoes
             throw new InvalidArgumentException('Selecione a pá carregadeira.');
         }
         $operador = limpar_texto($operador, 120, true, 'o nome do operador');
+        if (Lavra::operadorEmCarga($operador)) {
+            throw new InvalidArgumentException('Esse operador já está carregando um caminhão na lavra.');
+        }
         $pa = Db::pdo()->prepare('SELECT id FROM pas_carregadeiras WHERE id = ? AND ativo = 1');
         $pa->execute([$paId]);
         if (!$pa->fetch()) {

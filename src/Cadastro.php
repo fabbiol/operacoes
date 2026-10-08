@@ -23,6 +23,16 @@ final class Cadastro
                 'artigo' => 'Nova',
                 'ficha' => true,
             ],
+            'retros' => [
+                'tabela' => 'retroescavadeiras',
+                'campo' => 'maquina',
+                'titulo' => 'Retroescavadeiras',
+                'rotulo' => 'Máquina',
+                'singular' => 'retroescavadeira',
+                'artigo' => 'Nova',
+                'vazio' => 'Nenhuma retroescavadeira cadastrada.',
+                'ficha' => true,
+            ],
             'caminhoes' => [
                 'tabela' => 'caminhoes',
                 'campo' => 'placa',
@@ -30,6 +40,7 @@ final class Cadastro
                 'rotulo' => 'Placa',
                 'singular' => 'caminhão',
                 'ficha' => true,
+                'capacidade' => true,
             ],
         ];
     }
@@ -75,6 +86,9 @@ final class Cadastro
     {
         $tipo = self::tipo($chave);
         $extra = !empty($tipo['ficha']) ? ', marca, modelo, ano, foto' : '';
+        if (!empty($tipo['capacidade'])) {
+            $extra .= ', capacidade_t';
+        }
         $sql = sprintf(
             'SELECT id, %s AS nome, ativo' . $extra . ' FROM %s WHERE ativo = 1 OR id = ? ORDER BY nome ASC',
             $tipo['campo'],
@@ -99,7 +113,7 @@ final class Cadastro
         }
         $observacoes = limpar_longo((string) ($post['observacoes'] ?? ''), 4000);
         $ativo = isset($post['ativo']) ? 1 : 0;
-        $ficha = !empty($tipo['ficha']) ? self::lerFicha($post) : null;
+        $ficha = !empty($tipo['ficha']) ? self::lerFicha($post, !empty($tipo['capacidade'])) : null;
         $pendente = !empty($tipo['ficha']) ? self::prepararFoto() : null;
 
         try {
@@ -145,7 +159,7 @@ final class Cadastro
             return null;
         }
         $relativo = str_replace('\\', '/', (string) $item['foto']);
-        if (!preg_match('#^(pas|caminhoes)/(\d+)\.(jpg|png|webp)$#', $relativo, $partes)) {
+        if (!preg_match('#^(pas|caminhoes|retros)/(\d+)\.(jpg|png|webp)$#', $relativo, $partes)) {
             return null;
         }
         if ($partes[1] !== $chave || (int) $partes[2] !== $id) {
@@ -189,12 +203,15 @@ final class Cadastro
         if (!empty($tipo['ficha'])) {
             $sql .= ', marca, modelo, ano, foto';
         }
+        if (!empty($tipo['capacidade'])) {
+            $sql .= ', capacidade_t';
+        }
 
         return $sql;
     }
 
-    /** @return array{marca: ?string, modelo: ?string, ano: ?int} */
-    private static function lerFicha(array $post): array
+    /** @return array{marca: ?string, modelo: ?string, ano: ?int, capacidade_t?: ?string} */
+    private static function lerFicha(array $post, bool $capacidade = false): array
     {
         $marca = limpar_texto((string) ($post['marca'] ?? ''), 80, false, 'Marca');
         $modelo = limpar_texto((string) ($post['modelo'] ?? ''), 80, false, 'Modelo');
@@ -211,11 +228,37 @@ final class Cadastro
             }
         }
 
-        return [
+        $ficha = [
             'marca' => $marca,
             'modelo' => $modelo,
             'ano' => $ano,
         ];
+        if ($capacidade) {
+            $ficha['capacidade_t'] = self::lerCapacidade((string) ($post['capacidade'] ?? ''));
+        }
+
+        return $ficha;
+    }
+
+    private static function lerCapacidade(string $bruto): ?string
+    {
+        $bruto = trim(str_replace([' ', "\xc2\xa0"], '', $bruto));
+        if ($bruto === '') {
+            return null;
+        }
+        if (str_contains($bruto, ',') && str_contains($bruto, '.')) {
+            $bruto = str_replace('.', '', $bruto);
+        }
+        $bruto = str_replace(',', '.', $bruto);
+        if (!preg_match('/^\d+(\.\d+)?$/', $bruto)) {
+            throw new InvalidArgumentException('A capacidade precisa ser um número, em toneladas.');
+        }
+        $numero = round((float) $bruto, 2);
+        if ($numero <= 0 || $numero > 999.99) {
+            throw new InvalidArgumentException('A capacidade precisa ficar entre 0,01 e 999,99 t.');
+        }
+
+        return number_format($numero, 2, '.', '');
     }
 
     /** @return array{tmp: string, ext: string}|null */
@@ -262,12 +305,21 @@ final class Cadastro
             );
             $params = [$nome, $observacoes, $ativo];
         } else {
-            $sql = sprintf(
-                'INSERT INTO %s (%s, observacoes, ativo, marca, modelo, ano) VALUES (?, ?, ?, ?, ?, ?)',
-                $tipo['tabela'],
-                $tipo['campo']
-            );
+            $campos = 'marca, modelo, ano';
+            $marcas = '?, ?, ?';
             $params = [$nome, $observacoes, $ativo, $ficha['marca'], $ficha['modelo'], $ficha['ano']];
+            if (array_key_exists('capacidade_t', $ficha)) {
+                $campos .= ', capacidade_t';
+                $marcas .= ', ?';
+                $params[] = $ficha['capacidade_t'];
+            }
+            $sql = sprintf(
+                'INSERT INTO %s (%s, observacoes, ativo, %s) VALUES (?, ?, ?, %s)',
+                $tipo['tabela'],
+                $tipo['campo'],
+                $campos,
+                $marcas
+            );
         }
         $comando = Db::pdo()->prepare($sql);
         try {
@@ -289,12 +341,19 @@ final class Cadastro
             );
             $params = [$nome, $observacoes, $ativo, $id];
         } else {
+            $extra = 'marca = ?, modelo = ?, ano = ?';
+            $params = [$nome, $observacoes, $ativo, $ficha['marca'], $ficha['modelo'], $ficha['ano']];
+            if (array_key_exists('capacidade_t', $ficha)) {
+                $extra .= ', capacidade_t = ?';
+                $params[] = $ficha['capacidade_t'];
+            }
+            $params[] = $id;
             $sql = sprintf(
-                'UPDATE %s SET %s = ?, observacoes = ?, ativo = ?, marca = ?, modelo = ?, ano = ? WHERE id = ?',
+                'UPDATE %s SET %s = ?, observacoes = ?, ativo = ?, %s WHERE id = ?',
                 $tipo['tabela'],
-                $tipo['campo']
+                $tipo['campo'],
+                $extra
             );
-            $params = [$nome, $observacoes, $ativo, $ficha['marca'], $ficha['modelo'], $ficha['ano'], $id];
         }
         $comando = Db::pdo()->prepare($sql);
         try {
@@ -340,7 +399,7 @@ final class Cadastro
 
     private static function limparArquivos(string $chave, int $id): void
     {
-        if (!in_array($chave, ['pas', 'caminhoes'], true) || $id < 1) {
+        if (!in_array($chave, ['pas', 'caminhoes', 'retros'], true) || $id < 1) {
             return;
         }
         $dir = OPERACOES_ROOT . '/storage/fotos/' . $chave;

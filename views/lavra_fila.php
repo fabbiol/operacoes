@@ -61,6 +61,18 @@ $etapas = Lavra::etapas();
                     <span class="selo status-<?= e($ciclo['status']) ?>"><?= e($rotulo) ?></span>
                 </header>
                 <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
+                <?php if (trim((string) ($ciclo['retro_nome'] ?? '')) !== ''): ?>
+                    <p class="meta"><?php
+                        $fotos = [url_foto_retro($ciclo)];
+                        $legenda = (string) $ciclo['retro_nome'];
+                        $quemCarga = trim((string) ($ciclo['operador_carga'] ?? ''));
+                        if ($quemCarga !== '') {
+                            $legenda .= ' · ' . $quemCarga;
+                        }
+                        $destaque = false;
+                        require __DIR__ . '/trecho_quem.php';
+                    ?></p>
+                <?php endif; ?>
                 <?php if ($desde): ?>
                     <p class="carga"><?= e($rotulo) ?> desde <?= e(hora_curta($desde)) ?></p>
                 <?php elseif ($ciclo['status'] === 'concluido'): ?>

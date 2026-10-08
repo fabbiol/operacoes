@@ -135,6 +135,24 @@ a { color: inherit; }
 
 .site-usuario { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
 .avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: none; background: #e7e1d6; }
+.site-maquina {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 2px;
+    padding-left: 8px;
+    border-left: 1px solid var(--line);
+    color: var(--ink);
+    font-weight: 700;
+}
+.site-maquina img {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex: none;
+    background: #e7e1d6;
+}
 .link { font-weight: 700; text-decoration: none; }
 
 .folha {
@@ -506,6 +524,21 @@ button.rosto img { object-fit: cover; object-position: center; }
 
 .patio .folha, .lavra .folha { width: min(720px, calc(100% - 24px)); }
 .patio .btn, .lavra .btn { width: 100%; min-height: 64px; font-size: 20px; }
+.lavra .espera {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 64px;
+    margin: 8px 0 0;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+}
 .patio .cartao.destaque .btn, .lavra .cartao .btn { margin-top: 8px; }
 .patio .cabeca .btn, .patio form.busca .btn, .lavra .cabeca .btn, .lavra form.busca .btn { width: auto; min-height: 48px; font-size: 16px; }
 .patio h2, .lavra h2 { margin-top: 22px; }
@@ -517,6 +550,26 @@ button.rosto img { object-fit: cover; object-position: center; }
     color: var(--muted);
     font-size: 14px;
     font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.retro-escolhida {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 12px;
+    color: var(--muted);
+    font-weight: 700;
+}
+.lavra button.link-discreto {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: none;
+    color: var(--muted);
+    font-size: 14px;
     text-decoration: underline;
     text-underline-offset: 3px;
 }

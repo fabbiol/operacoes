@@ -42,6 +42,19 @@
             <span>Ano</span>
             <input type="text" name="ano" inputmode="numeric" maxlength="4" value="<?= e((string) ($item['ano'] ?? '')) ?>">
         </label>
+        <?php if (!empty($tipo['capacidade'])): ?>
+            <?php
+            $capacidade = (string) ($item['capacidade_t'] ?? '');
+            if ($capacidade !== '' && preg_match('/^\d+(\.\d+)?$/', $capacidade)) {
+                $capacidade = formatar_quantidade($capacidade);
+            }
+            ?>
+            <label class="campo">
+                <span>Capacidade</span>
+                <input type="text" name="capacidade" inputmode="decimal" maxlength="8" value="<?= e($capacidade) ?>" placeholder="t">
+                <small class="dica">Em toneladas. Na brita, a densidade é 1,45 t/m³: 10 t correspondem a 6,90 m³.</small>
+            </label>
+        <?php endif; ?>
     <?php endif; ?>
     <label class="campo">
         <span>Observações</span>

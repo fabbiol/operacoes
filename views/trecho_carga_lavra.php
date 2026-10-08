@@ -1,0 +1,62 @@
+<?php if (empty($minhaCarga) && empty($retroEscolhida)): ?>
+    <?php require __DIR__ . '/lavra_retro.php'; ?>
+<?php elseif (!empty($minhaCarga)): ?>
+    <?php $ciclo = $minhaCarga; ?>
+    <div class="lista">
+        <article class="cartao destaque">
+            <?php $cancelarCiclo = null; $ficha = $ciclo; $selo = 'Carga'; require __DIR__ . '/trecho_caminhao.php'; ?>
+            <?php if (!empty($ciclo['inicio_carga'])): ?>
+                <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $ciclo['inicio_carga']) ?>"><?= e(texto_duracao(segundos_entre((string) $ciclo['inicio_carga'], agora_sql()))) ?></time></p>
+            <?php endif; ?>
+            <p class="meta"><?php
+                $fotos = [url_foto_retro($ciclo), url_foto_operador_carga($ciclo)];
+                $legenda = trim((string) ($ciclo['retro_nome'] ?? '')) !== '' ? (string) $ciclo['retro_nome'] : 'Retroescavadeira';
+                $quemCarga = trim((string) ($ciclo['operador_carga'] ?? ''));
+                if ($quemCarga !== '') {
+                    $legenda .= ' · ' . $quemCarga;
+                }
+                $destaque = false;
+                require __DIR__ . '/trecho_quem.php';
+            ?></p>
+            <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/concluir-carga')) ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn primario">Carga concluída</button>
+            </form>
+        </article>
+    </div>
+    <?php if (($filaCarga ?? []) !== []): ?>
+        <p class="nota">Conclua esta carga antes de pegar outro caminhão.</p>
+    <?php endif; ?>
+<?php else: ?>
+    <?php if (!empty($retroEscolhida)): ?>
+        <div class="retro-escolhida">
+            <span><?= e((string) $retroEscolhida['nome']) ?></span>
+            <form method="post" action="<?= e(url('lavra/retro/trocar')) ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="link-discreto">Trocar</button>
+            </form>
+        </div>
+    <?php endif; ?>
+    <?php if (($filaCarga ?? []) === []): ?>
+        <p class="vazio">Nenhum caminhão na fila.</p>
+    <?php else: ?>
+    <div class="lista">
+        <?php foreach ($filaCarga as $ciclo): ?>
+            <article class="cartao destaque">
+                <?php $cancelarCiclo = null; $ficha = $ciclo; $selo = 'Na fila'; require __DIR__ . '/trecho_caminhao.php'; ?>
+                <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
+                <?php if (!empty($ciclo['inicio_fila'])): ?>
+                    <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $ciclo['inicio_fila']) ?>"><?= e(texto_duracao(segundos_entre((string) $ciclo['inicio_fila'], agora_sql()))) ?></time></p>
+                    <p class="meta">Na fila desde <?= e(hora_curta((string) $ciclo['inicio_fila'])) ?></p>
+                <?php endif; ?>
+                <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/carga')) ?>">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="retroescavadeira_id" value="<?= (int) ($retroEscolhida['id'] ?? 0) ?>">
+                    <input type="hidden" name="operador" value="<?= e(Auth::usuario()) ?>">
+                    <button type="submit" class="btn primario">Iniciar carga</button>
+                </form>
+            </article>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+<?php endif; ?>

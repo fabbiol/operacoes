@@ -4,7 +4,7 @@
         <h1>Meus trabalhos</h1>
     </div>
 </section>
-<p class="nota">Últimos 30 dias. Entram os carregamentos finalizados e as viagens da lavra concluídas em que o seu nome foi registrado.</p>
+<p class="nota">Últimos 30 dias. Entram os carregamentos finalizados, as cargas da retro e as viagens da lavra concluídas em que o seu nome foi registrado.</p>
 
 <div class="tempos">
     <div>
@@ -46,6 +46,22 @@
                         <div><span>Fila</span><strong><?= e(texto_duracao($ordem['tempos']['fila'])) ?></strong></div>
                         <div><span>Carga</span><strong><?= e(texto_duracao($ordem['tempos']['carga'])) ?></strong></div>
                     </dl>
+                </article>
+            <?php elseif ($item['tipo'] === 'carga'): ?>
+                <?php $ciclo = $item['ciclo']; ?>
+                <article class="cartao">
+                    <header>
+                        <?php
+                        $fotos = [url_foto_retro($ciclo) ?? url_foto_caminhao($ciclo)];
+                        $legenda = (string) $ciclo['placa'];
+                        $destaque = true;
+                        require __DIR__ . '/trecho_quem.php';
+                        ?>
+                        <span class="selo status-carregando">Carga</span>
+                    </header>
+                    <p class="cliente">Carga na lavra</p>
+                    <p class="carga">Carga <?= e(texto_duracao($ciclo['tempos']['carga'])) ?></p>
+                    <p class="meta"><?= e((string) ($ciclo['retro_nome'] ?: 'Retroescavadeira')) ?> · <?= e(quando($ciclo['fim_carga'])) ?></p>
                 </article>
             <?php else: ?>
                 <?php $ciclo = $item['ciclo']; ?>

@@ -73,6 +73,7 @@ final class Db
         self::garantirPapel($pdo);
         self::garantirPessoa($pdo);
         self::garantirFicha($pdo);
+        self::garantirRetro($pdo);
 
         if (!is_dir(dirname($marca))) {
             mkdir(dirname($marca), 0775, true);
@@ -218,7 +219,7 @@ final class Db
 
     private static function garantirFicha(PDO $pdo): void
     {
-        foreach (['pas_carregadeiras', 'caminhoes'] as $tabela) {
+        foreach (['pas_carregadeiras', 'caminhoes', 'retroescavadeiras'] as $tabela) {
             $existe = $pdo->query("SHOW TABLES LIKE " . $pdo->quote($tabela))->fetch();
             if (!$existe) {
                 continue;
@@ -238,6 +239,48 @@ final class Db
                     $pdo->exec('ALTER TABLE ' . $tabela . ' ADD COLUMN ' . $nome . ' ' . $tipo);
                 }
             }
+            if ($tabela === 'caminhoes' && !in_array('capacidade_t', $colunas, true)) {
+                $pdo->exec('ALTER TABLE caminhoes ADD COLUMN capacidade_t DECIMAL(8,2) NULL AFTER ano');
+            }
+        }
+    }
+
+    private static function garantirRetro(PDO $pdo): void
+    {
+        $retro = $pdo->query("SHOW TABLES LIKE 'retroescavadeiras'")->fetch();
+        $ciclo = $pdo->query("SHOW TABLES LIKE 'ciclos_lavra'")->fetch();
+        if (!$retro || !$ciclo) {
+            return;
+        }
+
+        $colunas = [];
+        foreach ($pdo->query('SHOW COLUMNS FROM ciclos_lavra') as $coluna) {
+            $colunas[] = (string) ($coluna['Field'] ?? $coluna['field']);
+        }
+        if (!in_array('retroescavadeira_id', $colunas, true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN retroescavadeira_id INT UNSIGNED NULL AFTER operador');
+        }
+        if (!in_array('operador_carga', $colunas, true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN operador_carga VARCHAR(120) NULL AFTER retroescavadeira_id');
+        }
+
+        $restricoes = [];
+        $busca = $pdo->query(
+            "SELECT CONSTRAINT_NAME AS nome
+             FROM information_schema.TABLE_CONSTRAINTS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'ciclos_lavra'
+               AND CONSTRAINT_TYPE = 'FOREIGN KEY'"
+        );
+        foreach ($busca as $linha) {
+            $restricoes[] = strtolower((string) $linha['nome']);
+        }
+        if (!in_array('fk_ciclo_retro', $restricoes, true)) {
+            $pdo->exec(
+                'ALTER TABLE ciclos_lavra
+                 ADD CONSTRAINT fk_ciclo_retro
+                 FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)'
+            );
         }
     }
 }

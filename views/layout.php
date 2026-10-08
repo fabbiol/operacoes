@@ -41,6 +41,7 @@
                     <a class="link<?= ($caminho === 'lavra' || str_starts_with($caminho, 'lavra/')) ? ' ativo' : '' ?>" href="<?= e(url('lavra')) ?>">Lavra</a>
                     <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
                 <?php elseif (Auth::operador()): ?>
+                    <a class="link<?= ($caminho === 'lavra' || str_starts_with($caminho, 'lavra/')) ? ' ativo' : '' ?>" href="<?= e(url('lavra')) ?>">Lavra</a>
                     <a class="link<?= ($caminho === 'patio' || str_starts_with($caminho, 'carregamentos/')) ? ' ativo' : '' ?>" href="<?= e(url('patio')) ?>">Pátio</a>
                     <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
                 <?php endif; ?>
@@ -48,7 +49,15 @@
                     <?php if (Auth::temFoto()): ?>
                         <img class="avatar" src="<?= e(url('usuarios/' . Auth::id() . '/foto')) ?>" alt="">
                     <?php endif; ?>
-                    <?= e(Auth::usuario()) ?> · <?= e(Auth::rotuloPapel()) ?>
+                    <span><?= e(Auth::usuario()) ?> · <?= e(Auth::rotuloPapel()) ?></span>
+                    <?php foreach (maquinas_do_usuario() as $maquina): ?>
+                        <span class="site-maquina">
+                            <?php if (!empty($maquina['foto'])): ?>
+                                <img src="<?= e((string) $maquina['foto']) ?>" alt="">
+                            <?php endif; ?>
+                            <?= e((string) $maquina['nome']) ?>
+                        </span>
+                    <?php endforeach; ?>
                 </span>
                 <form method="post" action="<?= e(url('sair')) ?>">
                     <?= csrf_field() ?>

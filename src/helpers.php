@@ -94,6 +94,66 @@ function url_foto_pa(array $linha): ?string
     return url('cadastros/pas/' . $id . '/foto');
 }
 
+function url_foto_retro(array $linha): ?string
+{
+    $id = (int) ($linha['retroescavadeira_id'] ?? 0);
+    if (empty($linha['retro_foto']) || $id < 1) {
+        return null;
+    }
+
+    return url('cadastros/retros/' . $id . '/foto');
+}
+
+function maquinas_do_usuario(): array
+{
+    if (!Auth::ok()) {
+        return [];
+    }
+
+    $nome = Auth::usuario();
+    $itens = [];
+    if (Auth::motorista()) {
+        $caminhao = Lavra::caminhaoDoMotorista($nome);
+        if ($caminhao !== null) {
+            $itens[] = $caminhao;
+        }
+    }
+    if (Auth::operador()) {
+        $pa = Operacoes::paEmOperacao($nome);
+        if ($pa !== null) {
+            $itens[] = $pa;
+        } else {
+            $carga = Lavra::cargaDoOperador($nome);
+            if ($carga !== null && trim((string) ($carga['retro_nome'] ?? '')) !== '') {
+                $itens[] = [
+                    'nome' => (string) $carga['retro_nome'],
+                    'foto' => url_foto_retro($carga),
+                ];
+            } else {
+                $retroId = (int) ($_SESSION['retroescavadeira_id'] ?? 0);
+                $retro = $retroId > 0 ? Cadastro::buscar('retros', $retroId) : null;
+                if ($retro !== null && (int) ($retro['ativo'] ?? 0) === 1) {
+                    $itens[] = [
+                        'nome' => (string) $retro['nome'],
+                        'foto' => !empty($retro['foto']) ? url('cadastros/retros/' . $retroId . '/foto') : null,
+                    ];
+                }
+            }
+        }
+    }
+
+    return $itens;
+}
+
+function url_foto_operador_carga(array $linha): ?string
+{
+    if (empty($linha['carga_pessoa_foto']) || (int) ($linha['carga_pessoa_id'] ?? 0) < 1) {
+        return null;
+    }
+
+    return url('usuarios/' . (int) $linha['carga_pessoa_id'] . '/foto');
+}
+
 function asset(string $caminho): string
 {
     $arquivo = OPERACOES_ROOT . '/public/' . ltrim($caminho, '/');
@@ -347,6 +407,22 @@ function unidades(): array
 function unidade_rotulo(string $unidade): string
 {
     return unidades()[$unidade] ?? $unidade;
+}
+
+function densidade_brita(): float
+{
+    return 1.45;
+}
+
+function texto_capacidade(string|float|int|null $toneladas): string
+{
+    if ($toneladas === null || $toneladas === '') {
+        return '';
+    }
+    $tonelada = round((float) $toneladas, 2);
+    $volume = round($tonelada / densidade_brita(), 2);
+
+    return formatar_quantidade($tonelada) . ' t · ' . formatar_quantidade($volume) . ' m³';
 }
 
 function agora_sql(): string

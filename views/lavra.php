@@ -10,7 +10,7 @@
         <a class="btn secundario" href="<?= e(url('lavra/resumo')) ?>">Tempos de hoje</a>
     </div>
 </section>
-<p class="nota">Fila na lavra, carga, ida até o britador e retorno vazio. O tempo de cada etapa é o intervalo entre os toques.</p>
+<p class="nota">Fila na lavra, carga na retroescavadeira, ida até o britador e retorno vazio. O tempo de cada etapa é o intervalo entre os toques.</p>
 
 <?php if ($emCiclo === [] && $livres === []): ?>
     <?php if (!empty($semCadastro)): ?>
@@ -46,10 +46,32 @@
                     $destaque = false;
                     require __DIR__ . '/trecho_quem.php';
                 ?></p>
-                <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="btn primario"><?= e($etapa['acao']) ?></button>
-                </form>
+                <?php if ($ciclo['status'] === 'na_fila'): ?>
+                    <p class="espera">Aguardando a retro</p>
+                <?php elseif ($ciclo['status'] === 'carregando'): ?>
+                    <p class="meta"><?php
+                        $fotos = [url_foto_retro($ciclo), url_foto_operador_carga($ciclo)];
+                        $legenda = trim((string) ($ciclo['retro_nome'] ?? '')) !== '' ? (string) $ciclo['retro_nome'] : 'Retroescavadeira';
+                        $quemCarga = trim((string) ($ciclo['operador_carga'] ?? ''));
+                        if ($quemCarga !== '') {
+                            $legenda .= ' · ' . $quemCarga;
+                        }
+                        $destaque = false;
+                        require __DIR__ . '/trecho_quem.php';
+                    ?></p>
+                    <p class="nota">A retro está carregando.</p>
+                    <?php if (Auth::admin() && (string) ($ciclo['operador_carga'] ?? '') !== Auth::usuario()): ?>
+                        <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/concluir-carga')) ?>">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn primario">Carga concluída</button>
+                        </form>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn primario"><?= e($etapa['acao']) ?></button>
+                    </form>
+                <?php endif; ?>
             </article>
         <?php endforeach; ?>
     </div>
@@ -68,6 +90,13 @@
             </article>
         <?php endforeach; ?>
     </div>
+<?php endif; ?>
+
+<?php if (!empty($mostraCarga)): ?>
+    <section class="bloco">
+        <h2>Carga na lavra</h2>
+        <?php require __DIR__ . '/trecho_carga_lavra.php'; ?>
+    </section>
 <?php endif; ?>
 
 <script>

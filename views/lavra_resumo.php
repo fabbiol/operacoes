@@ -26,6 +26,10 @@
         <strong><?= (int) $viagens ?></strong>
     </div>
     <div>
+        <span>Produção</span>
+        <strong><?= e(texto_capacidade($producao['toneladas'] ?? null) ?: '—') ?></strong>
+    </div>
+    <div>
         <span>Ciclo médio</span>
         <strong><?= e(texto_duracao($medias['ciclo'])) ?></strong>
     </div>
@@ -46,6 +50,7 @@
         <strong><?= e(texto_duracao($medias['retorno'])) ?></strong>
     </div>
 </div>
+<?php $faltando = $producao['faltando'] ?? []; require __DIR__ . '/trecho_sem_capacidade.php'; ?>
 
 <?php if ($grupos === []): ?>
     <p class="vazio"><?= $visao === 'motorista' ? 'Nenhuma viagem de motorista neste dia.' : 'Nenhuma viagem concluída neste dia.' ?></p>
@@ -57,6 +62,10 @@
             $amostra = $grupo['linhas'][0] ?? [];
             $fotos = [$visao === 'motorista' ? url_foto_pessoa($amostra) : url_foto_caminhao($amostra)];
             $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['viagens'] . ' ' . ($grupo['viagens'] === 1 ? 'viagem' : 'viagens');
+            $producaoGrupo = texto_capacidade($grupo['producao']['toneladas'] ?? null);
+            if ($producaoGrupo !== '') {
+                $legenda .= ' · ' . $producaoGrupo;
+            }
             $destaque = true;
             require __DIR__ . '/trecho_quem.php';
         ?></h2>

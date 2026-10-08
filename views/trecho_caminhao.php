@@ -6,6 +6,10 @@ foreach (['marca', 'modelo', 'ano'] as $campoFicha) {
         $detalhe[] = $valorFicha;
     }
 }
+$capacidadeFicha = texto_capacidade($ficha['capacidade_t'] ?? null);
+if ($capacidadeFicha !== '') {
+    $detalhe[] = $capacidadeFicha;
+}
 $fotoId = (int) ($ficha['caminhao_id'] ?? $ficha['id'] ?? 0);
 $placaFicha = (string) ($ficha['placa'] ?? $ficha['nome'] ?? '');
 ?>

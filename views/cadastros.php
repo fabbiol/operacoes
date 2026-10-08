@@ -7,7 +7,7 @@
 </section>
 
 <?php if ($itens === []): ?>
-    <p class="vazio">Nenhum <?= e($tipo['singular']) ?> cadastrado.</p>
+    <p class="vazio"><?= e($tipo['vazio'] ?? ('Nenhum ' . $tipo['singular'] . ' cadastrado.')) ?></p>
 <?php else: ?>
     <ul class="cadastro">
         <?php foreach ($itens as $item): ?>
@@ -25,6 +25,10 @@
                             if ($valor !== '') {
                                 $detalhe[] = $valor;
                             }
+                        }
+                        $capacidade = texto_capacidade($item['capacidade_t'] ?? null);
+                        if ($capacidade !== '') {
+                            $detalhe[] = $capacidade;
                         }
                         ?>
                         <?php if (!empty($tipo['ficha']) && $detalhe !== []): ?>

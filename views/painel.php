@@ -93,6 +93,20 @@
                             <span class="selo status-<?= e($ciclo['status']) ?>"><?= e($etapa['rotulo'] ?? '') ?></span>
                         </header>
                         <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
+                        <?php if ($ciclo['status'] === 'na_fila'): ?>
+                            <p class="meta">Aguardando a retro</p>
+                        <?php elseif (trim((string) ($ciclo['retro_nome'] ?? '')) !== ''): ?>
+                            <p class="meta"><?php
+                                $fotos = [url_foto_retro($ciclo)];
+                                $legenda = (string) $ciclo['retro_nome'];
+                                $quemCarga = trim((string) ($ciclo['operador_carga'] ?? ''));
+                                if ($quemCarga !== '') {
+                                    $legenda .= ' · ' . $quemCarga;
+                                }
+                                $destaque = false;
+                                require __DIR__ . '/trecho_quem.php';
+                            ?></p>
+                        <?php endif; ?>
                         <?php if ($desde): ?>
                             <p class="ciclo"><time data-desde="<?= (int) strtotime($desde) ?>"><?= e(texto_duracao(segundos_entre($desde, agora_sql()))) ?></time></p>
                         <?php endif; ?>
@@ -162,6 +176,10 @@
                 <strong><?= (int) $lavraDia['caminhao']['viagens'] ?></strong>
             </div>
             <div>
+                <span>Produção</span>
+                <strong><?= e(texto_capacidade($lavraDia['caminhao']['producao']['toneladas'] ?? null) ?: '—') ?></strong>
+            </div>
+            <div>
                 <span>Ciclo médio</span>
                 <strong><?= e(texto_duracao($lavraDia['caminhao']['medias']['ciclo'])) ?></strong>
             </div>
@@ -189,12 +207,17 @@
                         $amostra = $grupo['linhas'][0] ?? [];
                         $fotos = [url_foto_caminhao($amostra)];
                         $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['viagens'];
+                        $producaoGrupo = texto_capacidade($grupo['producao']['toneladas'] ?? null);
+                        if ($producaoGrupo !== '') {
+                            $legenda .= ' · ' . $producaoGrupo;
+                        }
                         $destaque = false;
                         require __DIR__ . '/trecho_quem.php';
                     ?></span>
                 <?php endforeach; ?>
             </p>
         <?php endif; ?>
+        <?php $faltando = $lavraDia['caminhao']['producao']['faltando'] ?? []; require __DIR__ . '/trecho_sem_capacidade.php'; ?>
         <?php if ($lavraDia['motorista']['grupos'] !== []): ?>
             <p class="recortes">
                 <?php foreach ($lavraDia['motorista']['grupos'] as $grupo): ?>
@@ -202,6 +225,10 @@
                         $amostra = $grupo['linhas'][0] ?? [];
                         $fotos = [url_foto_pessoa($amostra)];
                         $legenda = $grupo['titulo'] . ' · ' . (int) $grupo['viagens'];
+                        $producaoGrupo = texto_capacidade($grupo['producao']['toneladas'] ?? null);
+                        if ($producaoGrupo !== '') {
+                            $legenda .= ' · ' . $producaoGrupo;
+                        }
                         $destaque = false;
                         require __DIR__ . '/trecho_quem.php';
                     ?></span>

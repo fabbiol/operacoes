@@ -1,5 +1,5 @@
 -- Fila de carregamento do pátio.
--- Quem carrega é a pá. O caminhão fica para a contagem de viagens da lavra ao britador.
+-- Quem carrega no pátio é a pá. Na lavra, a retroescavadeira carrega o caminhão que segue até o britador.
 
 CREATE TABLE IF NOT EXISTS usuarios (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -75,12 +75,27 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     CONSTRAINT fk_fila_pa FOREIGN KEY (pa_carregadeira_id) REFERENCES pas_carregadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS retroescavadeiras (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    maquina VARCHAR(120) NOT NULL,
+    marca VARCHAR(80) NULL,
+    modelo VARCHAR(80) NULL,
+    ano SMALLINT UNSIGNED NULL,
+    foto VARCHAR(80) NULL,
+    observacoes TEXT NULL,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_retro_maquina (maquina)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS caminhoes (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     placa VARCHAR(20) NOT NULL,
     marca VARCHAR(80) NULL,
     modelo VARCHAR(80) NULL,
     ano SMALLINT UNSIGNED NULL,
+    capacidade_t DECIMAL(8,2) NULL,
     foto VARCHAR(80) NULL,
     observacoes TEXT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
@@ -99,6 +114,8 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     inicio_retorno DATETIME NULL,
     fim_ciclo DATETIME NULL,
     operador VARCHAR(120) NULL,
+    retroescavadeira_id INT UNSIGNED NULL,
+    operador_carga VARCHAR(120) NULL,
     observacoes TEXT NULL,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -106,5 +123,6 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     KEY idx_ciclo_status (status),
     KEY idx_ciclo_caminhao (caminhao_id, status),
     KEY idx_ciclo_fim (fim_ciclo),
-    CONSTRAINT fk_ciclo_caminhao FOREIGN KEY (caminhao_id) REFERENCES caminhoes (id)
+    CONSTRAINT fk_ciclo_caminhao FOREIGN KEY (caminhao_id) REFERENCES caminhoes (id),
+    CONSTRAINT fk_ciclo_retro FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

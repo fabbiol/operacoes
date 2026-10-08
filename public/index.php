@@ -95,7 +95,7 @@ function despachar(string $path, string $method): void
     }
 
     if ($path === 'lavra') {
-        exigir_papel('motorista');
+        exigir_papel('motorista', 'operador');
         tela_lavra();
         return;
     }
@@ -133,6 +133,43 @@ function despachar(string $path, string $method): void
         exigir_papel('motorista');
         tela_lavra_cancelar((int) $m[1], $method);
         return;
+    }
+
+    if ($path === 'lavra/retro' && $method === 'POST') {
+        exigir_papel('operador');
+        csrf_check();
+        $retroId = (int) ($_POST['retroescavadeira_id'] ?? 0);
+        $retro = $retroId > 0 ? Cadastro::buscar('retros', $retroId) : null;
+        if ($retro === null || (int) ($retro['ativo'] ?? 0) !== 1) {
+            flash_set('Selecione a retroescavadeira.', 'erro');
+        } else {
+            $_SESSION['retroescavadeira_id'] = $retroId;
+        }
+        redirect('/lavra');
+    }
+
+    if ($path === 'lavra/retro/trocar' && $method === 'POST') {
+        exigir_papel('operador');
+        csrf_check();
+        unset($_SESSION['retroescavadeira_id']);
+        redirect('/lavra');
+    }
+
+    if (preg_match('#^lavra/ciclos/(\d+)/carga$#', $path, $m)) {
+        exigir_papel('operador');
+        tela_lavra_iniciar((int) $m[1], $method);
+        return;
+    }
+
+    if (preg_match('#^lavra/ciclos/(\d+)/concluir-carga$#', $path, $m) && $method === 'POST') {
+        exigir_papel('operador');
+        csrf_check();
+        try {
+            flash_set(Lavra::concluirCarga((int) $m[1], Auth::admin() ? null : Auth::usuario()));
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/lavra');
     }
 
     if ($path === 'cadastros') {
@@ -416,8 +453,40 @@ function tela_finalizar(int $id, string $method): void
     ]);
 }
 
+function retro_escolhida(): ?array
+{
+    $id = (int) ($_SESSION['retroescavadeira_id'] ?? 0);
+    if ($id < 1) {
+        return null;
+    }
+    $retro = Cadastro::buscar('retros', $id);
+    if ($retro === null || (int) ($retro['ativo'] ?? 0) !== 1) {
+        unset($_SESSION['retroescavadeira_id']);
+
+        return null;
+    }
+
+    return $retro;
+}
+
 function tela_lavra(): void
 {
+    $mostraCiclo = Auth::admin() || Auth::motorista();
+    $mostraCarga = Auth::admin() || Auth::operador();
+    $carga = $mostraCarga ? [
+        'filaCarga' => Lavra::naFila(),
+        'minhaCarga' => Lavra::cargaDoOperador(Auth::usuario()),
+        'retroEscolhida' => retro_escolhida(),
+        'retros' => Cadastro::opcoes('retros'),
+    ] : [];
+    if (!$mostraCiclo) {
+        render('lavra_carga', [
+            'titulo' => 'Carga na lavra',
+            'corpo' => 'lavra',
+        ] + $carga);
+        return;
+    }
+
     $motorista = Auth::motorista();
     $painel = $motorista ? Lavra::painelDoMotorista(Auth::usuario()) : Lavra::painel();
     render('lavra', [
@@ -426,7 +495,36 @@ function tela_lavra(): void
         'emCiclo' => $painel['emCiclo'],
         'livres' => $painel['livres'],
         'semCadastro' => Cadastro::listar('caminhoes') === [],
-    ]);
+        'mostraCarga' => $mostraCarga,
+    ] + $carga);
+}
+
+function tela_lavra_iniciar(int $id, string $method): void
+{
+    $ciclo = Lavra::buscar($id);
+    if ($ciclo === null) {
+        http_response_code(404);
+        render('erro', [
+            'titulo' => 'Não encontrado',
+            'mensagem' => 'Esse ciclo não existe.',
+        ]);
+        return;
+    }
+
+    if ($method !== 'POST') {
+        redirect('/lavra');
+    }
+
+    csrf_check();
+    $operador = (string) ($_POST['operador'] ?? Auth::usuario());
+    $retroId = (int) ($_POST['retroescavadeira_id'] ?? 0);
+    try {
+        Lavra::iniciarCarga($id, $retroId, $operador);
+        flash_set('Carga iniciada.');
+    } catch (InvalidArgumentException $e) {
+        flash_set($e->getMessage(), 'erro');
+    }
+    redirect('/lavra');
 }
 
 function tela_lavra_resumo(): void
@@ -448,6 +546,7 @@ function tela_lavra_resumo(): void
         'visao' => $visao,
         'medias' => $bloco['medias'],
         'viagens' => $bloco['viagens'],
+        'producao' => $bloco['producao'],
         'grupos' => $bloco['grupos'],
     ]);
 }
@@ -506,6 +605,9 @@ function tela_trabalhos(): void
     }
     foreach (Lavra::concluidosDo($nome, $desde) as $ciclo) {
         $itens[] = ['tipo' => 'lavra', 'quando' => (string) $ciclo['fim_ciclo'], 'ciclo' => $ciclo];
+    }
+    foreach (Lavra::cargasConcluidasDo($nome, $desde) as $ciclo) {
+        $itens[] = ['tipo' => 'carga', 'quando' => (string) $ciclo['fim_ciclo'], 'ciclo' => $ciclo];
     }
     usort($itens, static fn (array $a, array $b): int => strcmp($b['quando'], $a['quando']));
 
@@ -825,6 +927,7 @@ function tela_cadastro_form(string $chave, ?int $id, string $method): void
                 'marca' => (string) ($_POST['marca'] ?? ''),
                 'modelo' => (string) ($_POST['modelo'] ?? ''),
                 'ano' => (string) ($_POST['ano'] ?? ''),
+                'capacidade_t' => (string) ($_POST['capacidade'] ?? ''),
                 'foto' => is_array($item) ? ($item['foto'] ?? null) : null,
             ];
         }
