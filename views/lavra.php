@@ -29,8 +29,13 @@
             <?php $etapa = Lavra::etapas()[$ciclo['status']]; ?>
             <?php $desde = Lavra::desde($ciclo); ?>
             <article class="cartao destaque">
+                <?php if ($ciclo['status'] === 'em_viagem'): ?>
+                    <p class="encerrar"><a class="link-discreto" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a></p>
+                <?php endif; ?>
                 <?php
-                $cancelarCiclo = url('lavra/ciclos/' . $ciclo['id'] . '/cancelar');
+                $cancelarCiclo = in_array($ciclo['status'], ['na_fila', 'carregando'], true)
+                    ? url('lavra/ciclos/' . $ciclo['id'] . '/cancelar')
+                    : null;
                 $ficha = $ciclo;
                 $selo = $etapa['rotulo'];
                 require __DIR__ . '/trecho_caminhao.php';

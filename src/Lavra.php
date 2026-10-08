@@ -232,8 +232,8 @@ final class Lavra
     {
         $ciclo = self::exigir($id);
         self::garantirDono($ciclo, $somenteOperador);
-        if (!isset(self::etapas()[$ciclo['status']])) {
-            throw new InvalidArgumentException('Esse ciclo já foi encerrado.');
+        if (!in_array($ciclo['status'], ['na_fila', 'carregando'], true)) {
+            throw new InvalidArgumentException('Depois da saída para o britador, a viagem não se cancela.');
         }
         $motivo = limpar_texto($motivo, 300, false, 'o motivo');
         $linha = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Ciclo cancelado.';
@@ -245,6 +245,45 @@ final class Lavra
             "UPDATE ciclos_lavra SET status = 'cancelado', observacoes = ? WHERE id = ? AND status = ?"
         );
         $comando->execute([$observacoes, $id, $ciclo['status']]);
+        if ($comando->rowCount() < 1) {
+            throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
+        }
+    }
+
+    public static function motivosEncerramento(): array
+    {
+        return [
+            'turno' => 'Turno encerrado',
+            'pausa' => 'Pausa',
+            'oficina' => 'Oficina',
+            'outro' => 'Outro',
+        ];
+    }
+
+    public static function encerrar(int $id, string $motivo, string $outro, string $responsavel, ?string $somenteOperador = null): void
+    {
+        $ciclo = self::exigir($id);
+        self::garantirDono($ciclo, $somenteOperador);
+        if ($ciclo['status'] !== 'em_viagem') {
+            throw new InvalidArgumentException('O encerramento sem retorno só vale na ida ao britador.');
+        }
+        $rotulos = self::motivosEncerramento();
+        if (!isset($rotulos[$motivo])) {
+            throw new InvalidArgumentException('Escolha o motivo.');
+        }
+        $texto = $rotulos[$motivo];
+        if ($motivo === 'outro') {
+            $nota = limpar_texto($outro, 120, true, 'o motivo');
+            $texto .= ' · ' . $nota;
+        }
+        $linha = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Viagem encerrada sem retorno. ' . $texto;
+        $observacoes = trim((string) $ciclo['observacoes'] . "\n\n" . $linha);
+        $comando = Db::pdo()->prepare(
+            "UPDATE ciclos_lavra
+             SET status = 'concluido', fim_ciclo = ?, encerramento = ?, observacoes = ?
+             WHERE id = ? AND status = 'em_viagem'"
+        );
+        $comando->execute([agora_sql(), $texto, $observacoes, $id]);
         if ($comando->rowCount() < 1) {
             throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
         }
@@ -321,8 +360,8 @@ final class Lavra
         return [
             'fila' => segundos_entre($ciclo['inicio_fila'] ?? null, $ciclo['inicio_carga'] ?? null),
             'carga' => segundos_entre($ciclo['inicio_carga'] ?? null, $ciclo['fim_carga'] ?? null),
-            'ida' => segundos_entre($ciclo['fim_carga'] ?? null, $ciclo['inicio_retorno'] ?? null),
-            'retorno' => segundos_entre($ciclo['inicio_retorno'] ?? null, $ciclo['fim_ciclo'] ?? null),
+            'ida' => segundos_entre($ciclo['fim_carga'] ?? null, self::fimDaIda($ciclo)),
+            'retorno' => segundos_entre(self::inicioDoRetorno($ciclo), $ciclo['fim_ciclo'] ?? null),
             'ciclo' => segundos_entre($ciclo['inicio_fila'] ?? null, $ciclo['fim_ciclo'] ?? null),
         ];
     }
@@ -591,6 +630,24 @@ final class Lavra
         if ((string) ($ciclo['operador'] ?? '') !== $somenteOperador) {
             throw new InvalidArgumentException('Esse ciclo é de outro motorista.');
         }
+    }
+
+    private static function fimDaIda(array $ciclo): ?string
+    {
+        $retorno = $ciclo['inicio_retorno'] ?? null;
+        if ($retorno !== null && $retorno !== '') {
+            return (string) $retorno;
+        }
+        $fim = $ciclo['fim_ciclo'] ?? null;
+
+        return $fim !== null && $fim !== '' ? (string) $fim : null;
+    }
+
+    private static function inicioDoRetorno(array $ciclo): ?string
+    {
+        $retorno = $ciclo['inicio_retorno'] ?? null;
+
+        return $retorno !== null && $retorno !== '' ? (string) $retorno : null;
     }
 
     private static function sqlBase(): string

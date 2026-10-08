@@ -4,8 +4,8 @@
     <p class="meta"><?= e(Lavra::etapas()[$ciclo['status']]['rotulo'] ?? $ciclo['status']) ?> desde <?= e(hora_curta(Lavra::desde($ciclo))) ?></p>
 </section>
 
-<?php if (!isset(Lavra::etapas()[$ciclo['status']])): ?>
-    <p class="aviso erro">Esse ciclo já foi encerrado.</p>
+<?php if (!in_array($ciclo['status'], ['na_fila', 'carregando'], true)): ?>
+    <p class="aviso erro">Depois da saída para o britador, a viagem não se cancela.</p>
     <p><a class="btn secundario" href="<?= e(url('lavra')) ?>">Voltar</a></p>
 <?php else: ?>
     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/cancelar')) ?>" class="formulario">

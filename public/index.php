@@ -146,6 +146,12 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if (preg_match('#^lavra/ciclos/(\d+)/encerrar$#', $path, $m)) {
+        exigir_papel('motorista');
+        tela_lavra_encerrar((int) $m[1], $method);
+        return;
+    }
+
     if ($path === 'lavra/retro' && $method === 'POST') {
         exigir_papel('operador');
         csrf_check();
@@ -728,6 +734,52 @@ function tela_lavra_cancelar(int $id, string $method): void
         'corpo' => 'lavra',
         'ciclo' => $ciclo,
         'motivo' => $motivo,
+        'erro' => $erro,
+    ]);
+}
+
+function tela_lavra_encerrar(int $id, string $method): void
+{
+    $ciclo = Lavra::buscar($id);
+    if ($ciclo === null) {
+        http_response_code(404);
+        render('erro', [
+            'titulo' => 'Não encontrado',
+            'mensagem' => 'Esse ciclo não existe.',
+        ]);
+        return;
+    }
+
+    if (Auth::motorista() && (string) ($ciclo['operador'] ?? '') !== Auth::usuario()) {
+        http_response_code(403);
+        render('erro', [
+            'titulo' => 'Acesso',
+            'mensagem' => 'Esse ciclo é de outro motorista.',
+        ]);
+        return;
+    }
+
+    $erro = null;
+    $motivo = (string) ($_POST['motivo'] ?? '');
+    $outro = (string) ($_POST['outro'] ?? '');
+    if ($method === 'POST') {
+        csrf_check();
+        try {
+            Lavra::encerrar($id, $motivo, $outro, Auth::usuario(), Auth::motorista() ? Auth::usuario() : null);
+            flash_set('Viagem encerrada.');
+            redirect('/lavra');
+        } catch (InvalidArgumentException $e) {
+            $erro = $e->getMessage();
+            $ciclo = Lavra::buscar($id) ?? $ciclo;
+        }
+    }
+
+    render('lavra_encerrar', [
+        'titulo' => 'Encerrar viagem',
+        'corpo' => 'lavra',
+        'ciclo' => $ciclo,
+        'motivo' => $motivo,
+        'outro' => $outro,
         'erro' => $erro,
     ]);
 }

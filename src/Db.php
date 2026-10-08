@@ -263,6 +263,9 @@ final class Db
         if (!in_array('operador_carga', $colunas, true)) {
             $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN operador_carga VARCHAR(120) NULL AFTER retroescavadeira_id');
         }
+        if (!in_array('encerramento', $colunas, true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN encerramento VARCHAR(160) NULL AFTER operador_carga');
+        }
 
         $restricoes = [];
         $busca = $pdo->query(

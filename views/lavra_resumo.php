@@ -105,6 +105,9 @@
                         <div><span>Ida</span><strong><?= e(texto_duracao($ciclo['tempos']['ida'])) ?></strong></div>
                         <div><span>Retorno</span><strong><?= e(texto_duracao($ciclo['tempos']['retorno'])) ?></strong></div>
                     </dl>
+                    <?php if (trim((string) ($ciclo['encerramento'] ?? '')) !== ''): ?>
+                        <p class="meta">Sem retorno · <?= e((string) $ciclo['encerramento']) ?></p>
+                    <?php endif; ?>
                 </article>
             <?php endforeach; ?>
         </div>

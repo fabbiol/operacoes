@@ -564,6 +564,9 @@ button.rosto img { object-fit: cover; object-position: center; }
     color: var(--muted);
     font-weight: 700;
 }
+.caminhao-nome .link-discreto { display: table; margin-top: 8px; }
+.lavra .encerrar { margin: 0 0 4px; }
+.lavra .encerrar .link-discreto { display: inline-block; margin: 0; font-size: 14px; }
 .lavra button.link-discreto {
     width: auto;
     min-height: 0;
