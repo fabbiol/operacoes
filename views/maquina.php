@@ -29,7 +29,7 @@
     <?php endif; ?>
     <form method="post" action="<?= e(url('maquina')) ?>" class="formulario">
         <?= csrf_field() ?>
-        <fieldset class="maquinas">
+        <fieldset class="maquinas maquinas-duas">
             <legend>Máquina</legend>
             <?php foreach ($maquinas as $maquina): ?>
                 <?php
