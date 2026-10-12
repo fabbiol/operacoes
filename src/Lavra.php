@@ -240,6 +240,11 @@ final class Lavra
             throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
         }
 
+        $operador = trim((string) ($ciclo['operador'] ?? ''));
+        if ($operador !== '') {
+            self::entrarNaFila((int) $ciclo['caminhao_id'], $operador);
+        }
+
         return $etapa['aviso'];
     }
 
