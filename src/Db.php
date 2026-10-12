@@ -273,6 +273,22 @@ final class Db
         if (!in_array('encerramento_ciente_por', $colunas, true)) {
             $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN encerramento_ciente_por VARCHAR(120) NULL AFTER encerramento_ciente_em');
         }
+        if (!in_array('chegada_britador', $colunas, true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN chegada_britador DATETIME NULL AFTER fim_carga');
+        }
+        $tipoStatus = '';
+        foreach ($pdo->query('SHOW COLUMNS FROM ciclos_lavra') as $coluna) {
+            if ((string) ($coluna['Field'] ?? $coluna['field'] ?? '') === 'status') {
+                $tipoStatus = (string) ($coluna['Type'] ?? $coluna['type'] ?? '');
+            }
+        }
+        if (!str_contains($tipoStatus, 'no_britador')) {
+            $pdo->exec(
+                "ALTER TABLE ciclos_lavra MODIFY COLUMN status
+                 ENUM('na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando', 'concluido', 'cancelado')
+                 NOT NULL DEFAULT 'na_fila'"
+            );
+        }
 
         $restricoes = [];
         $busca = $pdo->query(

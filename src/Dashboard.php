@@ -57,11 +57,11 @@ final class Dashboard
         $desde = match ($status) {
             'carregando' => $ciclo['inicio_carga'] ?? $ciclo['inicio_fila'],
             'em_viagem' => $ciclo['fim_carga'] ?? $ciclo['inicio_fila'],
+            'no_britador' => $ciclo['chegada_britador'] ?? $ciclo['fim_carga'] ?? $ciclo['inicio_fila'],
             'retornando' => $ciclo['inicio_retorno'] ?? $ciclo['fim_carga'],
             default => $ciclo['inicio_fila'],
         };
-        $naEstrada = in_array($status, ['em_viagem', 'retornando'], true);
-        $distancia = $status === 'em_viagem' ? $estrada['ida_km'] : ($status === 'retornando' ? $estrada['retorno_km'] : null);
+        $naEstrada = in_array($status, ['em_viagem', 'no_britador', 'retornando'], true);
         $base = match ($status) {
             'em_viagem' => (int) ($medias['ida'] ?? 0),
             'retornando' => (int) ($medias['retorno'] ?? 0),
@@ -71,7 +71,19 @@ final class Dashboard
             $base = 900;
         }
         $decorrido = segundos_entre((string) $desde, agora_sql()) ?? 0;
-        $progresso = $naEstrada ? min(1, $decorrido / $base) : 0.0;
+        $faixa = match ($status) {
+            'em_viagem', 'no_britador' => 'ida',
+            'retornando' => 'volta',
+            default => 'lavra',
+        };
+        $progresso = $status === 'no_britador'
+            ? 1.0
+            : ($naEstrada ? min(1, $decorrido / $base) : 0.0);
+        $distancia = match ($faixa) {
+            'ida' => $estrada['ida_km'],
+            'volta' => $estrada['retorno_km'],
+            default => null,
+        };
         $placa = (string) $ciclo['placa'];
         $hoje = $viagensHoje[$placa] ?? ['viagens' => 0, 'toneladas' => null];
 
@@ -82,11 +94,7 @@ final class Dashboard
             'capacidade' => $ciclo['capacidade_t'] !== null ? (float) $ciclo['capacidade_t'] : null,
             'status' => $status,
             'estado' => self::estadoLavra($status),
-            'faixa' => match ($status) {
-                'em_viagem' => 'ida',
-                'retornando' => 'volta',
-                default => 'lavra',
-            },
+            'faixa' => $faixa,
             'progresso' => round($progresso, 3),
             'km' => $distancia !== null && $naEstrada ? round($progresso * $distancia, 2) : null,
             'retro' => (string) ($ciclo['retro_nome'] ?? ''),
@@ -103,7 +111,8 @@ final class Dashboard
         return match ($status) {
             'na_fila' => 'Na fila',
             'carregando' => 'Carregando',
-            'em_viagem' => 'Ida ao britador',
+            'em_viagem' => 'Na estrada',
+            'no_britador' => 'No britador',
             'retornando' => 'Retorno vazio',
             default => $status,
         };
@@ -290,7 +299,7 @@ final class Dashboard
             "SELECT HOUR(c.fim_ciclo) AS hora, COUNT(*) AS viagens, SUM(k.capacidade_t) AS toneladas
              FROM ciclos_lavra c
              JOIN caminhoes k ON k.id = c.caminhao_id
-             WHERE c.status = 'concluido' AND c.fim_ciclo >= ? AND c.fim_ciclo <= ?
+             WHERE c.status = 'concluido' AND c.fim_carga IS NOT NULL AND c.fim_ciclo >= ? AND c.fim_ciclo <= ?
              GROUP BY HOUR(c.fim_ciclo)
              ORDER BY hora"
         );
@@ -333,7 +342,7 @@ final class Dashboard
     {
         $inicio = Db::pdo()->query(
             "SELECT MIN(fim_ciclo) FROM ciclos_lavra
-             WHERE status = 'concluido' AND fim_ciclo >= CURDATE()"
+             WHERE status = 'concluido' AND fim_carga IS NOT NULL AND fim_ciclo >= CURDATE()"
         )->fetchColumn();
         if (!$inicio) {
             return null;

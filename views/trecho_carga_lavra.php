@@ -89,7 +89,7 @@
                     require __DIR__ . '/trecho_caminhao.php';
                     ?>
                     <p class="cliente"><?= e($caminhao['operador'] ?: 'Sem motorista') ?></p>
-                    <p>Encerrou a viagem e não volta vazio.</p>
+                    <p><?= !empty($caminhao['fim_carga']) ? 'Encerrou a viagem e não volta vazio.' : 'Encerrou a viagem antes de sair carregado.' ?></p>
                     <p class="meta"><?php
                         $aviso = trim((string) ($caminhao['encerramento'] ?? ''));
                         if (!empty($caminhao['fim_ciclo'])) {

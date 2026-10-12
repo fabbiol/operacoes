@@ -115,10 +115,11 @@ CREATE TABLE IF NOT EXISTS estrada (
 CREATE TABLE IF NOT EXISTS ciclos_lavra (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     caminhao_id INT UNSIGNED NOT NULL,
-    status ENUM('na_fila', 'carregando', 'em_viagem', 'retornando', 'concluido', 'cancelado') NOT NULL DEFAULT 'na_fila',
+    status ENUM('na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando', 'concluido', 'cancelado') NOT NULL DEFAULT 'na_fila',
     inicio_fila DATETIME NOT NULL,
     inicio_carga DATETIME NULL,
     fim_carga DATETIME NULL,
+    chegada_britador DATETIME NULL,
     inicio_retorno DATETIME NULL,
     fim_ciclo DATETIME NULL,
     operador VARCHAR(120) NULL,

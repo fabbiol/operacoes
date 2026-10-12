@@ -1,15 +1,20 @@
 <section class="resumo">
-    <p class="olho">Ida ao britador</p>
+    <p class="olho"><?= e(Lavra::etapas()[$ciclo['status']]['rotulo'] ?? 'Viagem') ?></p>
     <h1><?= e($ciclo['placa']) ?></h1>
     <p class="meta">Desde <?= e(hora_curta(Lavra::desde($ciclo))) ?></p>
 </section>
 
-<?php if ($ciclo['status'] !== 'em_viagem'): ?>
-    <p class="aviso erro">O encerramento sem retorno só vale na ida ao britador.</p>
+<?php $aberta = isset(Lavra::etapas()[$ciclo['status']]); ?>
+<?php if (!$aberta): ?>
+    <p class="aviso erro">Essa viagem já foi encerrada.</p>
     <p><a class="btn secundario" href="<?= e(url('lavra')) ?>">Voltar</a></p>
 <?php else: ?>
     <?php if (!empty($erro)): ?><p class="aviso erro"><?= e($erro) ?></p><?php endif; ?>
-    <p class="nota">A carga já foi para o britador. A viagem entra na produção e o retorno fica em branco.</p>
+    <?php if (!empty($ciclo['fim_carga'])): ?>
+        <p class="nota">A carga já saiu para o britador. A viagem entra na produção.</p>
+    <?php else: ?>
+        <p class="nota">A viagem ainda não saiu carregada. Ela não entra na produção.</p>
+    <?php endif; ?>
     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>" class="formulario">
         <?= csrf_field() ?>
         <fieldset class="maquinas">

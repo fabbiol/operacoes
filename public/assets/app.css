@@ -324,6 +324,7 @@ h2 { margin: 0 0 10px; font-size: 18px; }
 .status-cancelado { background: #fde8e4; color: var(--saida); }
 .status-na_fila { background: var(--gold); }
 .status-em_viagem { background: #d7e6f8; color: var(--info); }
+.status-no_britador { background: #efe6c9; color: #6a5420; }
 .status-retornando { background: #ffe3c2; }
 .status-sem_retorno { background: #fde8e4; color: var(--saida); }
 

@@ -132,7 +132,7 @@ function despachar(string $path, string $method): void
                 throw new InvalidArgumentException('Entre na fila com o caminhão que está no menu.');
             }
             Lavra::entrarNaFila((int) $m[1], Auth::usuario(), Auth::motorista());
-            flash_set('Caminhão entrou na fila.');
+            flash_set('Caminhão chegou na lavra.');
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
@@ -511,6 +511,7 @@ function lavra_marca(): string
             (string) $ciclo['status'],
             $ciclo['inicio_carga'] ?? null,
             $ciclo['fim_carga'] ?? null,
+            $ciclo['chegada_britador'] ?? null,
             $ciclo['inicio_retorno'] ?? null,
             $ciclo['operador_carga'] ?? null,
             (int) ($ciclo['retroescavadeira_id'] ?? 0),
@@ -560,6 +561,7 @@ function painel_marca(): string
             (string) $ciclo['status'],
             $ciclo['inicio_carga'] ?? null,
             $ciclo['fim_carga'] ?? null,
+            $ciclo['chegada_britador'] ?? null,
             $ciclo['inicio_retorno'] ?? null,
         ], $lavra['emCiclo']),
         'livres' => count($lavra['livres']),
@@ -1125,7 +1127,7 @@ function tela_lavra_fila(): void
 {
     $situacao = (string) ($_GET['situacao'] ?? 'abertas');
     $busca = trim((string) ($_GET['q'] ?? ''));
-    $validas = ['abertas', 'todas', 'na_fila', 'carregando', 'em_viagem', 'retornando', 'concluido', 'cancelado'];
+    $validas = ['abertas', 'todas', 'na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando', 'concluido', 'cancelado'];
     if (!in_array($situacao, $validas, true)) {
         $situacao = 'abertas';
     }

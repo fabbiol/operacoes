@@ -4,26 +4,35 @@ declare(strict_types=1);
 
 final class Lavra
 {
+    /** @var list<string> */
+    private const ABERTOS = ['na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando'];
+
     public static function etapas(): array
     {
         return [
             'na_fila' => [
-                'rotulo' => 'Na fila',
+                'rotulo' => 'Na lavra',
                 'desde' => 'inicio_fila',
                 'acao' => 'Iniciar carga',
                 'aviso' => 'Carga iniciada.',
             ],
             'carregando' => [
-                'rotulo' => 'Carga',
+                'rotulo' => 'Carregando',
                 'desde' => 'inicio_carga',
                 'acao' => 'Saiu para o britador',
                 'aviso' => 'Caminhão saiu carregado para o britador.',
             ],
             'em_viagem' => [
-                'rotulo' => 'Ida ao britador',
+                'rotulo' => 'Na estrada',
                 'desde' => 'fim_carga',
-                'acao' => 'Retorno vazio',
-                'aviso' => 'Retorno vazio iniciado.',
+                'acao' => 'Chegou no Britador',
+                'aviso' => 'Caminhão chegou no britador.',
+            ],
+            'no_britador' => [
+                'rotulo' => 'No britador',
+                'desde' => 'chegada_britador',
+                'acao' => 'Chegou na lavra',
+                'aviso' => 'Caminhão chegou na lavra.',
             ],
             'retornando' => [
                 'rotulo' => 'Retorno vazio',
@@ -32,6 +41,11 @@ final class Lavra
                 'aviso' => 'Ciclo concluído.',
             ],
         ];
+    }
+
+    private static function sqlAbertos(): string
+    {
+        return "'" . implode("', '", self::ABERTOS) . "'";
     }
 
     public static function painel(): array
@@ -76,15 +90,15 @@ final class Lavra
 
     public static function abertos(): array
     {
-        $sql = self::sqlBase() . " WHERE c.status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')
-            ORDER BY c.inicio_fila ASC, c.id ASC";
+        $sql = self::sqlBase() . ' WHERE c.status IN (' . self::sqlAbertos() . ')
+            ORDER BY c.inicio_fila ASC, c.id ASC';
 
         return Db::pdo()->query($sql)->fetchAll();
     }
 
     public static function contagens(): array
     {
-        $totais = array_fill_keys(['na_fila', 'carregando', 'em_viagem', 'retornando', 'concluido', 'cancelado'], 0);
+        $totais = array_fill_keys([...self::ABERTOS, 'concluido', 'cancelado'], 0);
         foreach (Db::pdo()->query('SELECT status, COUNT(*) AS total FROM ciclos_lavra GROUP BY status') as $linha) {
             $totais[(string) $linha['status']] = (int) $linha['total'];
         }
@@ -94,11 +108,11 @@ final class Lavra
 
     public static function listar(string $situacao, string $busca): array
     {
-        $abertas = ['na_fila', 'carregando', 'em_viagem', 'retornando'];
+        $abertas = self::ABERTOS;
         $sql = self::sqlBase() . ' WHERE 1 = 1';
         $params = [];
         if ($situacao === '' || $situacao === 'abertas') {
-            $sql .= " AND c.status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')";
+            $sql .= ' AND c.status IN (' . self::sqlAbertos() . ')';
         } elseif ($situacao !== 'todas') {
             if (!in_array($situacao, [...$abertas, 'concluido', 'cancelado'], true)) {
                 throw new InvalidArgumentException('Situação inválida.');
@@ -114,7 +128,7 @@ final class Lavra
             array_push($params, $like, $like);
         }
 
-        $sql .= " ORDER BY FIELD(c.status, 'na_fila', 'carregando', 'em_viagem', 'retornando', 'concluido', 'cancelado'), c.inicio_fila DESC, c.id DESC LIMIT 300";
+        $sql .= " ORDER BY FIELD(c.status, 'na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando', 'concluido', 'cancelado'), c.inicio_fila DESC, c.id DESC LIMIT 300";
         $comando = Db::pdo()->prepare($sql);
         $comando->execute($params);
 
@@ -173,7 +187,7 @@ final class Lavra
 
         $aberto = Db::pdo()->prepare(
             "SELECT id FROM ciclos_lavra
-             WHERE caminhao_id = ? AND status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')
+             WHERE caminhao_id = ? AND status IN (" . self::sqlAbertos() . ")
              LIMIT 1"
         );
         $aberto->execute([$caminhaoId]);
@@ -202,25 +216,26 @@ final class Lavra
             throw new InvalidArgumentException('Esse ciclo já foi encerrado.');
         }
 
-        $coluna = match ($ciclo['status']) {
-            'na_fila' => 'inicio_carga',
-            'carregando' => 'fim_carga',
-            'em_viagem' => 'inicio_retorno',
-            'retornando' => 'fim_ciclo',
-            default => throw new InvalidArgumentException('Esse ciclo já foi encerrado.'),
-        };
-        $proximo = match ($ciclo['status']) {
-            'na_fila' => 'carregando',
-            'carregando' => 'em_viagem',
-            'em_viagem' => 'retornando',
-            'retornando' => 'concluido',
-            default => throw new InvalidArgumentException('Esse ciclo já foi encerrado.'),
-        };
+        if ($ciclo['status'] === 'em_viagem') {
+            $comando = Db::pdo()->prepare(
+                "UPDATE ciclos_lavra SET chegada_britador = ?, status = 'no_britador' WHERE id = ? AND status = 'em_viagem'"
+            );
+            $comando->execute([agora_sql(), $id]);
+            if ($comando->rowCount() < 1) {
+                throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
+            }
+
+            return $etapa['aviso'];
+        }
+
+        if (!in_array($ciclo['status'], ['no_britador', 'retornando'], true)) {
+            throw new InvalidArgumentException('Esse ciclo já foi encerrado.');
+        }
 
         $comando = Db::pdo()->prepare(
-            "UPDATE ciclos_lavra SET {$coluna} = ?, status = ? WHERE id = ? AND status = ?"
+            "UPDATE ciclos_lavra SET fim_ciclo = ?, status = 'concluido' WHERE id = ? AND status = ?"
         );
-        $comando->execute([agora_sql(), $proximo, $id, $ciclo['status']]);
+        $comando->execute([agora_sql(), $id, $ciclo['status']]);
         if ($comando->rowCount() < 1) {
             throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
         }
@@ -264,8 +279,8 @@ final class Lavra
     {
         $ciclo = self::exigir($id);
         self::garantirDono($ciclo, $somenteOperador);
-        if ($ciclo['status'] !== 'em_viagem') {
-            throw new InvalidArgumentException('O encerramento sem retorno só vale na ida ao britador.');
+        if (!in_array($ciclo['status'], self::ABERTOS, true)) {
+            throw new InvalidArgumentException('Essa viagem já foi encerrada.');
         }
         $rotulos = self::motivosEncerramento();
         if (!isset($rotulos[$motivo])) {
@@ -276,14 +291,17 @@ final class Lavra
             $nota = limpar_texto($outro, 120, true, 'o motivo');
             $texto .= ' · ' . $nota;
         }
-        $linha = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Viagem encerrada sem retorno. ' . $texto;
+        $fato = self::saiuCarregado($ciclo)
+            ? 'Viagem encerrada sem retorno.'
+            : 'Viagem encerrada antes da carga.';
+        $linha = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] ' . $fato . ' ' . $texto;
         $observacoes = trim((string) $ciclo['observacoes'] . "\n\n" . $linha);
         $comando = Db::pdo()->prepare(
             "UPDATE ciclos_lavra
              SET status = 'concluido', fim_ciclo = ?, encerramento = ?, observacoes = ?
-             WHERE id = ? AND status = 'em_viagem'"
+             WHERE id = ? AND status = ?"
         );
-        $comando->execute([agora_sql(), $texto, $observacoes, $id]);
+        $comando->execute([agora_sql(), $texto, $observacoes, $id, $ciclo['status']]);
         if ($comando->rowCount() < 1) {
             throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
         }
@@ -312,19 +330,26 @@ final class Lavra
         foreach ($ciclos as $ciclo) {
             $tempos = self::tempos($ciclo);
             $linhas[] = $ciclo + ['tempos' => $tempos];
+            if (!self::saiuCarregado($ciclo)) {
+                continue;
+            }
             $placa = (string) $ciclo['placa'];
             $porCaminhao[$placa] = ($porCaminhao[$placa] ?? 0) + 1;
         }
 
-        $medias = self::mediasDe($linhas);
+        $entregas = array_values(array_filter(
+            $linhas,
+            static fn (array $ciclo): bool => self::saiuCarregado($ciclo)
+        ));
+        $medias = self::mediasDe($entregas);
         ksort($porCaminhao);
 
         return [
             'dia' => $dia,
             'linhas' => $linhas,
             'medias' => $medias,
-            'viagens' => count($linhas),
-            'producao' => self::producao($linhas),
+            'viagens' => count($entregas),
+            'producao' => self::producao($entregas),
             'porCaminhao' => $porCaminhao,
         ];
     }
@@ -337,6 +362,10 @@ final class Lavra
             $tudo['linhas'],
             static fn (array $ciclo): bool => isset($nomes[(string) ($ciclo['operador'] ?? '')])
         ));
+        $entregasMotorista = array_values(array_filter(
+            $dosMotoristas,
+            static fn (array $ciclo): bool => self::saiuCarregado($ciclo)
+        ));
 
         return [
             'dia' => $tudo['dia'],
@@ -347,9 +376,9 @@ final class Lavra
                 'grupos' => self::agrupar($tudo['linhas'], 'placa'),
             ],
             'motorista' => [
-                'medias' => self::mediasDe($dosMotoristas),
-                'viagens' => count($dosMotoristas),
-                'producao' => self::producao($dosMotoristas),
+                'medias' => self::mediasDe($entregasMotorista),
+                'viagens' => count($entregasMotorista),
+                'producao' => self::producao($entregasMotorista),
                 'grupos' => self::agrupar($dosMotoristas, 'operador'),
             ],
         ];
@@ -398,7 +427,7 @@ final class Lavra
             FROM caminhoes k
             JOIN ciclos_lavra c ON c.caminhao_id = k.id
                 AND c.status = 'concluido'
-                AND c.inicio_retorno IS NOT NULL
+                AND (c.encerramento IS NULL OR c.encerramento = '')
                 AND c.fim_ciclo >= CURDATE()
             WHERE k.ativo = 1
               AND c.id = (
@@ -410,7 +439,7 @@ final class Lavra
               AND NOT EXISTS (
                     SELECT 1 FROM ciclos_lavra aberto
                     WHERE aberto.caminhao_id = k.id
-                      AND aberto.status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')
+                      AND aberto.status IN (" . self::sqlAbertos() . ")
               )
             ORDER BY c.fim_ciclo DESC, k.placa ASC";
 
@@ -420,7 +449,7 @@ final class Lavra
     public static function semRetornoHoje(): array
     {
         $sql = "SELECT k.id, k.placa AS nome, k.placa, k.ativo, k.marca, k.modelo, k.ano, k.foto, k.capacidade_t,
-                c.id AS ciclo_id, c.fim_ciclo, c.encerramento, c.operador
+                c.id AS ciclo_id, c.fim_ciclo, c.fim_carga, c.encerramento, c.operador
             FROM caminhoes k
             JOIN ciclos_lavra c ON c.caminhao_id = k.id
                 AND c.status = 'concluido'
@@ -439,7 +468,7 @@ final class Lavra
               AND NOT EXISTS (
                     SELECT 1 FROM ciclos_lavra aberto
                     WHERE aberto.caminhao_id = k.id
-                      AND aberto.status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')
+                      AND aberto.status IN (" . self::sqlAbertos() . ")
               )
             ORDER BY c.fim_ciclo DESC, k.placa ASC";
 
@@ -587,6 +616,9 @@ final class Lavra
         $comCapacidade = 0;
         $faltando = [];
         foreach ($linhas as $linha) {
+            if (!self::saiuCarregado($linha)) {
+                continue;
+            }
             $capacidade = $linha['capacidade_t'] ?? null;
             if ($capacidade === null || $capacidade === '') {
                 $id = (int) ($linha['caminhao_id'] ?? 0);
@@ -620,6 +652,9 @@ final class Lavra
         $somas = ['fila' => 0, 'carga' => 0, 'ida' => 0, 'retorno' => 0, 'ciclo' => 0];
         $quantidades = $somas;
         foreach ($linhas as $ciclo) {
+            if (!self::saiuCarregado($ciclo)) {
+                continue;
+            }
             $tempos = $ciclo['tempos'] ?? self::tempos($ciclo);
             foreach ($somas as $chave => $valor) {
                 if ($tempos[$chave] === null) {
@@ -654,7 +689,10 @@ final class Lavra
         foreach ($baldes as $titulo => $itens) {
             $grupos[] = [
                 'titulo' => $titulo,
-                'viagens' => count($itens),
+                'viagens' => count(array_filter(
+                    $itens,
+                    static fn (array $ciclo): bool => self::saiuCarregado($ciclo)
+                )),
                 'producao' => self::producao($itens),
                 'medias' => self::mediasDe($itens),
                 'linhas' => $itens,
@@ -692,7 +730,7 @@ final class Lavra
     {
         $comando = Db::pdo()->prepare(
             self::sqlBase() . " WHERE c.operador = ?
-                AND c.status IN ('na_fila', 'carregando', 'em_viagem', 'retornando')
+                AND c.status IN (" . self::sqlAbertos() . ")
              ORDER BY c.inicio_fila DESC, c.id DESC LIMIT 1"
         );
         $comando->execute([$operador]);
@@ -711,8 +749,19 @@ final class Lavra
         }
     }
 
+    private static function saiuCarregado(array $ciclo): bool
+    {
+        $fim = $ciclo['fim_carga'] ?? null;
+
+        return $fim !== null && $fim !== '';
+    }
+
     private static function fimDaIda(array $ciclo): ?string
     {
+        $britador = $ciclo['chegada_britador'] ?? null;
+        if ($britador !== null && $britador !== '') {
+            return (string) $britador;
+        }
         $retorno = $ciclo['inicio_retorno'] ?? null;
         if ($retorno !== null && $retorno !== '') {
             return (string) $retorno;
@@ -724,6 +773,10 @@ final class Lavra
 
     private static function inicioDoRetorno(array $ciclo): ?string
     {
+        $britador = $ciclo['chegada_britador'] ?? null;
+        if ($britador !== null && $britador !== '') {
+            return (string) $britador;
+        }
         $retorno = $ciclo['inicio_retorno'] ?? null;
 
         return $retorno !== null && $retorno !== '' ? (string) $retorno : null;

@@ -10,7 +10,7 @@
         <a class="btn secundario" href="<?= e(url('lavra/resumo')) ?>">Tempos de hoje</a>
     </div>
 </section>
-<p class="nota">Fila na lavra, carga na retroescavadeira, ida até o britador e retorno vazio. O tempo de cada etapa é o intervalo entre os toques.</p>
+<p class="nota">O motorista marca a chegada na lavra e no britador. A retro faz a carga. Encerrar viagem vale em qualquer momento.</p>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($emCiclo === [] && $livres === []): ?>
@@ -30,13 +30,11 @@
             <?php $etapa = Lavra::etapas()[$ciclo['status']]; ?>
             <?php $desde = Lavra::desde($ciclo); ?>
             <article class="cartao destaque">
-                <?php if ($ciclo['status'] === 'em_viagem'): ?>
+                <?php if (isset(Lavra::etapas()[$ciclo['status']])): ?>
                     <a class="btn encerrar-viagem" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a>
                 <?php endif; ?>
                 <?php
-                $cancelarCiclo = in_array($ciclo['status'], ['na_fila', 'carregando'], true)
-                    ? url('lavra/ciclos/' . $ciclo['id'] . '/cancelar')
-                    : null;
+                $cancelarCiclo = null;
                 $ficha = $ciclo;
                 $selo = $etapa['rotulo'];
                 require __DIR__ . '/trecho_caminhao.php';
@@ -91,7 +89,7 @@
                 <?php $cancelarCiclo = null; $ficha = $caminhao; $selo = ''; require __DIR__ . '/trecho_caminhao.php'; ?>
                 <form method="post" action="<?= e(url('lavra/caminhoes/' . $caminhao['id'] . '/fila')) ?>">
                     <?= csrf_field() ?>
-                    <button type="submit" class="btn primario">Entrou na fila</button>
+                    <button type="submit" class="btn primario">Chegou na lavra</button>
                 </form>
             </article>
         <?php endforeach; ?>

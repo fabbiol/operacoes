@@ -81,11 +81,11 @@
                     <dl class="tempos tempos-ciclo">
                         <div><span>Fila</span><strong><?= e(texto_duracao($ciclo['tempos']['fila'])) ?></strong></div>
                         <div><span>Carga</span><strong><?= e(texto_duracao($ciclo['tempos']['carga'])) ?></strong></div>
-                        <div><span>Ida</span><strong><?= e(texto_duracao($ciclo['tempos']['ida'])) ?></strong></div>
-                        <div><span>Retorno</span><strong><?= e(texto_duracao($ciclo['tempos']['retorno'])) ?></strong></div>
+                        <div><span>Estrada</span><strong><?= e(texto_duracao($ciclo['tempos']['ida'])) ?></strong></div>
+                        <div><span>Volta</span><strong><?= e(texto_duracao($ciclo['tempos']['retorno'])) ?></strong></div>
                     </dl>
                     <?php if (trim((string) ($ciclo['encerramento'] ?? '')) !== ''): ?>
-                        <p class="meta">Sem retorno · <?= e((string) $ciclo['encerramento']) ?></p>
+                        <p class="meta"><?= !empty($ciclo['fim_carga']) ? 'Sem retorno' : 'Encerrada antes da carga' ?> · <?= e((string) $ciclo['encerramento']) ?></p>
                     <?php endif; ?>
                 </article>
             <?php endif; ?>

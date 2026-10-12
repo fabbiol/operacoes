@@ -2,12 +2,14 @@
 $abertas = (int) ($contagens['na_fila'] ?? 0)
     + (int) ($contagens['carregando'] ?? 0)
     + (int) ($contagens['em_viagem'] ?? 0)
+    + (int) ($contagens['no_britador'] ?? 0)
     + (int) ($contagens['retornando'] ?? 0);
 $filtros = [
     'abertas' => ['Abertas', $abertas],
-    'na_fila' => ['Na fila', $contagens['na_fila'] ?? 0],
+    'na_fila' => ['Na lavra', $contagens['na_fila'] ?? 0],
     'carregando' => ['Carga', $contagens['carregando'] ?? 0],
-    'em_viagem' => ['Ida', $contagens['em_viagem'] ?? 0],
+    'em_viagem' => ['Na estrada', $contagens['em_viagem'] ?? 0],
+    'no_britador' => ['No britador', $contagens['no_britador'] ?? 0],
     'retornando' => ['Retorno', $contagens['retornando'] ?? 0],
     'concluido' => ['Concluídas', $contagens['concluido'] ?? 0],
     'cancelado' => ['Canceladas', $contagens['cancelado'] ?? 0],

@@ -193,11 +193,11 @@
                 <strong><?= e(texto_duracao($lavraDia['caminhao']['medias']['carga'])) ?></strong>
             </div>
             <div>
-                <span>Ida</span>
+                <span>Estrada</span>
                 <strong><?= e(texto_duracao($lavraDia['caminhao']['medias']['ida'])) ?></strong>
             </div>
             <div>
-                <span>Retorno</span>
+                <span>Volta</span>
                 <strong><?= e(texto_duracao($lavraDia['caminhao']['medias']['retorno'])) ?></strong>
             </div>
         </div>
