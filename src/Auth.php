@@ -298,7 +298,7 @@ final class Auth
         $_SESSION['auth'] = true;
         $_SESSION['usuario'] = $nome;
         $_SESSION['visto'] = time();
-        unset($_SESSION['login_falhas'], $_SESSION['login_bloqueado_ate'], $_SESSION['maquina'], $_SESSION['retroescavadeira_id']);
+        unset($_SESSION['login_falhas'], $_SESSION['login_bloqueado_ate'], $_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno']);
     }
 
     private static function eu(): ?array

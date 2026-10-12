@@ -96,18 +96,15 @@
                 <article class="cartao">
                     <header>
                         <strong><?= e($visao === 'motorista' ? $ciclo['placa'] : ((string) $ciclo['operador'] !== '' ? $ciclo['operador'] : 'Sem identificação')) ?></strong>
-                        <span class="selo status-concluido"><?= e(texto_duracao($ciclo['tempos']['ciclo'])) ?></span>
+                        <?php $fecho = Lavra::fecho($ciclo); ?>
+                        <span class="selo <?= e($fecho['classe'] !== '' ? $fecho['classe'] : 'status-concluido') ?>"><?= e($fecho['selo'] !== '' ? $fecho['selo'] : texto_duracao($ciclo['tempos']['ciclo'])) ?></span>
                     </header>
-                    <p class="meta"><?= e(hora_curta($ciclo['inicio_fila'])) ?> → <?= e(hora_curta($ciclo['fim_ciclo'])) ?></p>
-                    <dl class="tempos tempos-ciclo">
-                        <div><span>Fila</span><strong><?= e(texto_duracao($ciclo['tempos']['fila'])) ?></strong></div>
-                        <div><span>Carga</span><strong><?= e(texto_duracao($ciclo['tempos']['carga'])) ?></strong></div>
-                        <div><span>Estrada</span><strong><?= e(texto_duracao($ciclo['tempos']['ida'])) ?></strong></div>
-                        <div><span>Volta</span><strong><?= e(texto_duracao($ciclo['tempos']['retorno'])) ?></strong></div>
-                    </dl>
-                    <?php if (trim((string) ($ciclo['encerramento'] ?? '')) !== ''): ?>
-                        <p class="meta"><?= !empty($ciclo['fim_carga']) ? 'Sem retorno' : 'Encerrada antes da carga' ?> · <?= e((string) $ciclo['encerramento']) ?></p>
-                    <?php endif; ?>
+                    <?php
+                    $mostrarTitulo = $fecho['classe'] !== '';
+                    $mostrarCiclo = false;
+                    $quandoFecho = hora_curta($ciclo['inicio_fila']) . ' → ' . hora_curta($ciclo['fim_ciclo']);
+                    require __DIR__ . '/trecho_fecho_lavra.php';
+                    ?>
                 </article>
             <?php endforeach; ?>
         </div>

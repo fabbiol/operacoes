@@ -69,3 +69,6 @@
         <a class="btn secundario" href="<?= e(url('cadastros/' . $tipo['chave'])) ?>">Voltar</a>
     </div>
 </form>
+<?php if (!$novo && $ficha && isset($horimetro)): ?>
+    <?php require __DIR__ . '/trecho_horimetro.php'; ?>
+<?php endif; ?>

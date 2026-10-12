@@ -14,4 +14,10 @@
             <p class="meta">Toque para incluir ou desativar.</p>
         </a>
     <?php endforeach; ?>
+    <a class="cartao" href="<?= e(url('manutencao')) ?>">
+        <header>
+            <strong>Manutenção</strong>
+        </header>
+        <p class="meta">Horímetro e serviços das máquinas.</p>
+    </a>
 </div>

@@ -10,7 +10,7 @@
         <a class="btn secundario" href="<?= e(url('lavra/resumo')) ?>">Tempos de hoje</a>
     </div>
 </section>
-<p class="nota">O motorista marca a chegada na lavra e no britador. A retro faz a carga. Encerrar viagem vale em qualquer momento.</p>
+<p class="nota">Na garagem, Chegou na lavra abre a viagem. No britador, o motorista volta para a lavra ou vai para a garagem. Encerrar viagem interrompe o ciclo, e o horímetro final entra no Sair.</p>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($emCiclo === [] && $livres === []): ?>
@@ -70,6 +70,15 @@
                             <button type="submit" class="btn primario">Carga concluída</button>
                         </form>
                     <?php endif; ?>
+                <?php elseif (in_array($ciclo['status'], ['no_britador', 'retornando'], true)): ?>
+                    <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn primario">Chegou na lavra</button>
+                    </form>
+                    <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/garagem')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn secundario">Garagem</button>
+                    </form>
                 <?php else: ?>
                     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
                         <?= csrf_field() ?>
@@ -82,15 +91,31 @@
 <?php endif; ?>
 
 <?php if ($livres !== []): ?>
-    <h2>Disponíveis</h2>
+    <h2><?= !empty($garagem) ? 'Garagem' : 'Disponíveis' ?></h2>
     <div class="lista">
         <?php foreach ($livres as $caminhao): ?>
             <article class="cartao">
-                <?php $cancelarCiclo = null; $ficha = $caminhao; $selo = ''; require __DIR__ . '/trecho_caminhao.php'; ?>
-                <form method="post" action="<?= e(url('lavra/caminhoes/' . $caminhao['id'] . '/fila')) ?>">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="btn primario">Chegou na lavra</button>
-                </form>
+                <?php
+                $cancelarCiclo = null;
+                $ficha = $caminhao;
+                if (!empty($garagem)) {
+                    $ficha['status'] = 'garagem';
+                }
+                $selo = !empty($garagem) ? 'Na garagem' : '';
+                require __DIR__ . '/trecho_caminhao.php';
+                ?>
+                <?php if (!empty($garagem) && !empty($precisaSoltar)): ?>
+                    <p class="nota">A viagem encerrou. Lance o horímetro ao sair antes de outra viagem.</p>
+                    <form method="post" action="<?= e(url('sair')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn primario">Sair e lançar horímetro</button>
+                    </form>
+                <?php else: ?>
+                    <form method="post" action="<?= e(url('lavra/caminhoes/' . $caminhao['id'] . '/fila')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn primario">Chegou na lavra</button>
+                    </form>
+                <?php endif; ?>
             </article>
         <?php endforeach; ?>
     </div>

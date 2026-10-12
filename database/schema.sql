@@ -138,3 +138,53 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     CONSTRAINT fk_ciclo_caminhao FOREIGN KEY (caminhao_id) REFERENCES caminhoes (id),
     CONSTRAINT fk_ciclo_retro FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS horimetros (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    leitura DECIMAL(10,1) NOT NULL,
+    lido_em DATETIME NOT NULL,
+    usuario VARCHAR(40) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_horimetro_maquina (tipo, maquina_id, leitura)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manutencao_planos (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    nome VARCHAR(120) NOT NULL,
+    intervalo_h DECIMAL(10,1) NOT NULL,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_plano_maquina (tipo, maquina_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS manutencoes (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    plano_id INT UNSIGNED NOT NULL,
+    horimetro DECIMAL(10,1) NOT NULL,
+    feito_em DATETIME NOT NULL,
+    usuario VARCHAR(40) NOT NULL,
+    observacoes TEXT NULL,
+    PRIMARY KEY (id),
+    KEY idx_manutencao_plano (plano_id, feito_em),
+    CONSTRAINT fk_manutencao_plano FOREIGN KEY (plano_id) REFERENCES manutencao_planos (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS horimetro_turnos (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    usuario VARCHAR(40) NOT NULL,
+    entrada DECIMAL(10,1) NOT NULL,
+    saida DECIMAL(10,1) NOT NULL,
+    horas DECIMAL(10,1) NOT NULL,
+    iniciado_em DATETIME NULL,
+    encerrado_em DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_turno_usuario (usuario, encerrado_em),
+    KEY idx_turno_maquina (tipo, maquina_id, encerrado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

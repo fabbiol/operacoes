@@ -48,9 +48,10 @@ $etapas = Lavra::etapas();
         <?php foreach ($ciclos as $ciclo): ?>
             <?php
             $etapa = $etapas[$ciclo['status']] ?? null;
-            $rotulo = $etapa['rotulo'] ?? ($ciclo['status'] === 'concluido' ? 'Concluído' : 'Cancelado');
             $tempos = Lavra::tempos($ciclo);
             $desde = Lavra::desde($ciclo);
+            $fecho = $ciclo['status'] === 'concluido' ? Lavra::fecho($ciclo + ['tempos' => $tempos]) : null;
+            $rotulo = $etapa['rotulo'] ?? ($fecho !== null && $fecho['titulo'] !== 'Viagem concluída' ? $fecho['titulo'] : ($ciclo['status'] === 'concluido' ? 'Concluído' : 'Cancelado'));
             ?>
             <article class="cartao">
                 <header>
@@ -60,7 +61,7 @@ $etapas = Lavra::etapas();
                     $destaque = true;
                     require __DIR__ . '/trecho_quem.php';
                     ?>
-                    <span class="selo status-<?= e($ciclo['status']) ?>"><?= e($rotulo) ?></span>
+                    <span class="selo <?= $fecho !== null && $fecho['classe'] !== '' ? e($fecho['classe']) : 'status-' . e($ciclo['status']) ?>"><?= e($rotulo) ?></span>
                 </header>
                 <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
                 <?php if (trim((string) ($ciclo['retro_nome'] ?? '')) !== ''): ?>
@@ -77,6 +78,8 @@ $etapas = Lavra::etapas();
                 <?php endif; ?>
                 <?php if ($desde): ?>
                     <p class="carga"><?= e($rotulo) ?> desde <?= e(hora_curta($desde)) ?></p>
+                <?php elseif ($fecho !== null && $fecho['frase'] !== ''): ?>
+                    <p class="fecho"><?= e($fecho['frase']) ?></p>
                 <?php elseif ($ciclo['status'] === 'concluido'): ?>
                     <p class="carga">Ciclo <?= e(texto_duracao($tempos['ciclo'])) ?></p>
                 <?php endif; ?>

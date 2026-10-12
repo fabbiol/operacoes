@@ -163,7 +163,7 @@ function maquina_item(string $tipo, string $chave, array $cadastro): array
 
 function maquina_limpar(): void
 {
-    unset($_SESSION['maquina'], $_SESSION['retroescavadeira_id']);
+    unset($_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno']);
 }
 
 function maquina_definir(string $tipo, int $id): void
@@ -286,6 +286,75 @@ function maquina_destino(): string
         'caminhao', 'retro' => '/lavra',
         default => Auth::inicio(),
     };
+}
+
+function horimetro_entrada(): ?float
+{
+    $turno = $_SESSION['horimetro_turno'] ?? null;
+    $maquina = maquina_escolhida();
+    if (!is_array($turno) || $maquina === null) {
+        return null;
+    }
+    if (($turno['tipo'] ?? '') !== $maquina['tipo'] || (int) ($turno['id'] ?? 0) !== (int) $maquina['id']) {
+        return null;
+    }
+
+    return isset($turno['entrada']) ? (float) $turno['entrada'] : null;
+}
+
+function horimetro_assumir(string $tipo, int $id, string $leitura): void
+{
+    $lida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
+    maquina_definir($tipo, $id);
+    $_SESSION['horimetro_turno'] = [
+        'tipo' => $tipo,
+        'id' => $id,
+        'entrada' => $lida,
+        'iniciado_em' => agora_sql(),
+        'precisa_soltar' => false,
+    ];
+}
+
+function horimetro_marcar_soltar(): void
+{
+    $turno = $_SESSION['horimetro_turno'] ?? [];
+    if (!is_array($turno)) {
+        $turno = [];
+    }
+    $turno['precisa_soltar'] = true;
+    $_SESSION['horimetro_turno'] = $turno;
+}
+
+function horimetro_precisa_soltar(): bool
+{
+    $turno = $_SESSION['horimetro_turno'] ?? null;
+
+    return is_array($turno) && !empty($turno['precisa_soltar']);
+}
+
+function horimetro_soltar(string $leitura): void
+{
+    $maquina = maquina_escolhida();
+    if ($maquina === null) {
+        return;
+    }
+    if (maquina_do_trabalho() !== null) {
+        throw new InvalidArgumentException('Conclua o trabalho desta máquina antes de soltar.');
+    }
+    $entrada = horimetro_entrada();
+    $saida = Horimetro::lancar($maquina['tipo'], (int) $maquina['id'], $leitura, Auth::usuario());
+    if ($entrada !== null) {
+        $iniciado = $_SESSION['horimetro_turno']['iniciado_em'] ?? null;
+        Horimetro::registrarTurno(
+            $maquina['tipo'],
+            (int) $maquina['id'],
+            $entrada,
+            $saida,
+            is_string($iniciado) && $iniciado !== '' ? $iniciado : null,
+            Auth::usuario()
+        );
+    }
+    maquina_limpar();
 }
 
 function maquinas_do_usuario(): array

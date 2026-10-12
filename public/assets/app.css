@@ -196,6 +196,15 @@ h2 { margin: 0 0 10px; font-size: 18px; }
 }
 
 .aviso.erro { background: #fde8e4; color: var(--saida); }
+.aviso.atencao { background: #ffe3c2; color: #6a3d12; }
+.fecho { margin: 10px 0 0; font-weight: 700; }
+.selo.status-encerrado {
+    background: #fde8e4;
+    color: var(--saida);
+    white-space: normal;
+    text-align: right;
+    max-width: 11rem;
+}
 
 .nota { color: var(--muted); }
 .vazio {
@@ -301,7 +310,15 @@ h2 { margin: 0 0 10px; font-size: 18px; }
 .caminhao-nome .meta { font-size: 15px; font-weight: 600; }
 .cliente { margin: 0; font-size: 20px; font-weight: 700; }
 .carga { margin: 0; font-size: 18px; }
-.meta { margin: 0; color: var(--muted); }
+.selo-vencida { background: #f3d2c6; color: #6d2e1b; }
+.selo-proxima { background: #efe6c9; color: #6a5420; }
+.selo-em_dia { background: #d7efe8; color: #1d5c4a; }
+.selo-sem_leitura,
+.selo-sem_servico,
+.selo-sem_plano,
+.selo-inativo { background: #e7e1d6; color: #5c564c; }
+.bloco.horimetro { margin-top: 28px; }
+.bloco.horimetro h2 { margin-bottom: 8px; }
 
 .selo {
     display: inline-flex;
@@ -323,6 +340,7 @@ h2 { margin: 0 0 10px; font-size: 18px; }
 .status-concluido { background: #d8f3e4; color: var(--entrada); }
 .status-cancelado { background: #fde8e4; color: var(--saida); }
 .status-na_fila { background: var(--gold); }
+.status-garagem { background: #eceae4; color: #5c564c; }
 .status-em_viagem { background: #d7e6f8; color: var(--info); }
 .status-no_britador { background: #efe6c9; color: #6a5420; }
 .status-retornando { background: #ffe3c2; }

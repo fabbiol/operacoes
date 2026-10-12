@@ -21,6 +21,22 @@
     </div>
 </div>
 
+<?php if (($turnos ?? []) !== []): ?>
+    <h2>Horas de motor</h2>
+    <div class="lista">
+        <?php foreach ($turnos as $turno): ?>
+            <article class="cartao">
+                <header>
+                    <strong><?= e((string) $turno['nome']) ?></strong>
+                    <span class="selo status-em_viagem"><?= e(Horimetro::texto((float) $turno['horas'])) ?></span>
+                </header>
+                <p class="meta">Entrou com <?= e(Horimetro::texto((float) $turno['entrada'])) ?> · saiu com <?= e(Horimetro::texto((float) $turno['saida'])) ?></p>
+                <p class="meta"><?= e(quando((string) ($turno['iniciado_em'] ?: $turno['encerrado_em']))) ?> → <?= e(hora_curta((string) $turno['encerrado_em'])) ?></p>
+            </article>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
 <?php if ($itens === []): ?>
     <p class="vazio">Nenhum trabalho seu neste período.</p>
 <?php else: ?>
@@ -73,20 +89,15 @@
                         $destaque = true;
                         require __DIR__ . '/trecho_quem.php';
                         ?>
-                        <span class="selo status-em_viagem">Lavra</span>
+                        <?php $fecho = Lavra::fecho($ciclo); ?>
+                        <span class="selo <?= e($fecho['classe'] !== '' ? $fecho['classe'] : 'status-em_viagem') ?>"><?= e($fecho['selo'] !== '' ? $fecho['selo'] : 'Lavra') ?></span>
                     </header>
-                    <p class="cliente">Viagem concluída</p>
-                    <p class="carga">Ciclo <?= e(texto_duracao($ciclo['tempos']['ciclo'])) ?></p>
-                    <p class="meta"><?= e(quando($ciclo['inicio_fila'])) ?> → <?= e(hora_curta($ciclo['fim_ciclo'])) ?></p>
-                    <dl class="tempos tempos-ciclo">
-                        <div><span>Fila</span><strong><?= e(texto_duracao($ciclo['tempos']['fila'])) ?></strong></div>
-                        <div><span>Carga</span><strong><?= e(texto_duracao($ciclo['tempos']['carga'])) ?></strong></div>
-                        <div><span>Estrada</span><strong><?= e(texto_duracao($ciclo['tempos']['ida'])) ?></strong></div>
-                        <div><span>Volta</span><strong><?= e(texto_duracao($ciclo['tempos']['retorno'])) ?></strong></div>
-                    </dl>
-                    <?php if (trim((string) ($ciclo['encerramento'] ?? '')) !== ''): ?>
-                        <p class="meta"><?= !empty($ciclo['fim_carga']) ? 'Sem retorno' : 'Encerrada antes da carga' ?> · <?= e((string) $ciclo['encerramento']) ?></p>
-                    <?php endif; ?>
+                    <?php
+                    $mostrarTitulo = true;
+                    $mostrarCiclo = true;
+                    $quandoFecho = quando($ciclo['inicio_fila']) . ' → ' . hora_curta($ciclo['fim_ciclo']);
+                    require __DIR__ . '/trecho_fecho_lavra.php';
+                    ?>
                 </article>
             <?php endif; ?>
         <?php endforeach; ?>

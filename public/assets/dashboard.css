@@ -56,15 +56,15 @@ body.dashboard .folha {
 }
 .estrada-medidas p { flex-basis: 100%; margin: 0; color: #8b98a5; font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 600; }
 .monitor { display: grid; gap: 16px; }
-.inds { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.inds { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px; }
 .ind {
-    padding: 12px 14px;
+    padding: 8px 10px;
     border-radius: 14px;
     background: #1b2430;
     border: 1px solid #2c3848;
 }
 .ind span, .ind small { display: block; color: #8b98a5; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-.ind strong { display: block; margin-top: 4px; font-size: 26px; line-height: 1.1; }
+.ind strong { display: block; margin-top: 2px; font-size: 22px; line-height: 1.1; }
 .cena, .horarios article {
     padding: 16px;
     border-radius: 18px;
@@ -82,7 +82,7 @@ body.dashboard .folha {
     font-weight: 700;
 }
 .pista { position: relative; margin-top: 12px; }
-.pista svg { width: 100%; height: auto; display: block; }
+.pista svg { width: 100%; height: auto; max-height: 240px; display: block; }
 .pista-corpo { fill: none; stroke: #5d7384; stroke-width: 52; }
 .pista-eixo { fill: none; stroke: #e0d2a2; stroke-width: 3; stroke-dasharray: 16 14; }
 .posto, .miolo { position: absolute; }
@@ -166,10 +166,15 @@ body.dashboard .folha {
 .ranking li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid #2c3848; }
 .vazio-monitor { color: #8b98a5; }
 .relogio { margin: 0; color: #8b98a5; font-size: 13px; }
+.relogio .contagem { color: #f4f7fb; font-variant-numeric: tabular-nums; }
 @media (min-width: 1100px) {
     body.dashboard .folha { width: min(1920px, calc(100% - 32px)); }
     .monitor { grid-template-columns: 1.4fr 1fr; align-items: start; }
     .inds, .horarios, .relogio { grid-column: 1 / -1; }
+}
+body.dashboard.tela-cheia {
+    height: 100dvh;
+    overflow: hidden;
 }
 body.dashboard.tela-cheia .site,
 body.dashboard.tela-cheia .monitor-nota,
@@ -177,26 +182,195 @@ body.dashboard.tela-cheia .estrada-medidas { display: none; }
 body.dashboard.tela-cheia .folha {
     width: 100%;
     max-width: none;
-    padding: 16px 20px 24px;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 14px;
+    box-sizing: border-box;
+    overflow: hidden;
 }
-body.dashboard.tela-cheia .monitor { grid-template-columns: 1.4fr 1fr; align-items: start; }
+body.dashboard.tela-cheia .monitor-topo { justify-content: flex-end; margin: 0 0 8px; }
+body.dashboard.tela-cheia .monitor {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    align-items: stretch;
+    gap: 8px;
+}
 body.dashboard.tela-cheia .inds,
 body.dashboard.tela-cheia .horarios,
 body.dashboard.tela-cheia .relogio { grid-column: 1 / -1; }
-body.dashboard.tela-cheia .ampliar {
-    position: fixed;
-    top: 14px;
-    right: 18px;
-    z-index: 40;
-    background: #10141be6;
+body.dashboard.tela-cheia .inds { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+body.dashboard.tela-cheia .ampliar { position: static; background: #10141be6; }
+body.dashboard.tela-cheia .ind { padding: 4px 6px; }
+body.dashboard.tela-cheia .ind strong { font-size: 18px; }
+body.dashboard.tela-cheia .pa strong,
+body.dashboard.tela-cheia .pa small,
+body.dashboard.tela-cheia .pa p,
+body.dashboard.tela-cheia .pilha strong {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-body.dashboard.tela-cheia .ind strong { font-size: 32px; }
-body.dashboard.tela-cheia .cena h2 { font-size: 32px; }
+body.dashboard.tela-cheia .pa small { display: none; }
+body.dashboard.tela-cheia .cena { padding: 8px 10px; }
+body.dashboard.tela-cheia .cena h2 { font-size: 16px; }
+body.dashboard.tela-cheia .cena header span { padding: 2px 8px; font-size: 11px; }
+body.dashboard.tela-cheia .cena.patio .expedicao { margin-top: 4px; }
+body.dashboard.tela-cheia .cena.patio .coluna h3 { font-size: 11px; margin: 0; }
+body.dashboard.tela-cheia .barras { height: auto; min-height: 96px; width: 100%; }
+body.dashboard.tela-cheia .horarios article { padding: 6px 8px; }
+body.dashboard.tela-cheia .cena {
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 12px;
+}
+body.dashboard.tela-cheia .cena h2 { font-size: 22px; }
+body.dashboard.tela-cheia .pista { flex: 1; min-height: 80px; margin-top: 6px; }
+body.dashboard.tela-cheia .pista svg { width: 100%; height: 100%; max-height: none; }
+body.dashboard.tela-cheia .expedicao { margin-top: 8px; gap: 8px; }
+body.dashboard.tela-cheia .monte { height: 28px; }
+body.dashboard.tela-cheia .pilha,
+body.dashboard.tela-cheia .pa,
+body.dashboard.tela-cheia .cliente-fila { margin-bottom: 4px; padding: 6px 8px; }
+body.dashboard.tela-cheia .barras { min-height: 96px; width: 100%; }
+body.dashboard.tela-cheia .trilho { height: 64px; width: min(72px, 100%); }
+body.dashboard.tela-cheia .horarios { gap: 8px; }
+body.dashboard.tela-cheia .horarios article { padding: 8px 10px; }
 @media (max-width: 980px) {
-    .inds, .expedicao, .horarios { grid-template-columns: 1fr 1fr; }
+    .expedicao, .horarios { grid-template-columns: 1fr 1fr; }
     .cena h2 { font-size: 22px; }
-    body.dashboard.tela-cheia .monitor { grid-template-columns: 1fr; }
+    body.dashboard.tela-cheia .monitor { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+    body.dashboard.tela-cheia .inds { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
-    .inds, .expedicao, .horarios, .detalhes { grid-template-columns: 1fr; }
+    .expedicao, .horarios, .detalhes { grid-template-columns: 1fr; }
+}
+body.dashboard.tela-cheia .inds { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+body.dashboard.tela-cheia .ind span,
+body.dashboard.tela-cheia .ind small { font-size: 10px; letter-spacing: 0.02em; }
+body.dashboard.tela-cheia .monitor {
+    grid-template-rows: auto minmax(0, 1fr) minmax(220px, 0.4fr) auto;
+    overflow: hidden;
+}
+body.dashboard.tela-cheia .horarios { height: 100%; min-height: 0; align-items: stretch; }
+body.dashboard.tela-cheia .horarios article {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    box-sizing: border-box;
+}
+body.dashboard.tela-cheia .barras { flex: 1; height: auto; min-height: 0; width: 100%; align-items: stretch; }
+body.dashboard.tela-cheia .coluna-hora { max-width: none; flex: 1; height: auto; align-self: stretch; min-height: 0; }
+body.dashboard.tela-cheia .trilho { width: min(72px, 100%); height: auto; flex: 1; min-height: 96px; }
+body.dashboard.tela-cheia .cena { overflow: hidden; }
+body.dashboard.tela-cheia .cena:not(.patio) {
+    display: grid;
+    grid-template-rows: auto minmax(72px, 1fr) auto auto;
+}
+body.dashboard.tela-cheia .pista { min-height: 0; height: 100%; margin-top: 0; overflow: hidden; }
+body.dashboard.tela-cheia .pista svg { width: 100%; height: 100%; max-height: none; display: block; }
+body.dashboard.tela-cheia .posto.lavra,
+body.dashboard.tela-cheia .posto.britador { top: 22%; transform: translate(-50%, -110%); }
+body.dashboard.tela-cheia .monte { height: 16px; }
+body.dashboard.tela-cheia .pilha,
+body.dashboard.tela-cheia .pa { padding: 4px 6px; }
+body.dashboard.tela-cheia .cena.patio .expedicao {
+    flex: 1;
+    min-height: 0;
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px 16px;
+    align-items: stretch;
+    overflow: hidden;
+}
+body.dashboard.tela-cheia .cena.patio .coluna:first-child,
+body.dashboard.tela-cheia .cena.patio .coluna:nth-child(2) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    align-content: start;
+}
+body.dashboard.tela-cheia .cena.patio .coluna:nth-child(2) { grid-template-columns: 1fr; }
+body.dashboard.tela-cheia .cena.patio .coluna h3 { grid-column: 1 / -1; margin: 0 0 2px; }
+body.dashboard.tela-cheia .cena.patio .pilha,
+body.dashboard.tela-cheia .cena.patio .pa { margin: 0; min-width: 0; overflow: hidden; }
+body.dashboard.tela-cheia .cena.patio .pilha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+}
+body.dashboard.tela-cheia .cena.patio .monte { width: 36px; height: 8px; flex: none; }
+body.dashboard.tela-cheia .cena.patio .pilha strong,
+body.dashboard.tela-cheia .cena.patio .pa strong {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+body.dashboard.tela-cheia .cena.patio .coluna:nth-child(3) {
+    grid-column: 1 / -1;
+    min-height: 0;
+    height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+body.dashboard.tela-cheia .cena.patio .cliente-fila {
+    flex: none;
+    padding: 5px 8px;
+}
+body.dashboard.tela-cheia .cena.patio .coluna:nth-child(3) h3 { margin: 4px 0 0; }
+body.dashboard.tela-cheia .cena.patio .coluna:nth-child(3) h3:first-child { margin-top: 0; }
+body.dashboard.tela-cheia .pilha strong,
+body.dashboard.tela-cheia .pa strong,
+body.dashboard.tela-cheia .pa p {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+}
+body.dashboard.tela-cheia .cliente-fila {
+    display: grid;
+    grid-template-columns: auto minmax(0, 0.9fr) minmax(0, 1.4fr) minmax(0, 1.5fr);
+    align-items: center;
+    gap: 2px 14px;
+    margin: 0;
+    padding: 4px 8px;
+}
+body.dashboard.tela-cheia .cliente-fila p,
+body.dashboard.tela-cheia .cliente-fila small {
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+body.dashboard.tela-cheia .monte { height: 22px; }
+body.dashboard.tela-cheia .trilho { height: auto; flex: 1; min-height: 96px; width: min(72px, 100%); }
+body.dashboard.tela-cheia .horarios h2 { margin: 0 0 4px; flex: none; }
+body.dashboard.tela-cheia .coluna-hora .marca { margin: 0 0 2px; }
+body.dashboard.tela-cheia .ranking {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin: 6px 0 0;
+    flex: none;
+}
+body.dashboard.tela-cheia .ranking li { border: 0; padding: 0; }
+body.dashboard.tela-cheia .cena.patio .coluna:first-child { display: none; }
+body.dashboard.tela-cheia .cena.patio .expedicao {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+}
+body.dashboard.tela-cheia .cena.patio .coluna:nth-child(2) {
+    grid-template-columns: 1fr 1fr;
 }

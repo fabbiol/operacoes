@@ -179,7 +179,7 @@
             '<section class="cena">' +
                 '<header><h2>01 — Ciclo de lavra</h2><span>Transporte interno</span></header>' +
                 '<div class="pista">' +
-                    '<svg viewBox="0 0 800 360" aria-hidden="true"><path class="pista-corpo" d="' + geo.caminho + '"/><path class="pista-eixo" d="' + geo.caminho + '"/></svg>' +
+                    '<svg viewBox="0 0 800 360" preserveAspectRatio="none" aria-hidden="true"><path class="pista-corpo" d="' + geo.caminho + '"/><path class="pista-eixo" d="' + geo.caminho + '"/></svg>' +
                     '<div class="posto lavra" style="left:' + geo.lavraX + '%">Lavra' + (lavra.retros.length ? '<small>' + lavra.retros.map(function (r) {
                         return esc(r.nome) + ' · ' + esc(r.placa);
                     }).join('<br>') + '</small>' : '') + '</div>' +
@@ -209,7 +209,19 @@
                     }).join('') + '</ul>' : '') +
                 '</article>' +
             '</section>' +
-            '<p class="relogio">Atualizado às ' + esc(estado.agora) + '</p>';
+            '<p class="relogio">Atualizado às ' + esc(estado.agora) + ' · próxima atualização em <span class="contagem">' + segundosRestantes() + '</span> s</p>';
+    }
+
+    var intervalo = 8000;
+    var proxima = Date.now() + intervalo;
+
+    function segundosRestantes() {
+        return Math.max(0, Math.ceil((proxima - Date.now()) / 1000));
+    }
+
+    function atualizarContagem() {
+        var marca = raiz.querySelector('.contagem');
+        if (marca) marca.textContent = String(segundosRestantes());
     }
 
     var ampliar = document.getElementById('ampliar');
@@ -236,10 +248,13 @@
     }
 
     desenhar(dados);
+    setInterval(atualizarContagem, 250);
     setInterval(function () {
+        proxima = Date.now() + intervalo;
+        atualizarContagem();
         fetch(endereco, { headers: { 'Accept': 'application/json' } })
             .then(function (resposta) { return resposta.json(); })
             .then(desenhar)
             .catch(function () {});
-    }, 8000);
+    }, intervalo);
 })();

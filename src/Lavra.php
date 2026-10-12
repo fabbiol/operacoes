@@ -248,6 +248,29 @@ final class Lavra
         return $etapa['aviso'];
     }
 
+    public static function irParaGaragem(int $id, ?string $somenteOperador = null): string
+    {
+        $ciclo = self::exigir($id);
+        self::garantirDono($ciclo, $somenteOperador);
+        if (!in_array($ciclo['status'], ['no_britador', 'retornando'], true)) {
+            throw new InvalidArgumentException('A garagem fica disponível no britador.');
+        }
+        $comando = Db::pdo()->prepare(
+            "UPDATE ciclos_lavra SET fim_ciclo = ?, status = 'concluido' WHERE id = ? AND status = ?"
+        );
+        $comando->execute([agora_sql(), $id, $ciclo['status']]);
+        if ($comando->rowCount() < 1) {
+            throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
+        }
+
+        return 'Caminhão foi para a garagem.';
+    }
+
+    public static function abertoDo(string $operador): ?array
+    {
+        return self::cicloAbertoDo($operador);
+    }
+
     public static function cancelar(int $id, string $motivo, string $responsavel, ?string $somenteOperador = null): void
     {
         $ciclo = self::exigir($id);
@@ -280,7 +303,7 @@ final class Lavra
         ];
     }
 
-    public static function encerrar(int $id, string $motivo, string $outro, string $responsavel, ?string $somenteOperador = null): void
+    public static function encerrar(int $id, string $motivo, string $outro, string $responsavel, ?string $somenteOperador = null): string
     {
         $ciclo = self::exigir($id);
         self::garantirDono($ciclo, $somenteOperador);
@@ -296,6 +319,7 @@ final class Lavra
             $nota = limpar_texto($outro, 120, true, 'o motivo');
             $texto .= ' · ' . $nota;
         }
+        $aviso = self::avisoEncerramento($ciclo, $texto);
         $fato = self::saiuCarregado($ciclo)
             ? 'Viagem encerrada sem retorno.'
             : 'Viagem encerrada antes da carga.';
@@ -310,6 +334,96 @@ final class Lavra
         if ($comando->rowCount() < 1) {
             throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
         }
+
+        return $aviso;
+    }
+
+    /** @return array{titulo: string, selo: string, classe: string, frase: string, ciclo: bool, caixas: list<array{rotulo: string, valor: string}>} */
+    public static function fecho(array $ciclo): array
+    {
+        $motivo = trim((string) ($ciclo['encerramento'] ?? ''));
+        $tempos = $ciclo['tempos'] ?? self::tempos($ciclo);
+        $completas = [
+            ['Fila', $tempos['fila'] ?? null],
+            ['Carga', $tempos['carga'] ?? null],
+            ['Estrada', $tempos['ida'] ?? null],
+            ['Volta', $tempos['retorno'] ?? null],
+        ];
+        if ($motivo === '') {
+            return [
+                'titulo' => 'Viagem concluída',
+                'selo' => '',
+                'classe' => '',
+                'frase' => '',
+                'ciclo' => true,
+                'caixas' => self::caixasDuracao($completas),
+            ];
+        }
+        if (!self::saiuCarregado($ciclo)) {
+            if (!empty($ciclo['inicio_carga'])) {
+                $espera = $tempos['fila'] ?? null;
+                $frase = $espera === null
+                    ? 'Encerrou durante a carga. Não entra na produção.'
+                    : 'Ficou ' . texto_duracao($espera) . ' na fila e encerrou durante a carga. Não entra na produção.';
+            } else {
+                $espera = $tempos['ciclo'] ?? null;
+                $frase = $espera === null
+                    ? 'Encerrou antes da carga. Não entra na produção.'
+                    : 'Ficou ' . texto_duracao($espera) . ' na fila e encerrou antes da carga. Não entra na produção.';
+            }
+
+            return [
+                'titulo' => 'Não carregou',
+                'selo' => $motivo,
+                'classe' => 'status-encerrado',
+                'frase' => $frase,
+                'ciclo' => false,
+                'caixas' => [],
+            ];
+        }
+
+        $parciais = [];
+        foreach (array_slice($completas, 0, 3) as [$rotulo, $segundos]) {
+            if ($segundos !== null) {
+                $parciais[] = ['rotulo' => $rotulo, 'valor' => texto_duracao($segundos)];
+            }
+        }
+        $parciais[] = ['rotulo' => 'Volta', 'valor' => 'não voltou'];
+
+        return [
+            'titulo' => 'Encerrou sem voltar',
+            'selo' => $motivo,
+            'classe' => 'status-encerrado',
+            'frase' => 'Entra na produção.',
+            'ciclo' => false,
+            'caixas' => $parciais,
+        ];
+    }
+
+    public static function avisoEncerramento(array $ciclo, string $motivo): string
+    {
+        $placa = trim((string) ($ciclo['placa'] ?? ''));
+        if ($placa === '') {
+            $placa = 'O caminhão';
+        }
+        if (!self::saiuCarregado($ciclo)) {
+            return $placa . ' não carregou. ' . $motivo . '. Não entra na produção.';
+        }
+
+        return $placa . ' saiu carregado e encerrou sem voltar. ' . $motivo . '. Entra na produção.';
+    }
+
+    /** @param list<array{0: string, 1: ?int}> $caixas
+     *  @return list<array{rotulo: string, valor: string}>
+     */
+    private static function caixasDuracao(array $caixas): array
+    {
+        $prontas = [];
+        foreach ($caixas as [$rotulo, $segundos]) {
+            $prontas[] = ['rotulo' => $rotulo, 'valor' => texto_duracao($segundos)];
+        }
+
+        return $prontas;
     }
 
     public static function doDia(string $dia, ?string $operador = null): array

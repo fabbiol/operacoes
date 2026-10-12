@@ -57,6 +57,25 @@ function despachar(string $path, string $method): void
 
     if ($path === 'sair' && $method === 'POST') {
         csrf_check();
+        $maquina = Auth::admin() ? null : maquina_escolhida();
+        $trabalho = $maquina !== null ? maquina_do_trabalho() : null;
+        if ($trabalho !== null) {
+            tela_sair_no_trabalho($trabalho);
+            return;
+        }
+        if ($maquina !== null && maquina_do_trabalho() === null) {
+            $leitura = trim((string) ($_POST['leitura'] ?? ''));
+            if ($leitura === '') {
+                tela_soltar($maquina, null, 'sair');
+                return;
+            }
+            try {
+                horimetro_soltar($leitura);
+            } catch (InvalidArgumentException $e) {
+                tela_soltar($maquina, $e->getMessage(), 'sair');
+                return;
+            }
+        }
         Auth::sair();
         redirect('/login');
     }
@@ -131,6 +150,9 @@ function despachar(string $path, string $method): void
             if (!Auth::admin() && ($maquina === null || $maquina['tipo'] !== 'caminhao' || (int) $maquina['id'] !== (int) $m[1])) {
                 throw new InvalidArgumentException('Entre na fila com o caminhão que está no menu.');
             }
+            if (!Auth::admin() && horimetro_precisa_soltar()) {
+                throw new InvalidArgumentException('Lance o horímetro ao sair antes de outra viagem.');
+            }
             Lavra::entrarNaFila((int) $m[1], Auth::usuario(), Auth::motorista());
             flash_set('Caminhão chegou na lavra.');
         } catch (InvalidArgumentException $e) {
@@ -144,6 +166,17 @@ function despachar(string $path, string $method): void
         csrf_check();
         try {
             flash_set(Lavra::avancar((int) $m[1], Auth::motorista() ? Auth::usuario() : null));
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/lavra');
+    }
+
+    if (preg_match('#^lavra/ciclos/(\d+)/garagem$#', $path, $m) && $method === 'POST') {
+        exigir_papel('motorista');
+        csrf_check();
+        try {
+            flash_set(Lavra::irParaGaragem((int) $m[1], Auth::motorista() ? Auth::usuario() : null));
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
@@ -215,6 +248,67 @@ function despachar(string $path, string $method): void
             flash_set($e->getMessage(), 'erro');
         }
         redirect('/lavra');
+    }
+
+    if ($path === 'horimetro') {
+        tela_horimetro($method);
+        return;
+    }
+
+    if ($path === 'manutencao') {
+        exigir_admin();
+        tela_manutencao();
+        return;
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/horimetro$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        $tipo = Horimetro::tipoDaChave($m[1]);
+        try {
+            Horimetro::lancar($tipo, (int) $m[2], (string) ($_POST['leitura'] ?? ''), Auth::usuario());
+            flash_set('Horímetro lançado.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/planos/(\d+)/feito$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        $tipo = Horimetro::tipoDaChave($m[1]);
+        try {
+            Horimetro::registrar((int) $m[3], $tipo, (int) $m[2], (string) ($_POST['horimetro'] ?? ''), Auth::usuario(), (string) ($_POST['observacoes'] ?? ''));
+            flash_set('Serviço registrado.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/planos/(\d+)/ativo$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        try {
+            Horimetro::alternarPlano((int) $m[3], Horimetro::tipoDaChave($m[1]), (int) $m[2]);
+            flash_set('Serviço atualizado.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/planos$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        try {
+            Horimetro::criarPlano(Horimetro::tipoDaChave($m[1]), (int) $m[2], (string) ($_POST['nome'] ?? ''), (string) ($_POST['intervalo'] ?? ''));
+            flash_set('Serviço incluído.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
     }
 
     if ($path === 'cadastros') {
@@ -517,6 +611,7 @@ function lavra_marca(): string
             (int) ($ciclo['retroescavadeira_id'] ?? 0),
         ], $painel['emCiclo']);
         $partes['livres'] = array_map(static fn (array $caminhao): int => (int) $caminhao['id'], $painel['livres']);
+        $partes['soltar'] = horimetro_precisa_soltar();
     }
 
     return marca_de($partes);
@@ -783,22 +878,40 @@ function tela_maquina(string $method): void
     }
 
     $erro = null;
+    $atual = maquina_escolhida();
+    $soltar = $travada === null && $atual !== null;
     if ($method === 'POST' && $travada === null) {
         csrf_check();
-        $bruto = (string) ($_POST['maquina'] ?? '');
-        if (preg_match('/^(caminhao|pa|retro):(\d+)$/', $bruto, $partes) && maquina_esta_livre($partes[1], (int) $partes[2])) {
-            maquina_definir($partes[1], (int) $partes[2]);
-            redirect(maquina_destino());
+        if ($soltar) {
+            try {
+                horimetro_soltar((string) ($_POST['leitura'] ?? ''));
+                redirect('/maquina');
+            } catch (InvalidArgumentException $e) {
+                $erro = $e->getMessage();
+            }
+        } else {
+            $bruto = (string) ($_POST['maquina'] ?? '');
+            if (preg_match('/^(caminhao|pa|retro):(\d+)$/', $bruto, $partes) && maquina_esta_livre($partes[1], (int) $partes[2])) {
+                try {
+                    horimetro_assumir($partes[1], (int) $partes[2], (string) ($_POST['leitura'] ?? ''));
+                    redirect(maquina_destino());
+                } catch (InvalidArgumentException $e) {
+                    $erro = $e->getMessage();
+                }
+            } else {
+                $erro = 'Escolha uma máquina livre.';
+            }
         }
-        $erro = 'Escolha uma máquina livre.';
     }
 
     render('maquina', [
         'titulo' => 'Máquina',
         'corpo' => 'lavra',
-        'maquinas' => $travada === null ? maquinas_livres() : [],
-        'atual' => maquina_escolhida(),
+        'maquinas' => $travada === null && !$soltar ? maquinas_livres() : [],
+        'atual' => $atual,
         'travada' => $travada !== null,
+        'soltar' => $soltar,
+        'destino' => 'maquina',
         'erro' => $erro,
     ]);
 }
@@ -855,6 +968,8 @@ function tela_lavra(): void
         'corpo' => 'lavra',
         'emCiclo' => $painel['emCiclo'],
         'livres' => $painel['livres'],
+        'garagem' => $motorista && $tipo === 'caminhao' && $painel['emCiclo'] === [],
+        'precisaSoltar' => horimetro_precisa_soltar(),
         'semCadastro' => Cadastro::listar('caminhoes') === [],
         'mostraCarga' => $mostraCarga,
         'fluxoUrl' => url('lavra/situacao'),
@@ -990,8 +1105,11 @@ function tela_lavra_encerrar(int $id, string $method): void
     if ($method === 'POST') {
         csrf_check();
         try {
-            Lavra::encerrar($id, $motivo, $outro, Auth::usuario(), Auth::motorista() ? Auth::usuario() : null);
-            flash_set('Viagem encerrada.');
+            $aviso = Lavra::encerrar($id, $motivo, $outro, Auth::usuario(), Auth::motorista() ? Auth::usuario() : null);
+            if (!Auth::admin() && (string) ($ciclo['operador'] ?? '') === Auth::usuario()) {
+                horimetro_marcar_soltar();
+            }
+            flash_set($aviso, 'atencao');
             redirect('/lavra');
         } catch (InvalidArgumentException $e) {
             $erro = $e->getMessage();
@@ -1024,6 +1142,7 @@ function tela_trabalhos(): void
         $itens[] = ['tipo' => 'carga', 'quando' => (string) $ciclo['fim_ciclo'], 'ciclo' => $ciclo];
     }
     usort($itens, static fn (array $a, array $b): int => strcmp($b['quando'], $a['quando']));
+    $turnos = Horimetro::turnosDo($nome, $desde);
 
     $patio = 0;
     $lavra = 0;
@@ -1041,6 +1160,7 @@ function tela_trabalhos(): void
         'itens' => $itens,
         'patio' => $patio,
         'lavra' => $lavra,
+        'turnos' => $turnos,
     ]);
 }
 
@@ -1206,6 +1326,51 @@ function tela_cancelar(int $id, string $method): void
         'ordem' => $ordem,
         'erro' => $erro,
         'motivo' => (string) ($_POST['motivo'] ?? ''),
+    ]);
+}
+
+function tela_sair_no_trabalho(array $trabalho): void
+{
+    $ciclo = $trabalho['tipo'] === 'caminhao' ? Lavra::abertoDo(Auth::usuario()) : null;
+    render('sair_trabalho', [
+        'titulo' => 'Sair',
+        'corpo' => 'lavra',
+        'trabalho' => $trabalho,
+        'ciclo' => $ciclo,
+        'destino' => match ($trabalho['tipo']) {
+            'pa' => 'patio',
+            default => 'lavra',
+        },
+    ]);
+}
+
+function tela_soltar(array $maquina, ?string $erro, string $destino): void
+{
+    render('maquina', [
+        'titulo' => 'Soltar máquina',
+        'corpo' => 'lavra',
+        'maquinas' => [],
+        'atual' => $maquina,
+        'travada' => false,
+        'soltar' => true,
+        'destino' => $destino,
+        'erro' => $erro,
+    ]);
+}
+
+function tela_horimetro(string $method): void
+{
+    if (Auth::admin()) {
+        redirect('/manutencao');
+    }
+    redirect('/maquina');
+}
+
+function tela_manutencao(): void
+{
+    render('manutencao', [
+        'titulo' => 'Manutenção',
+        'grupos' => Horimetro::painel(),
     ]);
 }
 
@@ -1392,6 +1557,7 @@ function tela_cadastro_form(string $chave, ?int $id, string $method): void
         'tipo' => $tipo,
         'item' => $item,
         'erro' => $erro,
+        'horimetro' => ($id !== null && !empty($tipo['ficha'])) ? Horimetro::ficha(Horimetro::tipoDaChave($chave), $id) : null,
     ]);
 }
 
