@@ -18,6 +18,26 @@ final class Db
         return self::$pdo;
     }
 
+    /**
+     * Executa a ação com uma trava do MySQL. Serve para checagens do tipo "a máquina está livre?"
+     * seguidas de gravação, que dois aparelhos podem fazer no mesmo instante.
+     */
+    public static function comTrava(string $nome, callable $acao): mixed
+    {
+        $pdo = self::pdo();
+        $chave = $pdo->query('SELECT DATABASE()')->fetchColumn() . ':' . $nome;
+        $trava = $pdo->prepare('SELECT GET_LOCK(?, 10)');
+        $trava->execute([$chave]);
+        if ((int) $trava->fetchColumn() !== 1) {
+            throw new InvalidArgumentException('O sistema está ocupado. Tente de novo.');
+        }
+        try {
+            return $acao();
+        } finally {
+            $pdo->prepare('SELECT RELEASE_LOCK(?)')->execute([$chave]);
+        }
+    }
+
     private static function conectar(): PDO
     {
         $dsn = sprintf(

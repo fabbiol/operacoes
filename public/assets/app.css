@@ -155,6 +155,33 @@ a { color: inherit; }
 }
 .site-maquina .link-discreto { margin-top: 0; font-size: 13px; }
 .link { font-weight: 700; text-decoration: none; }
+.menu > .link, .site-maquina .link-discreto { display: inline-flex; align-items: center; min-height: 48px; padding: 0 8px; }
+
+.conexao {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--saida);
+    color: white;
+    font-size: 18px;
+    font-weight: 800;
+    text-align: center;
+}
+.conexao[hidden] { display: none; }
+.conexao a { display: block; margin: -14px -16px; padding: 14px 16px; color: white; }
+body:has(#conexao:not([hidden])) .site { position: static; }
+.envio-aviso { margin: 8px 0 0; }
+.so-leitor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+button.enviando { opacity: 0.7; }
 
 .folha {
     width: min(880px, calc(100% - 28px));
@@ -563,7 +590,6 @@ button.rosto img { object-fit: cover; object-position: center; }
 }
 .patio .cartao.destaque .btn, .lavra .cartao .btn { margin-top: 8px; }
 .patio .cabeca .btn, .patio form.busca .btn, .lavra .cabeca .btn, .lavra form.busca .btn { width: auto; min-height: 48px; font-size: 16px; }
-.patio h2, .lavra h2 { margin-top: 22px; }
 .ciclo { margin: 0; font-size: 22px; font-weight: 700; }
 .link-discreto {
     display: inline-block;
@@ -585,8 +611,31 @@ button.rosto img { object-fit: cover; object-position: center; }
     font-weight: 700;
 }
 .caminhao-nome .link-discreto { display: table; margin-top: 8px; }
+/* Na tela de confirmação, Encerrar viagem continua vermelho cheio. */
 .lavra .btn.encerrar-viagem { margin: 0 0 8px; background: var(--saida); color: white; }
 .lavra .btn.encerrar-viagem:hover { background: #63190f; }
+/* No cartão, Encerrar fica no fim, em contorno, longe da ação do momento. */
+.lavra .cartao .btn.encerrar-viagem {
+    min-height: 56px;
+    margin: 28px 0 0;
+    background: transparent;
+    color: var(--saida);
+    border: 2px solid var(--saida);
+    font-size: 18px;
+}
+.lavra .cartao .btn.encerrar-viagem:hover { background: #fde8e4; }
+.lavra .cartao form.acao-separada { margin-top: 28px; }
+.lavra .btn.secundario, .patio .btn.secundario { border: 2px solid var(--ink); }
+.espera-patio { margin: 8px 0 0; color: var(--muted); font-weight: 700; text-align: center; }
+
+/* Tablet de 7" (Positivo Vision Tab 7): a ação do momento precisa aparecer sem rolar. */
+body.lavra .site, body.patio .site, body.trabalhos .site { position: static; }
+.lavra .cartao .meta, .patio .cartao .meta { margin: 0; }
+.lavra .cartao .foto-equipamento, .patio .cartao .foto-equipamento { height: 112px; }
+.lavra .carga time { font-size: 34px; font-weight: 800; }
+.lavra .ciclo, .patio .ciclo { font-size: 30px; font-weight: 800; }
+.lavra .selo, .patio .selo { font-size: 15px; min-height: 32px; padding: 4px 12px; }
+.patio h2, .lavra h2 { margin-top: 12px; }
 .lavra button.link-discreto {
     width: auto;
     min-height: 0;
@@ -640,13 +689,38 @@ button.rosto img { object-fit: cover; object-position: center; }
 }
 
 @media (max-width: 720px) {
-    .site { flex-wrap: wrap; align-items: flex-start; gap: 8px; }
-    .brand { flex: 1 1 180px; }
-    .menu { width: 100%; }
-    .brand-name small { display: none; }
+    .site { flex-wrap: wrap; align-items: center; gap: 6px 8px; min-height: 0; padding: 6px 12px; }
+    .brand { flex: 0 0 auto; margin-right: 0; }
+    .brand-name, .site-papel { display: none; }
+    .site-nome { max-width: 7em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .menu { flex: 1; gap: 4px 6px; }
+    .ajuda { display: none; }
+    .cabeca { margin-bottom: 8px; }
     .ficha, .grade { grid-template-columns: 1fr; }
     .tempos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .linha-tempo li { flex-direction: column; }
     .linha-tempo span { text-align: left; }
     h1 { font-size: 28px; }
+}
+
+/* Tablet deitado (1024 x ~430): cabeçalho baixo e cartão em duas colunas, com a ação à direita. */
+@media (orientation: landscape) and (max-height: 520px) {
+    .site { min-height: 0; padding: 4px 12px; }
+    .brand-name, .site-papel, .ajuda { display: none; }
+    .folha { padding-top: 8px; }
+    .cabeca { margin-bottom: 4px; }
+    .lavra .cartao.destaque, .patio .cartao.destaque {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-auto-flow: row dense;
+        column-gap: 16px;
+        align-items: start;
+    }
+    .lavra .cartao.destaque > *, .patio .cartao.destaque > * { grid-column: 1; }
+    .lavra .cartao.destaque > form,
+    .lavra .cartao.destaque > .envio-aviso,
+    .patio .cartao.destaque > .envio-aviso,
+    .lavra .cartao.destaque > .espera,
+    .lavra .cartao.destaque > .btn,
+    .patio .cartao.destaque > .btn,
+    .patio .cartao.destaque > .espera-patio { grid-column: 2; }
 }

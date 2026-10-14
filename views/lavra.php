@@ -10,7 +10,7 @@
         <a class="btn secundario" href="<?= e(url('lavra/resumo')) ?>">Tempos de hoje</a>
     </div>
 </section>
-<p class="nota">Na garagem, Chegou na lavra abre a viagem. No britador, o motorista volta para a lavra ou vai para a garagem. Encerrar viagem interrompe o ciclo, e o horímetro final entra no Sair.</p>
+<p class="nota ajuda">Na garagem, Chegou na lavra abre a viagem. No britador, o motorista volta para a lavra ou vai para a garagem. Encerrar viagem interrompe o ciclo, e o horímetro final entra no Sair.</p>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($emCiclo === [] && $livres === []): ?>
@@ -30,9 +30,6 @@
             <?php $etapa = Lavra::etapas()[$ciclo['status']]; ?>
             <?php $desde = Lavra::desde($ciclo); ?>
             <article class="cartao destaque">
-                <?php if (isset(Lavra::etapas()[$ciclo['status']])): ?>
-                    <a class="btn encerrar-viagem" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a>
-                <?php endif; ?>
                 <?php
                 $cancelarCiclo = null;
                 $ficha = $ciclo;
@@ -67,23 +64,30 @@
                     <?php if (Auth::admin() && (string) ($ciclo['operador_carga'] ?? '') !== Auth::usuario()): ?>
                         <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/concluir-carga')) ?>">
                             <?= csrf_field() ?>
+                            <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                             <button type="submit" class="btn primario">Carga concluída</button>
                         </form>
                     <?php endif; ?>
                 <?php elseif (in_array($ciclo['status'], ['no_britador', 'retornando'], true)): ?>
                     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
                         <?= csrf_field() ?>
+                        <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn primario">Chegou na lavra</button>
                     </form>
-                    <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/garagem')) ?>">
+                    <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/garagem')) ?>" class="acao-separada">
                         <?= csrf_field() ?>
+                        <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn secundario">Garagem</button>
                     </form>
                 <?php else: ?>
                     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
                         <?= csrf_field() ?>
+                        <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn primario"><?= e($etapa['acao']) ?></button>
                     </form>
+                <?php endif; ?>
+                <?php if (isset(Lavra::etapas()[$ciclo['status']])): ?>
+                    <a class="btn encerrar-viagem" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a>
                 <?php endif; ?>
             </article>
         <?php endforeach; ?>
@@ -128,27 +132,3 @@
     </section>
 <?php endif; ?>
 </div>
-
-<script>
-(function () {
-    function texto(segundos) {
-        segundos = Math.max(0, segundos);
-        var horas = Math.floor(segundos / 3600);
-        var minutos = Math.floor((segundos % 3600) / 60);
-        var resto = segundos % 60;
-        function dois(n) { return (n < 10 ? '0' : '') + n; }
-        if (horas > 0) return horas + ' h ' + dois(minutos) + ' min';
-        if (minutos > 0) return minutos + ' min ' + dois(resto) + ' s';
-        return resto + ' s';
-    }
-    function tick() {
-        var agora = Date.now();
-        document.querySelectorAll('[data-desde]').forEach(function (el) {
-            var inicio = Number(el.getAttribute('data-desde')) * 1000;
-            el.textContent = texto(Math.floor((agora - inicio) / 1000));
-        });
-    }
-    tick();
-    setInterval(tick, 1000);
-})();
-</script>

@@ -22,6 +22,20 @@ Abra `http://127.0.0.1:8081`. O primeiro acesso fica em `APP_USUARIOS`, no forma
 
 O motorista abre a lavra. O operador abre a lavra e o pátio. Quem está nas duas funções abre as duas operações. O administrativo visualiza e faz tudo, inclusive os cadastros de caminhões, pás e retroescavadeiras, a fila de carregamento, os materiais e as pessoas.
 
+## Tablets autorizados
+
+A entrada pela foto, sem senha, só aparece nos tablets que o administrativo autorizou. Em qualquer outro aparelho, a tela de entrada mostra só usuário e senha.
+
+Para autorizar um tablet, entre nele com o usuário e a senha do administrativo, abra Pessoas › Tablets, dê um nome ao aparelho e toque em Autorizar este aparelho. Depois toque em Sair: a entrada passa a mostrar as fotos da equipe. Na mesma tela dá para revogar um tablet perdido ou trocado.
+
+A autorização fica num cookie do navegador. Se alguém limpar os dados do Chrome no tablet, autorize de novo.
+
+Cinco senhas erradas seguidas para o mesmo usuário bloqueiam a entrada por 15 minutos naquele endereço. A senha do administrativo precisa ter pelo menos 8 caracteres.
+
+## Sessão
+
+As sessões ficam em `storage/sessoes` e duram o turno (14 horas). Ao publicar esta versão pela primeira vez, todos precisam entrar de novo, e quem estiver com máquina assumida perde o horímetro de entrada daquele turno. Publique entre turnos.
+
 ## Docker
 
 ```bash
@@ -29,3 +43,7 @@ docker compose up --build
 ```
 
 A tela fica em `http://localhost:8081`. O MySQL do compose usa a porta `3308`.
+
+## Publicação
+
+`.\deploy.ps1` envia os arquivos para a Hostinger numa ordem que mantém o site no ar: primeiro o schema, depois as telas, o código e, por último, os arquivos públicos. No fim, confere se o site responde, se o `fluxo.js` publicado é o deste computador e se o `.env` e a pasta `storage/sessoes` estão fechados para a web (HTTP 403). Se alguma conferência falhar, o script termina com erro.

@@ -40,6 +40,17 @@ final class Pessoas
         ));
     }
 
+    /** @return list<string> nomes de quem pode carregar no pátio */
+    public static function operadores(): array
+    {
+        $nomes = [];
+        foreach (Db::pdo()->query('SELECT nome FROM usuarios WHERE ativo = 1 AND administrador = 0 AND operador = 1 ORDER BY nome ASC') as $linha) {
+            $nomes[] = (string) $linha['nome'];
+        }
+
+        return $nomes;
+    }
+
     public static function elegivelEntrada(int $id): ?array
     {
         if ($id < 1) {
@@ -127,8 +138,9 @@ final class Pessoas
         $senha = (string) ($post['senha'] ?? '');
         if (trim($senha) !== '') {
             $senha = trim($senha);
-            if (strlen($senha) < 4 || strlen($senha) > 72) {
-                throw new InvalidArgumentException('A senha precisa ter entre 4 e 72 caracteres.');
+            $minimo = $admin ? Auth::senhaAdminMinima() : 4;
+            if (mb_strlen($senha, 'UTF-8') < $minimo || strlen($senha) > 72) {
+                throw new InvalidArgumentException('A senha precisa ter entre ' . $minimo . ' e 72 caracteres.');
             }
         } elseif ($id === null) {
             throw new InvalidArgumentException('Informe a senha.');

@@ -28,6 +28,7 @@
     <p class="nota">Informe o horímetro do painel para soltar <?= e((string) $atual['nome']) ?>.</p>
     <form method="post" action="<?= e(url(($destino ?? 'maquina') === 'sair' ? 'sair' : 'maquina')) ?>" class="formulario">
         <?= csrf_field() ?>
+        <input type="hidden" name="acao" value="soltar">
         <p class="meta">Horímetro atual <?= e(Horimetro::texto(Horimetro::atual($atual['tipo'], (int) $atual['id']))) ?><?php if ($entrada !== null): ?> · entrou com <?= e(Horimetro::texto($entrada)) ?><?php endif; ?></p>
         <label class="campo">
             <span>Horímetro ao soltar</span>
@@ -45,6 +46,7 @@
     <?php endif; ?>
     <form method="post" action="<?= e(url('maquina')) ?>" class="formulario">
         <?= csrf_field() ?>
+        <input type="hidden" name="acao" value="assumir">
         <fieldset class="maquinas maquinas-duas">
             <legend>Máquina</legend>
             <?php foreach ($maquinas as $maquina): ?>
@@ -69,7 +71,7 @@
         </fieldset>
         <label class="campo">
             <span>Horímetro agora</span>
-            <input type="text" name="leitura" inputmode="decimal" maxlength="10" required placeholder="h" autofocus>
+            <input type="text" name="leitura" inputmode="decimal" maxlength="10" required placeholder="h">
         </label>
         <button type="submit" class="btn primario">Confirmar</button>
     </form>

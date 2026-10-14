@@ -13,6 +13,7 @@ require OPERACOES_ROOT . '/src/Operacoes.php';
 require OPERACOES_ROOT . '/src/Lavra.php';
 require OPERACOES_ROOT . '/src/Dashboard.php';
 require OPERACOES_ROOT . '/src/Horimetro.php';
+require OPERACOES_ROOT . '/src/Tablets.php';
 
 carregar_env(OPERACOES_ROOT . '/.env');
 
@@ -37,13 +38,32 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
 header('Content-Type: text/html; charset=utf-8');
 
-$https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+// As sessões ficam numa pasta própria para durar o turno inteiro.
+// Na pasta padrão do servidor, a limpeza de outros sites apaga a sessão depois de 24 minutos parada.
+$sessoes = OPERACOES_ROOT . '/storage/sessoes';
+if (!is_dir($sessoes)) {
+    mkdir($sessoes, 0700, true);
+}
+foreach ([OPERACOES_ROOT . '/storage', $sessoes] as $pasta) {
+    if (!is_file($pasta . '/.htaccess')) {
+        file_put_contents(
+            $pasta . '/.htaccess',
+            "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n"
+        );
+    }
+}
+session_save_path($sessoes);
+ini_set('session.gc_maxlifetime', (string) Auth::SESSAO_SEGUNDOS);
+ini_set('session.gc_probability', '1');
+ini_set('session.gc_divisor', '100');
+ini_set('session.use_strict_mode', '1');
+
 session_set_cookie_params([
-    'lifetime' => 0,
+    'lifetime' => Auth::SESSAO_SEGUNDOS,
     'path' => '/',
     'httponly' => true,
     'samesite' => 'Strict',
-    'secure' => $https,
+    'secure' => requisicao_https(),
 ]);
 session_name('operacoes_prospera');
 session_start();

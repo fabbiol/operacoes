@@ -5,7 +5,7 @@
     </div>
     <a class="btn secundario" href="<?= e(url('patio/resumo')) ?>">Tempos de hoje</a>
 </section>
-<p class="nota">A fila começa na liberação e a carga no toque de iniciar. Finalize quando a carga estiver no caminhão.</p>
+<p class="nota ajuda">A fila começa na liberação e a carga no toque de iniciar. Finalize quando a carga estiver no caminhão.</p>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($ordens === []): ?>
@@ -60,6 +60,8 @@
                 <?php endif; ?>
                 <?php if ($ordem['status'] === 'carregando'): ?>
                     <a class="btn concluir" href="<?= e(url('carregamentos/' . $ordem['id'] . '/finalizar')) ?>">Finalizar carregamento</a>
+                <?php elseif (!empty($ocupado)): ?>
+                    <p class="espera-patio"><?= e($ocupado) ?></p>
                 <?php else: ?>
                     <a class="btn primario" href="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>">Iniciar carregamento</a>
                 <?php endif; ?>
@@ -108,27 +110,3 @@
     </section>
 <?php endif; ?>
 </div>
-
-<script>
-(function () {
-    function texto(segundos) {
-        segundos = Math.max(0, segundos);
-        var horas = Math.floor(segundos / 3600);
-        var minutos = Math.floor((segundos % 3600) / 60);
-        var resto = segundos % 60;
-        function dois(n) { return (n < 10 ? '0' : '') + n; }
-        if (horas > 0) return horas + ' h ' + dois(minutos) + ' min';
-        if (minutos > 0) return minutos + ' min ' + dois(resto) + ' s';
-        return resto + ' s';
-    }
-    function tick() {
-        var agora = Date.now();
-        document.querySelectorAll('[data-desde]').forEach(function (el) {
-            var inicio = Number(el.getAttribute('data-desde')) * 1000;
-            el.textContent = texto(Math.floor((agora - inicio) / 1000));
-        });
-    }
-    tick();
-    setInterval(tick, 1000);
-})();
-</script>
