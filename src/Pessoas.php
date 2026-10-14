@@ -280,35 +280,7 @@ final class Pessoas
     /** @return array{tmp: string, ext: string}|null */
     private static function prepararFoto(): ?array
     {
-        if (!isset($_FILES['foto']) || !is_array($_FILES['foto'])) {
-            return null;
-        }
-        $erro = (int) ($_FILES['foto']['error'] ?? UPLOAD_ERR_NO_FILE);
-        if ($erro === UPLOAD_ERR_NO_FILE) {
-            return null;
-        }
-        if ($erro !== UPLOAD_ERR_OK) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-        $tamanho = (int) ($_FILES['foto']['size'] ?? 0);
-        if ($tamanho < 1 || $tamanho > 5 * 1024 * 1024) {
-            throw new InvalidArgumentException('A foto pode ter no máximo 5 MB.');
-        }
-        $origem = (string) ($_FILES['foto']['tmp_name'] ?? '');
-        if ($origem === '' || !is_uploaded_file($origem)) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($origem);
-        $extensoes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-        if (!is_string($mime) || !isset($extensoes[$mime])) {
-            throw new InvalidArgumentException('A foto precisa ser JPG, PNG ou WebP.');
-        }
-        $tmp = tempnam(sys_get_temp_dir(), 'opfoto');
-        if ($tmp === false || !move_uploaded_file($origem, $tmp)) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-
-        return ['tmp' => $tmp, 'ext' => $extensoes[$mime]];
+        return Fotos::receber(Fotos::LADO_PESSOA);
     }
 
     private static function gravarFoto(int $id, array $pendente): void

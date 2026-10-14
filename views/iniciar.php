@@ -60,7 +60,7 @@
                     <input type="radio" name="retroescavadeira_id" value="<?= (int) $retro['id'] ?>" required>
                     <span>
                         <?php if (!empty($retro['foto'])): ?>
-                            <img class="foto-equipamento" src="<?= e(url('cadastros/retros/' . $retro['id'] . '/foto')) ?>" alt="">
+                            <img class="foto-equipamento" src="<?= e(url('cadastros/retros/' . $retro['id'] . '/foto')) ?>" alt="" loading="lazy" decoding="async">
                         <?php endif; ?>
                         <span class="escolha-texto">
                             <?= e($retro['nome']) ?>
@@ -100,7 +100,7 @@
                     <input type="radio" name="pa_carregadeira_id" value="<?= (int) $pa['id'] ?>" required <?= (int) $paId === (int) $pa['id'] ? 'checked' : '' ?>>
                     <span>
                         <?php if (!empty($pa['foto'])): ?>
-                            <img class="foto-equipamento" src="<?= e(url('cadastros/pas/' . $pa['id'] . '/foto')) ?>" alt="">
+                            <img class="foto-equipamento" src="<?= e(url('cadastros/pas/' . $pa['id'] . '/foto')) ?>" alt="" loading="lazy" decoding="async">
                         <?php endif; ?>
                         <span class="escolha-texto">
                             <?= e($pa['nome']) ?>

@@ -1672,13 +1672,7 @@ function tela_pessoa_foto(int $id): void
         http_response_code(404);
         exit;
     }
-
-    header('Content-Type: ' . $arquivo['tipo']);
-    header('X-Content-Type-Options: nosniff');
-    header('Cache-Control: private, max-age=3600');
-    header('Content-Length: ' . (string) filesize($arquivo['caminho']));
-    readfile($arquivo['caminho']);
-    exit;
+    Fotos::servir($arquivo['caminho'], $arquivo['tipo'], Fotos::LADO_PESSOA);
 }
 
 function tela_cadastro_foto(string $chave, int $id): void
@@ -1693,13 +1687,7 @@ function tela_cadastro_foto(string $chave, int $id): void
         http_response_code(404);
         exit;
     }
-
-    header('Content-Type: ' . $arquivo['tipo']);
-    header('X-Content-Type-Options: nosniff');
-    header('Cache-Control: private, max-age=3600');
-    header('Content-Length: ' . (string) filesize($arquivo['caminho']));
-    readfile($arquivo['caminho']);
-    exit;
+    Fotos::servir($arquivo['caminho'], $arquivo['tipo'], Fotos::LADO_MAQUINA);
 }
 
 function tela_cadastro_form(string $chave, ?int $id, string $method): void

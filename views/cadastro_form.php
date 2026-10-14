@@ -17,10 +17,10 @@
         <div class="campo">
             <span>Foto</span>
             <?php if (!empty($item['foto']) && !empty($item['id'])): ?>
-                <img class="foto-atual" src="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/foto')) ?>" alt="">
+                <img class="foto-atual" src="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/foto') . '?v=' . Fotos::versao((string) $item['foto'])) ?>" alt="">
             <?php endif; ?>
             <input type="file" name="foto" accept="image/jpeg,image/png,image/webp">
-            <small class="dica">JPG, PNG ou WebP, até 5 MB. Sem arquivo novo, a foto atual permanece.</small>
+            <small class="dica">JPG, PNG ou WebP, até 10 MB. Sem arquivo novo, a foto atual permanece.</small>
         </div>
         <?php if (!empty($item['foto']) && !empty($item['id'])): ?>
             <label class="check">

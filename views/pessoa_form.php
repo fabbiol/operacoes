@@ -24,7 +24,7 @@ $funcao = is_array($pessoa) ? (string) ($pessoa['funcao'] ?? Pessoas::funcao($pe
     <div class="campo">
         <span>Foto</span>
         <?php if (!$novo && !empty($pessoa['foto'])): ?>
-            <img class="foto-pessoa" src="<?= e(url('usuarios/' . $pessoa['id'] . '/foto')) ?>" alt="">
+            <img class="foto-pessoa" src="<?= e(url('usuarios/' . $pessoa['id'] . '/foto') . '?v=' . Fotos::versao((string) $pessoa['foto'])) ?>" alt="">
         <?php endif; ?>
         <input type="file" name="foto" accept="image/jpeg,image/png,image/webp">
         <div class="enquadro" hidden>
@@ -37,7 +37,7 @@ $funcao = is_array($pessoa) ? (string) ($pessoa['funcao'] ?? Pessoas::funcao($pe
             </label>
             <small class="dica">Arraste a foto para deixar o rosto inteiro dentro do quadrado.</small>
         </div>
-        <small class="dica">JPG, PNG ou WebP, até 5 MB. Sem arquivo novo, a foto atual permanece.</small>
+        <small class="dica">JPG, PNG ou WebP, até 10 MB. Sem arquivo novo, a foto atual permanece.</small>
     </div>
     <?php if (!$novo && !empty($pessoa['foto'])): ?>
         <label class="check">

@@ -14,7 +14,7 @@
             <li class="<?= (int) $item['ativo'] === 1 ? '' : 'inativo' ?>">
                 <a href="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'])) ?>">
                     <?php if (!empty($tipo['ficha']) && !empty($item['foto'])): ?>
-                        <img class="miniatura" src="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/foto')) ?>" alt="">
+                        <img class="miniatura" src="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/foto')) ?>" alt="" loading="lazy" decoding="async">
                     <?php endif; ?>
                     <span class="cadastro-texto">
                         <strong><?= e($item['nome']) ?></strong>

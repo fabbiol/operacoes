@@ -17,7 +17,7 @@
             <li class="<?= (int) $pessoa['ativo'] === 1 ? '' : 'inativo' ?>">
                 <a href="<?= e(url('usuarios/' . $pessoa['id'])) ?>">
                     <?php if (!empty($pessoa['foto'])): ?>
-                        <img class="pessoa-foto" src="<?= e(url('usuarios/' . $pessoa['id'] . '/foto')) ?>" alt="">
+                        <img class="pessoa-foto" src="<?= e(url('usuarios/' . $pessoa['id'] . '/foto')) ?>" alt="" loading="lazy" decoding="async">
                     <?php endif; ?>
                     <?php
                     $completo = trim((string) ($pessoa['nome_completo'] ?? ''));

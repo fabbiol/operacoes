@@ -59,7 +59,7 @@
                     <input type="radio" name="maquina" value="<?= e($valor) ?>" required <?= $marcada ? 'checked' : '' ?>>
                     <span>
                         <?php if (!empty($maquina['foto'])): ?>
-                            <img class="foto-equipamento" src="<?= e((string) $maquina['foto']) ?>" alt="">
+                            <img class="foto-equipamento" src="<?= e((string) $maquina['foto']) ?>" alt="" loading="lazy" decoding="async">
                         <?php endif; ?>
                         <span class="escolha-texto">
                             <?= e((string) $maquina['nome']) ?>
