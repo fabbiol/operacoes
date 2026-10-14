@@ -38,7 +38,7 @@
                             · anulada por <?= e((string) $leitura['anulado_por']) ?> em <?= e(quando((string) $leitura['anulado_em'])) ?>: <?= e((string) $leitura['anulado_motivo']) ?>
                         <?php endif; ?></small>
                     </span>
-                    <?php if (!$anulada): ?>
+                    <?php if (!$anulada && isset($leitura['id'])): ?>
                         <details class="anular">
                             <summary>Anular</summary>
                             <form method="post" action="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/horimetro/' . (int) $leitura['id'] . '/anular')) ?>" class="formulario">
