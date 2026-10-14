@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     operador VARCHAR(120) NULL,
     retroescavadeira_id INT UNSIGNED NULL,
     operador_carga VARCHAR(120) NULL,
+    capacidade_t DECIMAL(8,2) NULL,
     encerramento VARCHAR(160) NULL,
     encerramento_ciente_em DATETIME NULL,
     encerramento_ciente_por VARCHAR(120) NULL,

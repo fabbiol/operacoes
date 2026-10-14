@@ -296,7 +296,7 @@ final class Dashboard
     private static function horasLavra(string $dia): array
     {
         $comando = Db::pdo()->prepare(
-            "SELECT HOUR(c.fim_ciclo) AS hora, COUNT(*) AS viagens, SUM(k.capacidade_t) AS toneladas
+            "SELECT HOUR(c.fim_ciclo) AS hora, COUNT(*) AS viagens, SUM(COALESCE(c.capacidade_t, k.capacidade_t)) AS toneladas
              FROM ciclos_lavra c
              JOIN caminhoes k ON k.id = c.caminhao_id
              WHERE c.status = 'concluido' AND c.fim_carga IS NOT NULL AND c.fim_ciclo >= ? AND c.fim_ciclo <= ?

@@ -718,7 +718,10 @@ final class Lavra
         }
 
         $comando = Db::pdo()->prepare(
-            "UPDATE ciclos_lavra SET fim_carga = ?, status = 'em_viagem' WHERE id = ? AND status = 'carregando'"
+            "UPDATE ciclos_lavra
+             SET fim_carga = ?, status = 'em_viagem',
+                 capacidade_t = (SELECT k.capacidade_t FROM caminhoes k WHERE k.id = ciclos_lavra.caminhao_id)
+             WHERE id = ? AND status = 'carregando'"
         );
         $comando->execute([agora_sql(), $id]);
         if ($comando->rowCount() < 1) {
@@ -948,7 +951,8 @@ final class Lavra
 
     private static function sqlBase(): string
     {
-        return 'SELECT c.*, k.placa, k.marca, k.modelo, k.ano, k.capacidade_t, k.foto,
+        // Viagem que já saiu carregada usa as toneladas gravadas nela; antes disso, a capacidade atual do caminhão.
+        return 'SELECT c.*, k.placa, k.marca, k.modelo, k.ano, COALESCE(c.capacidade_t, k.capacidade_t) AS capacidade_t, k.foto,
                 u.id AS pessoa_id, u.foto AS pessoa_foto,
                 r.maquina AS retro_nome, r.marca AS retro_marca, r.modelo AS retro_modelo, r.ano AS retro_ano, r.foto AS retro_foto,
                 uc.id AS carga_pessoa_id, uc.foto AS carga_pessoa_foto
