@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 final class Db
 {
+    /**
+     * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
+     * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
+     */
+    private const MIGRACOES = '2026-10-segunda-leva';
+
     private static ?PDO $pdo = null;
 
     public static function pdo(): PDO
@@ -78,9 +84,10 @@ final class Db
         }
 
         $marca = OPERACOES_ROOT . '/storage/.schema-ok';
-        // A marca leva também este arquivo: na publicação o schema.sql sobe antes do Db.php,
-        // e o código antigo não pode marcar como feitas as mudanças que só o código novo sabe fazer.
-        $hash = hash('sha256', $sql . hash_file('sha256', __FILE__));
+        // A marca leva também a versão das mudanças deste arquivo. Na publicação o schema.sql sobe antes do Db.php,
+        // e o código antigo (inclusive o que ainda está no cache do PHP por alguns segundos depois do envio)
+        // grava a marca da versão dele, e não a do Db.php novo: assim o código novo sempre roda as próprias mudanças.
+        $hash = hash('sha256', $sql . self::MIGRACOES);
         if (is_file($marca) && trim((string) file_get_contents($marca)) === $hash) {
             return;
         }

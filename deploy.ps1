@@ -239,7 +239,8 @@ $lista = New-Object 'System.Collections.Generic.List[object]'
 # 1. O schema primeiro: o código antigo ignora as tabelas novas.
 # 2. As classes novas e o bootstrap.php, que só passa a carregá-las.
 # 3. As telas: as novas funcionam com o código antigo.
-# 4. O resto do código, começando pelo Db.php (ele atualiza o banco) e pelo Auth.php (o Pessoas.php novo usa função nova dele).
+# 4. O resto do código, começando pelo Db.php (ele atualiza o banco), o Lavra.php logo depois (grava a coluna nova
+#    das toneladas) e o Auth.php (o Pessoas.php novo usa função nova dele).
 # 5. Os arquivos públicos e, por fim, helpers.php e index.php um logo depois do outro:
 #    o index.php novo usa funções novas do helpers.php, e o antigo usa funções que o novo mantém.
 $schema = Join-Path $raiz 'database\schema.sql'
@@ -264,7 +265,7 @@ foreach ($nome in $classesNovas) {
     })
 }
 Add-Arquivos $lista (Join-Path $raiz 'views') 'pai' ($site.appDirectory + '/views') @('trecho_operador.php', 'tablets.php')
-Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src') @('Db.php', 'Tablets.php', 'Auth.php') @() ($classesNovas + @('helpers.php'))
+Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src') @('Db.php', 'Lavra.php', 'Tablets.php', 'Auth.php') @() ($classesNovas + @('helpers.php'))
 Add-Arquivos $lista (Join-Path $raiz 'public') 'subdominio' '' @() @() @('index.php')
 $lista.Add([pscustomobject]@{
     Credencial = 'pai'
