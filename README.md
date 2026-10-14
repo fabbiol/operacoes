@@ -43,3 +43,7 @@ docker compose up --build
 ```
 
 A tela fica em `http://localhost:8081`. O MySQL do compose usa a porta `3308`.
+
+## Publicação
+
+`.\deploy.ps1` envia os arquivos para a Hostinger numa ordem que mantém o site no ar: primeiro o schema, depois as telas, o código e, por último, os arquivos públicos. No fim, confere se o site responde, se o `fluxo.js` publicado é o deste computador e se o `.env` e a pasta `storage/sessoes` estão fechados para a web (HTTP 403). Se alguma conferência falhar, o script termina com erro.

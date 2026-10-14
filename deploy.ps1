@@ -62,11 +62,15 @@ function Test-DestinoSeguro([string]$destino) {
     return $true
 }
 
-function Add-Arquivos([System.Collections.Generic.List[object]]$lista, [string]$pasta, [string]$credencial, [string]$prefixo) {
+# $primeiros e $ultimos (caminhos relativos à pasta) mudam a ordem de envio dentro da pasta.
+function Add-Arquivos([System.Collections.Generic.List[object]]$lista, [string]$pasta, [string]$credencial, [string]$prefixo, [string[]]$primeiros = @(), [string[]]$ultimos = @()) {
     if (-not (Test-Path -LiteralPath $pasta)) {
         return
     }
     $base = (Resolve-Path -LiteralPath $pasta).Path
+    $inicio = New-Object 'System.Collections.Generic.List[object]'
+    $meio = New-Object 'System.Collections.Generic.List[object]'
+    $fim = New-Object 'System.Collections.Generic.List[object]'
     Get-ChildItem -LiteralPath $base -Recurse -File | ForEach-Object {
         $nome = $_.Name
         if ($nome -eq 'router.php' -or $nome -eq 'Thumbs.db' -or $nome -eq '.DS_Store') {
@@ -77,11 +81,25 @@ function Add-Arquivos([System.Collections.Generic.List[object]]$lista, [string]$
         if (-not (Test-DestinoSeguro $destino)) {
             throw "Destino recusado: $destino"
         }
-        $lista.Add([pscustomobject]@{
+        $item = [pscustomobject]@{
             Credencial = $credencial
             Destino    = $destino
             Arquivo    = $_.FullName
-        })
+        }
+        if ($primeiros -contains $relativo) {
+            $inicio.Add($item)
+        } elseif ($ultimos -contains $relativo) {
+            $fim.Add($item)
+        } else {
+            $meio.Add($item)
+        }
+    }
+    foreach ($item in $inicio) { $lista.Add($item) }
+    foreach ($item in $meio) { $lista.Add($item) }
+    foreach ($nome in $ultimos) {
+        foreach ($item in $fim) {
+            if ($item.Destino.EndsWith('/' + $nome) -or $item.Destino -eq $nome) { $lista.Add($item) }
+        }
     }
 }
 
@@ -209,9 +227,11 @@ function Get-CodigoHttp([string]$url) {
 
 $site = Read-Site
 $lista = New-Object 'System.Collections.Generic.List[object]'
-Add-Arquivos $lista (Join-Path $raiz 'public') 'subdominio' ''
-Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src')
-Add-Arquivos $lista (Join-Path $raiz 'views') 'pai' ($site.appDirectory + '/views')
+# Ordem de envio: o site continua no ar enquanto os arquivos sobem.
+# 1. O schema primeiro: o código antigo ignora as tabelas novas.
+# 2. As telas: as novas funcionam com o código antigo.
+# 3. O código, com as classes novas antes e Auth.php e bootstrap.php por último.
+# 4. Os arquivos públicos, com o index.php por último.
 $schema = Join-Path $raiz 'database\schema.sql'
 if (-not (Test-Path -LiteralPath $schema)) {
     throw 'Falta database\schema.sql'
@@ -225,6 +245,9 @@ $lista.Add([pscustomobject]@{
     Destino    = $destinoSchema
     Arquivo    = $schema
 })
+Add-Arquivos $lista (Join-Path $raiz 'views') 'pai' ($site.appDirectory + '/views') @('trecho_operador.php', 'tablets.php')
+Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src') @('Tablets.php', 'helpers.php', 'Db.php') @('Auth.php', 'bootstrap.php')
+Add-Arquivos $lista (Join-Path $raiz 'public') 'subdominio' '' @() @('index.php')
 
 Write-Host ("{0} arquivos para {1}" -f $lista.Count, $site.domain)
 if ($Listar) {
@@ -279,16 +302,24 @@ for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
     if ($bloqueio -eq 403) { break }
     Start-Sleep -Seconds 2
 }
+# As sessões ficam em storage/sessoes. A pasta precisa estar fechada para a web.
+$sessoes = 0
+for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
+    $sessoes = Get-CodigoHttp ("https://{0}/{1}/storage/sessoes/.htaccess" -f $site.parentDomain, $site.appDirectory)
+    if ($sessoes -eq 403) { break }
+    Start-Sleep -Seconds 2
+}
 
 Write-Host ("Enviados: {0}" -f $enviados)
 Write-Host ("Saúde do site: HTTP {0}" -f $saude)
 Write-Host ("Arquivo .env no domínio principal: HTTP {0}" -f $bloqueio)
+Write-Host ("Pasta de sessões no domínio principal: HTTP {0}" -f $sessoes)
 if ($hashIgual) {
     Write-Host 'O fluxo.js publicado é o mesmo deste computador.'
 } else {
     Write-Host 'O fluxo.js publicado ainda não bate com o deste computador.'
 }
 
-if ($saude -ne 200 -or $bloqueio -ne 403 -or -not $hashIgual) {
+if ($saude -ne 200 -or $bloqueio -ne 403 -or $sessoes -ne 403 -or -not $hashIgual) {
     exit 1
 }
