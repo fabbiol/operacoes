@@ -3,7 +3,10 @@
         <p class="olho">Acesso</p>
         <h1>Pessoas</h1>
     </div>
-    <a class="btn primario" href="<?= e(url('usuarios/novo')) ?>">Nova</a>
+    <div class="acoes">
+        <a class="btn secundario" href="<?= e(url('tablets')) ?>">Tablets</a>
+        <a class="btn primario" href="<?= e(url('usuarios/novo')) ?>">Nova</a>
+    </div>
 </section>
 
 <?php if ($pessoas === []): ?>

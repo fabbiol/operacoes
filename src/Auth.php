@@ -6,11 +6,15 @@ final class Auth
 {
     public const SESSAO_SEGUNDOS = 50400;
     private const MAX_TENTATIVAS = 5;
-    private const BLOQUEIO_SEGUNDOS = 60;
+    // Os tablets da pedreira saem pelo mesmo endereço: o limite por endereço só pega abuso grosso.
+    private const MAX_TENTATIVAS_IP = 100;
+    private const JANELA_MINUTOS = 15;
+    private const SENHA_ADMIN_MINIMA = 8;
 
     private static ?array $eu = null;
     private static bool $euCarregado = false;
     private static string $falhaLogin = '';
+    private static bool $senhaFraca = false;
 
     public static function configurada(): bool
     {
@@ -85,6 +89,16 @@ final class Auth
     public static function falhaLogin(): string
     {
         return self::$falhaLogin;
+    }
+
+    public static function senhaFraca(): bool
+    {
+        return self::$senhaFraca;
+    }
+
+    public static function senhaAdminMinima(): int
+    {
+        return self::SENHA_ADMIN_MINIMA;
     }
 
     public static function pode(string ...$papeis): bool
@@ -162,21 +176,44 @@ final class Auth
             flash_set('Esse acesso está desativado.', 'erro');
             redirect('/login');
         }
+
+        // Quem entrou pela foto sai junto quando o tablet é revogado.
+        $tablet = (int) ($_SESSION['tablet_id'] ?? 0);
+        if ($tablet > 0 && !Tablets::ativo($tablet)) {
+            unset($_SESSION['auth'], $_SESSION['usuario'], $_SESSION['visto'], $_SESSION['tablet_id']);
+            self::$eu = null;
+            self::$euCarregado = false;
+            flash_set('Este tablet foi revogado pelo administrativo.', 'erro');
+            redirect('/login');
+        }
     }
 
     public static function tentar(string $usuario, string $senha): bool
     {
         self::garantirUsuarios();
         self::$falhaLogin = '';
-        $bloqueadoAte = (int) ($_SESSION['login_bloqueado_ate'] ?? 0);
-        if ($bloqueadoAte > time()) {
+        self::$senhaFraca = false;
+        $nome = self::nomeSimples($usuario);
+        // A contagem usa o nome já limpo: espaços extras ou especiais não abrem um contador novo.
+        $chave = mb_substr(mb_strtolower($nome ?? trim($usuario), 'UTF-8'), 0, 40, 'UTF-8');
+        $ip = substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+        $bloqueio = 'Muitas tentativas erradas. Espere ' . self::JANELA_MINUTOS . ' minutos e tente de novo.';
+        if (self::bloqueado($chave, $ip)) {
+            self::$falhaLogin = $bloqueio;
+
+            return false;
+        }
+        // A tentativa entra na conta antes de conferir a senha, para pedidos simultâneos não passarem do limite.
+        self::registrarFalha($chave, $ip);
+        if (self::bloqueado($chave, $ip, true)) {
+            self::$falhaLogin = $bloqueio;
+
             return false;
         }
 
-        $nome = self::nomeSimples($usuario);
         $linha = null;
         if ($nome !== null) {
-            $busca = Db::pdo()->prepare('SELECT id, nome, senha_hash, ativo FROM usuarios WHERE nome = ? LIMIT 1');
+            $busca = Db::pdo()->prepare('SELECT id, nome, senha_hash, ativo, administrador FROM usuarios WHERE nome = ? LIMIT 1');
             $busca->execute([$nome]);
             $achou = $busca->fetch();
             if ($achou && password_verify($senha, (string) $achou['senha_hash'])) {
@@ -189,16 +226,12 @@ final class Auth
         }
 
         if ($linha) {
+            Db::pdo()->prepare('DELETE FROM login_falhas WHERE usuario = ? AND ip = ?')->execute([$chave, $ip]);
+            self::$senhaFraca = (int) $linha['administrador'] === 1
+                && (mb_strlen($senha, 'UTF-8') < self::SENHA_ADMIN_MINIMA || $senha === 'troque-esta-senha');
             self::abrirSessao((string) $linha['nome']);
 
             return true;
-        }
-
-        $falhas = (int) ($_SESSION['login_falhas'] ?? 0) + 1;
-        $_SESSION['login_falhas'] = $falhas;
-        if ($falhas >= self::MAX_TENTATIVAS) {
-            $_SESSION['login_bloqueado_ate'] = time() + self::BLOQUEIO_SEGUNDOS;
-            $_SESSION['login_falhas'] = 0;
         }
 
         return false;
@@ -208,11 +241,18 @@ final class Auth
     {
         self::garantirUsuarios();
         self::$falhaLogin = '';
+        if (!Tablets::autorizado()) {
+            self::$falhaLogin = 'Este aparelho não está autorizado para a entrada por foto.';
+
+            return false;
+        }
         $pessoa = Pessoas::elegivelEntrada($id);
         if ($pessoa === null) {
             return false;
         }
         self::abrirSessao((string) $pessoa['nome']);
+        $_SESSION['tablet_id'] = (int) (Tablets::atual()['id'] ?? 0);
+        Tablets::registrarUso();
 
         return true;
     }
@@ -276,6 +316,30 @@ final class Auth
         $_SESSION['cookie_em'] = time();
     }
 
+    /** As tentativas erradas ficam no banco: apagar o cookie não zera a contagem. */
+    /** Com $contandoEsta, a tentativa atual já está gravada e entra no limite. */
+    private static function bloqueado(string $usuario, string $ip, bool $contandoEsta = false): bool
+    {
+        $folga = $contandoEsta ? 1 : 0;
+        $desde = date('Y-m-d H:i:s', time() - self::JANELA_MINUTOS * 60);
+        $porUsuario = Db::pdo()->prepare('SELECT COUNT(*) FROM login_falhas WHERE usuario = ? AND ip = ? AND criado_em >= ?');
+        $porUsuario->execute([$usuario, $ip, $desde]);
+        if ((int) $porUsuario->fetchColumn() > self::MAX_TENTATIVAS - 1 + $folga) {
+            return true;
+        }
+        $porIp = Db::pdo()->prepare('SELECT COUNT(*) FROM login_falhas WHERE ip = ? AND criado_em >= ?');
+        $porIp->execute([$ip, $desde]);
+
+        return (int) $porIp->fetchColumn() > self::MAX_TENTATIVAS_IP - 1 + $folga;
+    }
+
+    private static function registrarFalha(string $usuario, string $ip): void
+    {
+        $pdo = Db::pdo();
+        $pdo->prepare('DELETE FROM login_falhas WHERE criado_em < ?')->execute([date('Y-m-d H:i:s', time() - 86400)]);
+        $pdo->prepare('INSERT INTO login_falhas (usuario, ip, criado_em) VALUES (?, ?, ?)')->execute([$usuario, $ip, agora_sql()]);
+    }
+
     private static function garantirUsuarios(): void
     {
         $pdo = Db::pdo();
@@ -317,7 +381,7 @@ final class Auth
         $_SESSION['auth'] = true;
         $_SESSION['usuario'] = $nome;
         $_SESSION['visto'] = time();
-        unset($_SESSION['login_falhas'], $_SESSION['login_bloqueado_ate'], $_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno'], $_SESSION['cookie_em']);
+        unset($_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno'], $_SESSION['cookie_em'], $_SESSION['tablet_id']);
     }
 
     private static function eu(): ?array

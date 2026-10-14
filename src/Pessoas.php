@@ -127,8 +127,9 @@ final class Pessoas
         $senha = (string) ($post['senha'] ?? '');
         if (trim($senha) !== '') {
             $senha = trim($senha);
-            if (strlen($senha) < 4 || strlen($senha) > 72) {
-                throw new InvalidArgumentException('A senha precisa ter entre 4 e 72 caracteres.');
+            $minimo = $admin ? Auth::senhaAdminMinima() : 4;
+            if (mb_strlen($senha, 'UTF-8') < $minimo || strlen($senha) > 72) {
+                throw new InvalidArgumentException('A senha precisa ter entre ' . $minimo . ' e 72 caracteres.');
             }
         } elseif ($id === null) {
             throw new InvalidArgumentException('Informe a senha.');

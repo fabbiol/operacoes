@@ -29,8 +29,12 @@
         </div>
     <?php endif; ?>
 
+    <?php if (empty($tablet)): ?>
+        <p class="nota">Neste aparelho só entra quem tem usuário e senha. Para a equipe entrar pela foto, o administrativo autoriza o tablet em Pessoas › Tablets.</p>
+    <?php endif; ?>
+
     <div class="entrada-admin">
-        <h2>Administrativo</h2>
+        <h2><?= empty($tablet) ? 'Usuário e senha' : 'Administrativo' ?></h2>
         <form method="post" action="<?= e(url('login')) ?>" class="formulario">
             <?= csrf_field() ?>
             <label class="campo">

@@ -35,7 +35,7 @@
                         <a class="link<?= ($caminho === 'lavra' || str_starts_with($caminho, 'lavra/')) ? ' ativo' : '' ?>" href="<?= e(url('lavra/fila')) ?>">Lavra</a>
                         <a class="link<?= ($caminho === 'fila' || $caminho === 'patio' || str_starts_with($caminho, 'ordens/') || str_starts_with($caminho, 'carregamentos/')) ? ' ativo' : '' ?>" href="<?= e(url('fila')) ?>">Carregamento</a>
                     </div>
-                    <a class="link<?= str_starts_with($caminho, 'usuarios') ? ' ativo' : '' ?>" href="<?= e(url('usuarios')) ?>">Pessoas</a>
+                    <a class="link<?= (str_starts_with($caminho, 'usuarios') || str_starts_with($caminho, 'tablets')) ? ' ativo' : '' ?>" href="<?= e(url('usuarios')) ?>">Pessoas</a>
                     <a class="link<?= str_starts_with($caminho, 'cadastros') ? ' ativo' : '' ?>" href="<?= e(url('cadastros')) ?>">Cadastros</a>
                     <a class="link<?= $caminho === 'manutencao' ? ' ativo' : '' ?>" href="<?= e(url('manutencao')) ?>">Manutenção</a>
                 <?php elseif (Auth::ambos()): ?>

@@ -370,6 +370,22 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'tablets') {
+        tela_tablets($method);
+        return;
+    }
+
+    if (preg_match('#^tablets/(\d+)/revogar$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            Tablets::revogar((int) $m[1]);
+            flash_set('Tablet revogado. Ele não mostra mais as fotos da equipe.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/tablets');
+    }
+
     if ($path === 'usuarios/novo') {
         tela_pessoa_form(null, $method);
         return;
@@ -492,6 +508,9 @@ function tela_login(string $method): void
     }
 
     if (Auth::ok()) {
+        if ($method === 'POST' && login_de_outra_pessoa()) {
+            flash_set(Auth::usuario() . ' ainda está conectado neste aparelho. Toque em Sair antes de entrar com outra pessoa.', 'atencao');
+        }
         redirect('/');
     }
 
@@ -503,12 +522,15 @@ function tela_login(string $method): void
             if (Auth::entrarPorPessoa((int) $_POST['pessoa'])) {
                 redirect('/');
             }
-            $erro = 'Não foi possível entrar com essa pessoa.';
+            $erro = Auth::falhaLogin() !== '' ? Auth::falhaLogin() : 'Não foi possível entrar com essa pessoa.';
         } else {
             $usuario = trim((string) ($_POST['usuario'] ?? ''));
             if (str_contains($usuario, '@')) {
                 $erro = 'Use o usuário, sem e-mail.';
             } elseif (Auth::tentar($usuario, (string) ($_POST['senha'] ?? ''))) {
+                if (Auth::senhaFraca()) {
+                    flash_set('A sua senha é fraca. Troque em Pessoas por uma com pelo menos ' . Auth::senhaAdminMinima() . ' caracteres.', 'atencao');
+                }
                 redirect('/');
             } else {
                 $erro = Auth::falhaLogin() !== '' ? Auth::falhaLogin() : 'Usuário ou senha não conferem.';
@@ -516,22 +538,59 @@ function tela_login(string $method): void
         }
     }
 
+    $tablet = Tablets::autorizado();
     render('login', [
         'titulo' => 'Entrar',
         'erro' => $erro,
         'usuario' => $usuario,
-        'pessoas' => Pessoas::paraEntrada(),
+        'tablet' => $tablet,
+        'pessoas' => $tablet ? Pessoas::paraEntrada() : [],
     ]);
+}
+
+function login_de_outra_pessoa(): bool
+{
+    if (isset($_POST['pessoa'])) {
+        $pessoa = Pessoas::buscar((int) $_POST['pessoa']);
+        $nome = $pessoa !== null ? (string) $pessoa['nome'] : '';
+    } else {
+        $nome = (string) (Auth::nomeSimples((string) ($_POST['usuario'] ?? '')) ?? '');
+    }
+
+    return mb_strtolower($nome, 'UTF-8') !== mb_strtolower(Auth::usuario(), 'UTF-8');
 }
 
 function tela_entrada_foto(int $id): void
 {
-    $pessoa = Pessoas::elegivelEntrada($id);
+    $pessoa = Tablets::autorizado() ? Pessoas::elegivelEntrada($id) : null;
     if ($pessoa === null || empty($pessoa['foto'])) {
         http_response_code(404);
         exit;
     }
     tela_pessoa_foto($id);
+}
+
+function tela_tablets(string $method): void
+{
+    $erro = null;
+    if ($method === 'POST') {
+        csrf_check();
+        try {
+            Tablets::autorizarEste((string) ($_POST['nome'] ?? ''), Auth::usuario());
+            flash_set('Tablet autorizado. Saia para a equipe entrar pela foto.');
+            redirect('/tablets');
+        } catch (InvalidArgumentException $e) {
+            $erro = $e->getMessage();
+        }
+    }
+
+    render('tablets', [
+        'titulo' => 'Tablets',
+        'este' => Tablets::atual(),
+        'tablets' => Tablets::listar(),
+        'nome' => (string) ($_POST['nome'] ?? ''),
+        'erro' => $erro,
+    ]);
 }
 
 function fluxo_json(string $marca): void

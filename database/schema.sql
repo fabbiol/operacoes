@@ -188,3 +188,29 @@ CREATE TABLE IF NOT EXISTS horimetro_turnos (
     KEY idx_turno_usuario (usuario, encerrado_em),
     KEY idx_turno_maquina (tipo, maquina_id, encerrado_em)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tablets que mostram as fotos da equipe na entrada. O aparelho guarda o código e aqui fica só o hash.
+CREATE TABLE IF NOT EXISTS tablets (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    nome VARCHAR(60) NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    autorizado_por VARCHAR(40) NOT NULL,
+    criado_em DATETIME NOT NULL,
+    ultimo_uso DATETIME NULL,
+    revogado_em DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_tablet_token (token_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Senhas erradas por usuário e endereço. Ficam no banco para o bloqueio valer mesmo sem o cookie.
+CREATE TABLE IF NOT EXISTS login_falhas (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    usuario VARCHAR(40) NOT NULL,
+    ip VARCHAR(45) NOT NULL,
+    criado_em DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_falha_usuario (usuario, ip, criado_em),
+    KEY idx_falha_ip (ip, criado_em),
+    KEY idx_falha_quando (criado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
