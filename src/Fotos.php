@@ -12,6 +12,10 @@ final class Fotos
     public const LADO_PESSOA = 640;
     public const LADO_MAQUINA = 960;
     private const MAX_ENVIO = 10 * 1024 * 1024;
+    // Câmera de celular chega a uns 50 megapixels. Acima disso, a foto não é aberta (ocuparia gigas de memória).
+    private const MAX_PIXELS = 50_000_000;
+    // Teto para a memória que a redução pode pedir ao PHP.
+    private const MAX_MEMORIA = 512 * 1024 * 1024;
     // Foto guardada acima disso é de antes da redução e é reduzida ao ser aberta.
     private const MAX_GUARDADA = 400 * 1024;
     private const QUALIDADE = 82;
@@ -49,17 +53,26 @@ final class Fotos
         if (!is_string($mime) || !isset($extensoes[$mime])) {
             throw new InvalidArgumentException('A foto precisa ser JPG, PNG ou WebP.');
         }
-        $tmp = tempnam(sys_get_temp_dir(), 'opfoto');
-        if ($tmp === false || !move_uploaded_file($origem, $tmp)) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
+        $dados = (string) file_get_contents($origem);
+        $info = @getimagesizefromstring($dados);
+        if ($info === false || $info[0] < 1 || $info[1] < 1) {
+            throw new InvalidArgumentException('Não foi possível ler essa foto. Tente outra imagem.');
+        }
+        if ($info[0] * $info[1] > self::MAX_PIXELS) {
+            throw new InvalidArgumentException('A foto tem resolução grande demais. Tente uma foto menor.');
         }
 
-        if (!self::temGd()) {
-            // Sem a extensão de imagem no servidor, a foto fica como veio.
+        if (!self::podeReduzir($mime)) {
+            // Sem as extensões de imagem no servidor, a foto fica como veio (o navegador gira pelo EXIF).
+            $tmp = tempnam(sys_get_temp_dir(), 'opfoto');
+            if ($tmp === false || !move_uploaded_file($origem, $tmp)) {
+                throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
+            }
+
             return ['tmp' => $tmp, 'ext' => $extensoes[$mime]];
         }
-        $reduzida = self::reduzir($tmp, $mime, $lado, 'image/jpeg');
-        unlink($tmp);
+        // Reduz direto do arquivo do envio: o PHP o apaga no fim do pedido, mesmo se der erro no meio.
+        $reduzida = self::reduzir($dados, $mime, $info, $lado, 'image/jpeg', null);
         if ($reduzida === null) {
             throw new InvalidArgumentException('Não foi possível ler essa foto. Tente outra imagem.');
         }
@@ -86,6 +99,9 @@ final class Fotos
         $mudou = (int) @filemtime($caminho);
         $etag = '"' . dechex($mudou) . '-' . dechex($tamanho) . '"';
 
+        // A sessão manda "Pragma: no-cache" e uma validade vencida; com eles o Chrome pede a foto de novo em toda tela.
+        header_remove('Pragma');
+        header_remove('Expires');
         header('X-Content-Type-Options: nosniff');
         header('Cache-Control: private, max-age=3600');
         header('ETag: ' . $etag);
@@ -111,54 +127,80 @@ final class Fotos
 
     private static function reduzirGuardada(string $caminho, string $tipo, int $lado): void
     {
-        if (!self::temGd()) {
+        if (!self::podeReduzir($tipo)) {
             return;
         }
-        // Já está no tamanho: não há o que reduzir, e a conta não se repete a cada abertura.
-        $info = @getimagesize($caminho);
-        if ($info !== false && max($info[0], $info[1]) <= $lado) {
+        $antes = @stat($caminho);
+        if ($antes === false) {
             return;
         }
-        $nova = self::reduzir($caminho, $tipo, $lado, $tipo, dirname($caminho));
+        // Uma tentativa que não deixou a foto menor fica anotada, para não se repetir a cada abertura.
+        $marca = $caminho . '.ok';
+        $assinatura = $antes['ino'] . '-' . $antes['size'] . '-' . $antes['mtime'];
+        if (@file_get_contents($marca) === $assinatura) {
+            return;
+        }
+        // Os bytes são lidos uma vez só: medida, imagem e giro vêm do mesmo arquivo, mesmo que outro pedido o troque.
+        $dados = @file_get_contents($caminho);
+        $info = $dados === false ? false : @getimagesizefromstring($dados);
+        if ($info === false || max($info[0], $info[1]) <= $lado || $info[0] * $info[1] > self::MAX_PIXELS) {
+            return;
+        }
+        $nova = self::reduzir($dados, $tipo, $info, $lado, $tipo, dirname($caminho));
         if ($nova === null) {
             return;
         }
-        // Só troca se ficou menor. A troca por rename é atômica: quem abrir junto vê a antiga ou a nova inteira.
-        if ((int) filesize($nova) >= (int) filesize($caminho) || !@rename($nova, $caminho)) {
+        // Só troca se a foto no disco ainda é a mesma (outro pedido pode ter reduzido, ou o administrativo enviado
+        // uma nova) e se a reduzida ficou menor. O rename é atômico: quem abrir junto vê a antiga ou a nova inteira.
+        clearstatcache(true, $caminho);
+        $agora = @stat($caminho);
+        $mesma = $agora !== false && $agora['ino'] === $antes['ino'] && $agora['size'] === $antes['size'] && $agora['mtime'] === $antes['mtime'];
+        $menor = (int) filesize($nova) < (int) $antes['size'];
+        if (!$mesma || !$menor || !@rename($nova, $caminho)) {
             @unlink($nova);
+            if ($mesma && !$menor) {
+                @file_put_contents($marca, $assinatura);
+            }
         }
     }
 
-    private static function temGd(): bool
+    /** O servidor tem o que precisa para abrir, reduzir e, no JPG, endireitar a foto. */
+    private static function podeReduzir(string $mime): bool
     {
-        return function_exists('imagecreatefromjpeg') && function_exists('imagejpeg');
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) {
+            return false;
+        }
+        // Sem a extensão exif não dá para saber o giro: regravar a foto a deixaria deitada para sempre.
+        return $mime !== 'image/jpeg' || function_exists('exif_read_data');
     }
 
-    /** Devolve o caminho de um arquivo temporário com a imagem reduzida, ou null se não deu para ler. */
-    private static function reduzir(string $origem, string $mime, int $lado, string $saida, ?string $pasta = null): ?string
+    /**
+     * Devolve o caminho de um arquivo temporário com a imagem reduzida, ou null se não deu para ler.
+     *
+     * @param array{0: int, 1: int} $info medidas lidas de $dados
+     */
+    private static function reduzir(string $dados, string $mime, array $info, int $lado, string $saida, ?string $pasta): ?string
     {
-        $info = @getimagesize($origem);
-        if ($info === false || $info[0] < 1 || $info[1] < 1) {
+        [$largura, $altura] = [(int) $info[0], (int) $info[1]];
+        // A foto aberta ocupa uns 4 bytes por pixel. O giro é feito depois de reduzir, na imagem pequena.
+        $precisa = $largura * $altura * 5 + $lado * $lado * 8 + 32 * 1024 * 1024;
+        if (self::limiteMemoria() < $precisa) {
+            if ($precisa > self::MAX_MEMORIA) {
+                return null;
+            }
+            @ini_set('memory_limit', (string) $precisa);
+            if (self::limiteMemoria() < $precisa) {
+                return null;
+            }
+        }
+        if ($mime === 'image/webp' && !function_exists('imagecreatefromwebp')) {
             return null;
         }
-        // Uma foto de 12 megapixels ocupa uns 50 MB aberta. Sobe o limite só para esta conta.
-        $precisa = (int) ($info[0] * $info[1] * 5) + 32 * 1024 * 1024;
-        if (self::limiteMemoria() < $precisa) {
-            @ini_set('memory_limit', (string) $precisa);
-        }
-        $imagem = match ($mime) {
-            'image/jpeg' => @imagecreatefromjpeg($origem),
-            'image/png' => @imagecreatefrompng($origem),
-            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($origem) : false,
-            default => false,
-        };
+        $imagem = @imagecreatefromstring($dados);
         if ($imagem === false) {
             return null;
         }
-        if ($mime === 'image/jpeg') {
-            $imagem = self::endireitar($imagem, $origem);
-        }
-
+        $paleta = !imageistruecolor($imagem);
         $largura = imagesx($imagem);
         $altura = imagesy($imagem);
         $fator = min(1.0, $lado / max($largura, $altura));
@@ -174,6 +216,13 @@ final class Fotos
         }
         imagecopyresampled($destino, $imagem, 0, 0, 0, 0, $novaLargura, $novaAltura, $largura, $altura);
         imagedestroy($imagem);
+        if ($mime === 'image/jpeg') {
+            $destino = self::endireitar($destino, self::orientacao($dados));
+        }
+        if ($saida === 'image/png' && $paleta) {
+            // Desenho em PNG de poucas cores continua com paleta; em cores cheias ficaria maior que o original.
+            imagetruecolortopalette($destino, false, 256);
+        }
 
         $tmp = tempnam($pasta ?? sys_get_temp_dir(), 'opfoto');
         if ($tmp === false) {
@@ -192,18 +241,30 @@ final class Fotos
 
             return null;
         }
+        // O tempnam cria só para o dono; a foto guardada fica com a permissão de antes (leitura para todos).
+        @chmod($tmp, 0644);
 
         return $tmp;
     }
 
-    /** A câmera grava a foto deitada e anota o giro no EXIF. A foto reduzida já sai de pé. */
-    private static function endireitar(GdImage $imagem, string $origem): GdImage
+    /** Giro anotado pela câmera no EXIF do JPG (1 = de pé, como está). */
+    private static function orientacao(string $dados): int
     {
-        if (!function_exists('exif_read_data')) {
-            return $imagem;
+        $fluxo = fopen('php://memory', 'r+b');
+        if ($fluxo === false) {
+            return 1;
         }
-        $exif = @exif_read_data($origem);
-        $orientacao = is_array($exif) ? (int) ($exif['Orientation'] ?? 1) : 1;
+        fwrite($fluxo, $dados);
+        rewind($fluxo);
+        $exif = @exif_read_data($fluxo);
+        fclose($fluxo);
+
+        return is_array($exif) ? (int) ($exif['Orientation'] ?? 1) : 1;
+    }
+
+    /** A câmera grava a foto deitada e anota o giro no EXIF. A foto reduzida já sai de pé. */
+    private static function endireitar(GdImage $imagem, int $orientacao): GdImage
+    {
         $giro = match ($orientacao) {
             3, 4 => 180,
             6, 7 => -90,
