@@ -146,6 +146,9 @@ CREATE TABLE IF NOT EXISTS horimetros (
     leitura DECIMAL(10,1) NOT NULL,
     lido_em DATETIME NOT NULL,
     usuario VARCHAR(40) NOT NULL,
+    anulado_em DATETIME NULL,
+    anulado_por VARCHAR(40) NULL,
+    anulado_motivo VARCHAR(200) NULL,
     PRIMARY KEY (id),
     KEY idx_horimetro_maquina (tipo, maquina_id, leitura)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -5,6 +5,8 @@ declare(strict_types=1);
 final class Horimetro
 {
     public const PROXIMA_H = 50.0;
+    // Folga sobre o tempo decorrido: a máquina não roda mais horas do que o relógio.
+    private const FOLGA_H = 1.0;
 
     /** @var array<string, string> */
     private const CHAVES = [
@@ -34,26 +36,52 @@ final class Horimetro
 
     public static function atual(string $tipo, int $id): ?float
     {
+        $ultima = self::ultima($tipo, $id);
+
+        return $ultima === null ? null : (float) $ultima['leitura'];
+    }
+
+    /** Maior leitura válida (não anulada) da máquina, com a hora em que foi lida. */
+    private static function ultima(string $tipo, int $id): ?array
+    {
         self::exigirMaquina($tipo, $id);
         $busca = Db::pdo()->prepare(
-            'SELECT leitura FROM horimetros
-             WHERE tipo = ? AND maquina_id = ?
+            'SELECT id, leitura, lido_em FROM horimetros
+             WHERE tipo = ? AND maquina_id = ? AND anulado_em IS NULL
              ORDER BY leitura DESC, id DESC
              LIMIT 1'
         );
         $busca->execute([$tipo, $id]);
-        $valor = $busca->fetchColumn();
+        $linha = $busca->fetch();
 
-        return $valor === false ? null : (float) $valor;
+        return $linha ?: null;
     }
 
+    /** Grava a leitura e devolve o valor lido. Use lancarComId() quando precisar do id do registro. */
     public static function lancar(string $tipo, int $id, string $bruto, string $usuario): float
+    {
+        return self::lancarComId($tipo, $id, $bruto, $usuario)['leitura'];
+    }
+
+    /** @return array{id: int, leitura: float} */
+    public static function lancarComId(string $tipo, int $id, string $bruto, string $usuario): array
     {
         self::exigirMaquina($tipo, $id);
         $leitura = self::lerHoras($bruto, 'Horímetro', true);
-        $atual = self::atual($tipo, $id);
-        if ($atual !== null && round($leitura, 1) < round($atual, 1)) {
-            throw new InvalidArgumentException('A leitura não pode ser menor que o horímetro atual, ' . self::texto($atual) . '.');
+        $ultima = self::ultima($tipo, $id);
+        if ($ultima !== null) {
+            $atual = (float) $ultima['leitura'];
+            if (round($leitura, 1) < round($atual, 1)) {
+                throw new InvalidArgumentException('A leitura não pode ser menor que o horímetro atual, ' . self::texto($atual) . '.');
+            }
+            // Um número digitado errado (12345 em vez de 1234,5) travaria a máquina: a leitura não passa do tempo real.
+            $passou = max(0.0, (time() - (int) strtotime((string) $ultima['lido_em'])) / 3600);
+            if (round($leitura, 1) > round($atual + $passou + self::FOLGA_H, 1)) {
+                throw new InvalidArgumentException(
+                    'A leitura passa do possível: a última foi ' . self::texto($atual) . ' em ' . quando((string) $ultima['lido_em'])
+                    . ' e desde então passaram ' . self::texto(round($passou, 1)) . '. Confira o número.'
+                );
+            }
         }
         $comando = Db::pdo()->prepare(
             'INSERT INTO horimetros (tipo, maquina_id, leitura, lido_em, usuario)
@@ -61,7 +89,23 @@ final class Horimetro
         );
         $comando->execute([$tipo, $id, self::gravar($leitura), agora_sql(), $usuario]);
 
-        return $leitura;
+        return ['id' => (int) Db::pdo()->lastInsertId(), 'leitura' => $leitura];
+    }
+
+    /** O administrativo anula uma leitura errada. O registro fica, marcado, e deixa de valer. */
+    public static function anular(int $leituraId, string $tipo, int $maquinaId, string $motivo, string $usuario): void
+    {
+        self::exigirMaquina($tipo, $maquinaId);
+        $motivo = limpar_texto($motivo, 200, true, 'o motivo');
+        $comando = Db::pdo()->prepare(
+            'UPDATE horimetros
+             SET anulado_em = ?, anulado_por = ?, anulado_motivo = ?
+             WHERE id = ? AND tipo = ? AND maquina_id = ? AND anulado_em IS NULL'
+        );
+        $comando->execute([agora_sql(), $usuario, $motivo, $leituraId, $tipo, $maquinaId]);
+        if ($comando->rowCount() < 1) {
+            throw new InvalidArgumentException('Essa leitura não é desta máquina ou já foi anulada.');
+        }
     }
 
     /** @return list<array<string, mixed>> */
@@ -69,7 +113,7 @@ final class Horimetro
     {
         self::exigirMaquina($tipo, $id);
         $busca = Db::pdo()->prepare(
-            'SELECT leitura, lido_em, usuario FROM horimetros
+            'SELECT id, leitura, lido_em, usuario, anulado_em, anulado_por, anulado_motivo FROM horimetros
              WHERE tipo = ? AND maquina_id = ?
              ORDER BY lido_em DESC, id DESC
              LIMIT 8'

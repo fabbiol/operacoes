@@ -12,11 +12,27 @@
     <?php if ($horimetro['historico'] !== []): ?>
         <ul class="cadastro">
             <?php foreach ($horimetro['historico'] as $leitura): ?>
-                <li>
+                <?php $anulada = !empty($leitura['anulado_em']); ?>
+                <li class="<?= $anulada ? 'inativo' : '' ?>">
                     <span class="cadastro-texto">
-                        <strong><?= e(Horimetro::texto((float) $leitura['leitura'])) ?></strong>
-                        <small><?= e(quando((string) $leitura['lido_em'])) ?> · <?= e((string) $leitura['usuario']) ?></small>
+                        <strong><?= $anulada ? '<s>' . e(Horimetro::texto((float) $leitura['leitura'])) . '</s> anulada' : e(Horimetro::texto((float) $leitura['leitura'])) ?></strong>
+                        <small><?= e(quando((string) $leitura['lido_em'])) ?> · <?= e((string) $leitura['usuario']) ?><?php if ($anulada): ?>
+                            · anulada por <?= e((string) $leitura['anulado_por']) ?> em <?= e(quando((string) $leitura['anulado_em'])) ?>: <?= e((string) $leitura['anulado_motivo']) ?>
+                        <?php endif; ?></small>
                     </span>
+                    <?php if (!$anulada): ?>
+                        <details class="anular">
+                            <summary>Anular</summary>
+                            <form method="post" action="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/horimetro/' . (int) $leitura['id'] . '/anular')) ?>" class="formulario">
+                                <?= csrf_field() ?>
+                                <label class="campo">
+                                    <span>Motivo</span>
+                                    <input type="text" name="motivo" maxlength="200" required placeholder="Ex.: digitado errado">
+                                </label>
+                                <button type="submit" class="btn perigo">Anular esta leitura</button>
+                            </form>
+                        </details>
+                    <?php endif; ?>
                 </li>
             <?php endforeach; ?>
         </ul>

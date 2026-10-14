@@ -95,6 +95,7 @@ final class Db
         self::garantirFicha($pdo);
         self::garantirRetro($pdo);
         self::garantirEstrada($pdo);
+        self::garantirHorimetro($pdo);
 
         if (!is_dir(dirname($marca))) {
             mkdir(dirname($marca), 0775, true);
@@ -357,6 +358,33 @@ final class Db
                  ADD CONSTRAINT fk_fila_retro
                  FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)'
             );
+        }
+    }
+
+    /** @return list<string> */
+    private static function colunasDe(PDO $pdo, string $tabela): array
+    {
+        $colunas = [];
+        foreach ($pdo->query('SHOW COLUMNS FROM ' . $tabela) as $coluna) {
+            $colunas[] = (string) ($coluna['Field'] ?? $coluna['field']);
+        }
+
+        return $colunas;
+    }
+
+    /** Leitura de horímetro errada é anulada pelo administrativo, com motivo, sem apagar o registro. */
+    private static function garantirHorimetro(PDO $pdo): void
+    {
+        $colunas = self::colunasDe($pdo, 'horimetros');
+        $novas = [
+            'anulado_em' => 'DATETIME NULL',
+            'anulado_por' => 'VARCHAR(40) NULL',
+            'anulado_motivo' => 'VARCHAR(200) NULL',
+        ];
+        foreach ($novas as $nome => $tipo) {
+            if (!in_array($nome, $colunas, true)) {
+                $pdo->exec('ALTER TABLE horimetros ADD COLUMN ' . $nome . ' ' . $tipo);
+            }
         }
     }
 

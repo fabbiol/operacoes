@@ -283,6 +283,18 @@ function despachar(string $path, string $method): void
         redirect('/cadastros/' . $m[1] . '/' . $m[2]);
     }
 
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/horimetro/(\d+)/anular$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        try {
+            Horimetro::anular((int) $m[3], Horimetro::tipoDaChave($m[1]), (int) $m[2], (string) ($_POST['motivo'] ?? ''), Auth::usuario());
+            flash_set('Leitura anulada. O horímetro atual passa a ser a maior leitura que sobrou.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
     if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/planos/(\d+)/feito$#', $path, $m) && $method === 'POST') {
         exigir_cadastro($m[1]);
         csrf_check();

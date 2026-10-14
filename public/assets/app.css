@@ -346,6 +346,10 @@ h2 { margin: 0 0 10px; font-size: 18px; }
 .selo-inativo { background: #e7e1d6; color: #5c564c; }
 .bloco.horimetro { margin-top: 28px; }
 .bloco.horimetro h2 { margin-bottom: 8px; }
+.cadastro li .anular { flex: none; }
+.cadastro li .anular summary { cursor: pointer; color: var(--saida); font-weight: 700; }
+.cadastro li .anular[open] { flex: 1 1 100%; }
+.cadastro li:has(.anular[open]) { flex-wrap: wrap; }
 
 .selo {
     display: inline-flex;
