@@ -754,6 +754,7 @@ function render(string $view, array $dados = []): void
     $dados['viewFile'] = OPERACOES_ROOT . '/views/' . $view . '.php';
     $parcial = (string) ($_SERVER['HTTP_X_FLUXO'] ?? '') === '1';
     $dados['flash'] = $parcial ? null : ($dados['flash'] ?? flash_get());
+    $dados['agoraServidor'] = time();
     $dados['calmaMs'] = calma_restante_ms();
     $dados['titulo'] = $dados['titulo'] ?? 'Pátio';
     $dados['corpo'] = $dados['corpo'] ?? '';

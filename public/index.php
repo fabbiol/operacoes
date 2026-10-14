@@ -628,7 +628,7 @@ function fluxo_json(string $marca): void
 {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    echo json_encode(['marca' => $marca], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['marca' => $marca, 'hora' => date('H:i:s'), 'agora' => time()], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

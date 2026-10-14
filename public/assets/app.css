@@ -155,7 +155,31 @@ a { color: inherit; }
 }
 .site-maquina .link-discreto { margin-top: 0; font-size: 13px; }
 .link { font-weight: 700; text-decoration: none; }
+
+.conexao {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--saida);
+    color: white;
+    font-size: 18px;
+    font-weight: 800;
+    text-align: center;
+}
+.conexao[hidden] { display: none; }
+.conexao a { display: block; margin: -14px -16px; padding: 14px 16px; color: white; }
+body:has(#conexao:not([hidden])) .site { position: static; }
 .envio-aviso { margin: 8px 0 0; }
+.so-leitor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
 button.enviando { opacity: 0.7; }
 
 .folha {

@@ -15,7 +15,7 @@
         <link rel="stylesheet" href="<?= e(asset('assets/dashboard.css')) ?>">
     <?php endif; ?>
 </head>
-<body class="<?= e((string) $corpo) ?>" data-calma="<?= (int) ($calmaMs ?? 0) ?>">
+<body class="<?= e((string) $corpo) ?>" data-agora="<?= (int) ($agoraServidor ?? time()) ?>" data-hora="<?= e(date('H:i:s', (int) ($agoraServidor ?? time()))) ?>" data-calma="<?= (int) ($calmaMs ?? 0) ?>">
     <header class="site">
         <a class="brand" href="<?= e(url('/')) ?>">
             <img class="brand-logo" src="<?= e(url('assets/logo.png')) ?>" alt="">
@@ -74,6 +74,10 @@
             </nav>
         <?php endif; ?>
     </header>
+    <?php if (!empty($fluxoUrl)): ?>
+        <div id="conexao" class="conexao" hidden></div>
+        <span id="conexao-leitor" class="so-leitor" role="status" aria-live="polite"></span>
+    <?php endif; ?>
     <main class="folha">
         <?php if (!empty($flash)): ?>
             <p class="aviso <?= e($flash['tipo']) ?>"><?= e($flash['mensagem']) ?></p>
@@ -85,6 +89,7 @@
     </main>
     <script src="<?= e(asset('assets/envio.js')) ?>"></script>
     <?php if (!empty($fluxoUrl)): ?>
+        <script src="<?= e(asset('assets/tempo.js')) ?>"></script>
         <script src="<?= e(asset('assets/fluxo.js')) ?>"></script>
     <?php endif; ?>
 </body>
