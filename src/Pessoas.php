@@ -117,6 +117,9 @@ final class Pessoas
         if ($nome === null || $nome === '' || preg_match('/\s/u', $nome)) {
             throw new InvalidArgumentException('O usuário é o primeiro nome, sem sobrenome.');
         }
+        if ($atual !== null && $nome !== (string) $atual['nome'] && Auth::configuradoNoServidor((string) $atual['nome'])) {
+            throw new InvalidArgumentException('Esse usuário vem da configuração do servidor (APP_USUARIOS). Para trocar o nome, troque lá.');
+        }
         $completo = self::nomeCompleto((string) ($post['nome_completo'] ?? ''));
 
         $admin = $atual !== null && (int) $atual['administrador'] === 1;
@@ -151,7 +154,7 @@ final class Pessoas
             if ($id === null) {
                 $idSalvo = self::inserir($nome, $completo, $senha, $papel, $motorista, $operador, $ativo);
             } else {
-                self::atualizar($id, $nome, $completo, $senha, $papel, $motorista, $operador, $ativo, $admin);
+                self::atualizar($id, (string) $atual['nome'], $nome, $completo, $senha, $papel, $motorista, $operador, $ativo, $admin);
                 $idSalvo = $id;
             }
 
@@ -243,6 +246,7 @@ final class Pessoas
 
     private static function atualizar(
         int $id,
+        string $nomeAntigo,
         string $nome,
         string $completo,
         string $senha,
@@ -263,11 +267,44 @@ final class Pessoas
         }
         $sql .= ' WHERE id = ?';
         $params[] = $id;
-        $comando = Db::pdo()->prepare($sql);
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
         try {
-            $comando->execute($params);
-        } catch (PDOException $e) {
-            self::traduzirDuplicado($e);
+            try {
+                $pdo->prepare($sql)->execute($params);
+            } catch (PDOException $e) {
+                self::traduzirDuplicado($e);
+            }
+            if ($nome !== $nomeAntigo) {
+                self::levarHistorico($nomeAntigo, $nome);
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * O trabalho fica registrado com o nome de quem fez. Ao trocar o nome, o histórico vai junto:
+     * viagens, cargas, horímetro, turnos, manutenções, a máquina que a pessoa está usando agora.
+     * O texto livre das observações fica como foi escrito.
+     */
+    private static function levarHistorico(string $antigo, string $novo): void
+    {
+        $colunas = [
+            'fila_carregamentos' => ['operador', 'autorizado_por'],
+            'ciclos_lavra' => ['operador', 'operador_carga', 'encerramento_ciente_por'],
+            'horimetros' => ['usuario', 'anulado_por'],
+            'horimetro_turnos' => ['usuario'],
+            'manutencoes' => ['usuario'],
+            'tablets' => ['autorizado_por'],
+            'maquina_posse' => ['usuario'],
+        ];
+        foreach ($colunas as $tabela => $lista) {
+            foreach ($lista as $coluna) {
+                Db::pdo()->prepare(sprintf('UPDATE %s SET %s = ? WHERE %s = ?', $tabela, $coluna, $coluna))->execute([$novo, $antigo]);
+            }
         }
     }
 

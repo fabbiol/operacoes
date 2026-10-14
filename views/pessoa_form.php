@@ -15,7 +15,7 @@ $funcao = is_array($pessoa) ? (string) ($pessoa['funcao'] ?? Pessoas::funcao($pe
     <label class="campo">
         <span>Usuário</span>
         <input type="text" name="nome" maxlength="40" required value="<?= e((string) ($pessoa['nome'] ?? '')) ?>" <?= $fixo ? 'readonly' : '' ?> autofocus>
-        <small class="dica">O primeiro nome. É com ele que a pessoa entra e que o trabalho fica registrado.</small>
+        <small class="dica">O primeiro nome. É com ele que a pessoa entra e que o trabalho fica registrado.<?php if (!$novo): ?> Se trocar, o histórico passa para o nome novo.<?php endif; ?></small>
     </label>
     <label class="campo">
         <span>Nome completo</span>

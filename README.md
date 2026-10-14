@@ -20,6 +20,8 @@ php -S 127.0.0.1:8081 -t public public/router.php
 
 Abra `http://127.0.0.1:8081`. O primeiro acesso fica em `APP_USUARIOS`, no formato `nome:senha:funcao` (`admin`, `motorista` ou `operador`). Quem está em `APP_ADMIN` entra como administrativo. As outras pessoas são cadastradas em Pessoas, com usuário, nome completo, foto e função. O usuário é o primeiro nome.
 
+O usuário pode ser trocado em Pessoas: o histórico (viagens, cargas, horímetro, turnos, manutenções) passa para o nome novo, e quem está com a sessão aberta continua trabalhando. Quem vem de `APP_USUARIOS` tem o nome trocado no servidor, não na tela.
+
 O motorista abre a lavra. O operador abre a lavra e o pátio. Quem está nas duas funções abre as duas operações. O administrativo visualiza e faz tudo, inclusive os cadastros de caminhões, pás e retroescavadeiras, a fila de carregamento, os materiais e as pessoas.
 
 ## Tablets autorizados
