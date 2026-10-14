@@ -149,6 +149,7 @@ function despachar(string $path, string $method): void
     if (preg_match('#^lavra/caminhoes/(\d+)/fila$#', $path, $m) && $method === 'POST') {
         exigir_papel('motorista');
         csrf_check();
+        recusar_toque_apressado('/lavra');
         try {
             $maquina = maquina_escolhida();
             if (!Auth::admin() && ($maquina === null || $maquina['tipo'] !== 'caminhao' || (int) $maquina['id'] !== (int) $m[1])) {
@@ -168,8 +169,9 @@ function despachar(string $path, string $method): void
     if (preg_match('#^lavra/ciclos/(\d+)/avancar$#', $path, $m) && $method === 'POST') {
         exigir_papel('motorista');
         csrf_check();
+        recusar_toque_apressado('/lavra');
         try {
-            flash_set(Lavra::avancar((int) $m[1], Auth::motorista() ? Auth::usuario() : null));
+            flash_set(Lavra::avancar((int) $m[1], Auth::motorista() ? Auth::usuario() : null, etapa_da_tela()));
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
@@ -179,8 +181,9 @@ function despachar(string $path, string $method): void
     if (preg_match('#^lavra/ciclos/(\d+)/garagem$#', $path, $m) && $method === 'POST') {
         exigir_papel('motorista');
         csrf_check();
+        recusar_toque_apressado('/lavra');
         try {
-            flash_set(Lavra::irParaGaragem((int) $m[1], Auth::motorista() ? Auth::usuario() : null));
+            flash_set(Lavra::irParaGaragem((int) $m[1], Auth::motorista() ? Auth::usuario() : null, etapa_da_tela()));
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
@@ -234,8 +237,9 @@ function despachar(string $path, string $method): void
     if (preg_match('#^lavra/ciclos/(\d+)/concluir-carga$#', $path, $m) && $method === 'POST') {
         exigir_papel('operador');
         csrf_check();
+        recusar_toque_apressado('/lavra');
         try {
-            flash_set(Lavra::concluirCarga((int) $m[1], Auth::admin() ? null : Auth::usuario()));
+            flash_set(Lavra::concluirCarga((int) $m[1], Auth::admin() ? null : Auth::usuario(), etapa_da_tela()));
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
@@ -245,6 +249,7 @@ function despachar(string $path, string $method): void
     if (preg_match('#^lavra/ciclos/(\d+)/ciente$#', $path, $m) && $method === 'POST') {
         exigir_papel('operador');
         csrf_check();
+        recusar_toque_apressado('/lavra');
         try {
             Lavra::cienteSemRetorno((int) $m[1], Auth::usuario());
             flash_set('Aviso recebido.');
@@ -507,6 +512,11 @@ function tela_login(string $method): void
         return;
     }
 
+    if ($method === 'POST') {
+        // Antes de tudo: um envio repetido do mesmo formulário só volta para onde o primeiro foi.
+        csrf_check();
+    }
+
     if (Auth::ok()) {
         if ($method === 'POST' && login_de_outra_pessoa()) {
             flash_set(Auth::usuario() . ' ainda está conectado neste aparelho. Toque em Sair antes de entrar com outra pessoa.', 'atencao');
@@ -517,8 +527,11 @@ function tela_login(string $method): void
     $erro = null;
     $usuario = '';
     if ($method === 'POST') {
-        csrf_check();
         if (isset($_POST['pessoa'])) {
+            // O toque logo depois do Sair é o segundo toque de um toque duplo, não uma escolha de rosto.
+            if (toque_apressado()) {
+                redirect('/login');
+            }
             if (Auth::entrarPorPessoa((int) $_POST['pessoa'])) {
                 redirect('/');
             }
@@ -568,6 +581,24 @@ function tela_entrada_foto(int $id): void
         exit;
     }
     tela_pessoa_foto($id);
+}
+
+function recusar_toque_apressado(string $volta): void
+{
+    if (!toque_apressado()) {
+        return;
+    }
+    if (empty($_SESSION['flash'])) {
+        flash_set('Toque repetido ignorado. Confira a tela antes de tocar de novo.', 'atencao');
+    }
+    redirect($volta);
+}
+
+function etapa_da_tela(): ?string
+{
+    $etapa = trim((string) ($_POST['etapa'] ?? ''));
+
+    return $etapa !== '' ? $etapa : null;
 }
 
 function tela_tablets(string $method): void
@@ -945,6 +976,14 @@ function tela_maquina(string $method): void
     $soltar = $travada === null && $atual !== null;
     if ($method === 'POST' && $travada === null) {
         csrf_check();
+        // Um toque repetido em Confirmar não pode soltar a máquina que acabou de ser assumida.
+        $acao = (string) ($_POST['acao'] ?? '');
+        if ($soltar && $acao === 'assumir') {
+            redirect(maquina_destino());
+        }
+        if (!$soltar && $acao === 'soltar') {
+            redirect('/maquina');
+        }
         if ($soltar) {
             try {
                 horimetro_soltar((string) ($_POST['leitura'] ?? ''));
@@ -1057,6 +1096,7 @@ function tela_lavra_iniciar(int $id, string $method): void
     }
 
     csrf_check();
+    recusar_toque_apressado('/lavra');
     $operador = (string) ($_POST['operador'] ?? Auth::usuario());
     $retroId = (int) ($_POST['retroescavadeira_id'] ?? 0);
     if (!Auth::admin()) {
@@ -1065,7 +1105,7 @@ function tela_lavra_iniciar(int $id, string $method): void
         $operador = Auth::usuario();
     }
     try {
-        Lavra::iniciarCarga($id, $retroId, $operador);
+        Lavra::iniciarCarga($id, $retroId, $operador, etapa_da_tela());
         flash_set('Carga iniciada.');
     } catch (InvalidArgumentException $e) {
         flash_set($e->getMessage(), 'erro');

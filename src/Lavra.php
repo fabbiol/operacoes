@@ -204,10 +204,11 @@ final class Lavra
         return (int) Db::pdo()->lastInsertId();
     }
 
-    public static function avancar(int $id, ?string $somenteOperador = null): string
+    public static function avancar(int $id, ?string $somenteOperador = null, ?string $esperada = null): string
     {
         $ciclo = self::exigir($id);
         self::garantirDono($ciclo, $somenteOperador);
+        self::conferirEtapa($ciclo, $esperada);
         if (in_array($ciclo['status'], ['na_fila', 'carregando'], true)) {
             throw new InvalidArgumentException('A carga começa e termina na retroescavadeira.');
         }
@@ -248,10 +249,11 @@ final class Lavra
         return $etapa['aviso'];
     }
 
-    public static function irParaGaragem(int $id, ?string $somenteOperador = null): string
+    public static function irParaGaragem(int $id, ?string $somenteOperador = null, ?string $esperada = null): string
     {
         $ciclo = self::exigir($id);
         self::garantirDono($ciclo, $somenteOperador);
+        self::conferirEtapa($ciclo, $esperada);
         if (!in_array($ciclo['status'], ['no_britador', 'retornando'], true)) {
             throw new InvalidArgumentException('A garagem fica disponível no britador.');
         }
@@ -653,9 +655,10 @@ final class Lavra
         return $mapa;
     }
 
-    public static function iniciarCarga(int $id, int $retroId, string $operador): void
+    public static function iniciarCarga(int $id, int $retroId, string $operador, ?string $esperada = null): void
     {
         $ciclo = self::exigir($id);
+        self::conferirEtapa($ciclo, $esperada);
         if ($ciclo['status'] !== 'na_fila') {
             throw new InvalidArgumentException('Só dá para iniciar a carga de um caminhão que está na fila.');
         }
@@ -690,9 +693,10 @@ final class Lavra
         }
     }
 
-    public static function concluirCarga(int $id, ?string $somenteOperador): string
+    public static function concluirCarga(int $id, ?string $somenteOperador, ?string $esperada = null): string
     {
         $ciclo = self::exigir($id);
+        self::conferirEtapa($ciclo, $esperada);
         if ($ciclo['status'] !== 'carregando') {
             throw new InvalidArgumentException('Esse caminhão não está em carga.');
         }
@@ -856,6 +860,34 @@ final class Lavra
         $linha = $comando->fetch();
 
         return $linha ?: null;
+    }
+
+    /**
+     * O botão vale para a etapa que estava na tela. Se o caminhão já mudou de etapa
+     * (tela parada sem sinal ou marcação feita em outro aparelho), nada é gravado.
+     */
+    private static function conferirEtapa(array $ciclo, ?string $esperada): void
+    {
+        if ($esperada === null || $esperada === (string) $ciclo['status']) {
+            return;
+        }
+        $atual = $ciclo;
+        if (!isset(self::etapas()[$ciclo['status']])) {
+            // A viagem da tela já fechou. Vale a etapa da viagem aberta agora, se houver.
+            $aberto = Db::pdo()->prepare(
+                "SELECT status FROM ciclos_lavra WHERE caminhao_id = ? AND status IN (" . self::sqlAbertos() . ")
+                 ORDER BY inicio_fila DESC, id DESC LIMIT 1"
+            );
+            $aberto->execute([(int) $ciclo['caminhao_id']]);
+            $status = $aberto->fetchColumn();
+            if ($status === false) {
+                throw new InvalidArgumentException('A tela estava desatualizada. Essa viagem já foi encerrada. Nada foi registrado.');
+            }
+            $atual = ['status' => (string) $status];
+        }
+        $rotulo = self::etapas()[$atual['status']]['rotulo'] ?? (string) $atual['status'];
+
+        throw new InvalidArgumentException('A tela estava desatualizada. Agora o caminhão está em: ' . $rotulo . '. Nada foi registrado.');
     }
 
     private static function garantirDono(array $ciclo, ?string $somenteOperador): void

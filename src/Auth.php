@@ -275,14 +275,15 @@ final class Auth
         self::renovarCookie();
     }
 
+    /**
+     * Esvazia a sessão e troca o código dela. A sessão nova continua aberta para guardar o envio do Sair:
+     * assim um toque duplo em "Soltar e sair" não cai num rosto da tela de entrada.
+     * O código antigo fica gravado vazio: um segundo pedido que já esperava por ele não repete o Sair.
+     */
     public static function sair(): void
     {
         $_SESSION = [];
-        if (ini_get('session.use_cookies')) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], (bool) $params['secure'], (bool) $params['httponly']);
-        }
-        session_destroy();
+        session_regenerate_id(false);
     }
 
     public static function nomeSimples(string $nome): ?string

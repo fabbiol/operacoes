@@ -67,21 +67,25 @@
                     <?php if (Auth::admin() && (string) ($ciclo['operador_carga'] ?? '') !== Auth::usuario()): ?>
                         <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/concluir-carga')) ?>">
                             <?= csrf_field() ?>
+                            <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                             <button type="submit" class="btn primario">Carga concluída</button>
                         </form>
                     <?php endif; ?>
                 <?php elseif (in_array($ciclo['status'], ['no_britador', 'retornando'], true)): ?>
                     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
                         <?= csrf_field() ?>
+                        <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn primario">Chegou na lavra</button>
                     </form>
                     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/garagem')) ?>">
                         <?= csrf_field() ?>
+                        <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn secundario">Garagem</button>
                     </form>
                 <?php else: ?>
                     <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/avancar')) ?>">
                         <?= csrf_field() ?>
+                        <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn primario"><?= e($etapa['acao']) ?></button>
                     </form>
                 <?php endif; ?>

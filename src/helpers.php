@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+// Janela em que um toque logo depois de outra ação é tratado como toque repetido.
+const TOQUE_REPETIDO_MS = 1200;
+
 function carregar_env(string $arquivo): void
 {
     if (!is_file($arquivo)) {
@@ -402,6 +405,14 @@ function route_path(): string
 
 function redirect(string $caminho): never
 {
+    $envio = envio_atual();
+    if ($envio !== null && session_status() === PHP_SESSION_ACTIVE) {
+        $feitos = is_array($_SESSION['envios'] ?? null) ? $_SESSION['envios'] : [];
+        unset($feitos[$envio]);
+        $feitos[$envio] = $caminho;
+        $_SESSION['envios'] = array_slice($feitos, -40, null, true);
+        $_SESSION['envio_em'] = (int) round(microtime(true) * 1000);
+    }
     header('Location: ' . url($caminho));
     exit;
 }
@@ -445,7 +456,36 @@ function csrf_token(): string
 
 function csrf_field(): string
 {
-    return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">';
+    return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">'
+        . '<input type="hidden" name="_envio" value="' . bin2hex(random_bytes(12)) . '">'
+        . '<input type="hidden" name="_tela" value="' . (int) round(microtime(true) * 1000) . '">';
+}
+
+/**
+ * Toque que chegou logo depois de outra ação, vindo da tela que essa ação abriu. No tablet, o segundo toque
+ * de um toque duplo cai no botão da tela nova, que aparece no mesmo lugar em menos de um segundo.
+ */
+function toque_apressado(): bool
+{
+    $tela = (int) ($_POST['_tela'] ?? 0);
+    $anterior = (int) ($_SESSION['envio_em'] ?? 0);
+    if ($tela <= 0 || $anterior <= 0 || $tela < $anterior) {
+        return false;
+    }
+    $passou = (int) round(microtime(true) * 1000) - $anterior;
+
+    return $passou >= 0 && $passou < TOQUE_REPETIDO_MS;
+}
+
+/** Quanto falta da janela de toque repetido para a tela aberta pelo redirect de uma ação. */
+function calma_restante_ms(): int
+{
+    $anterior = (int) ($_SESSION['envio_em'] ?? 0);
+    if ($anterior <= 0 || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+        return 0;
+    }
+
+    return max(0, $anterior + TOQUE_REPETIDO_MS - (int) round(microtime(true) * 1000));
 }
 
 function csrf_check(): void
@@ -455,6 +495,35 @@ function csrf_check(): void
         flash_set('A tela estava desatualizada. Confira e tente de novo.', 'atencao');
         redirect(caminho_de_volta());
     }
+    envio_conferir();
+}
+
+/**
+ * Cada formulário leva um código de envio. O primeiro envio que termina em redirect guarda o destino;
+ * um toque repetido ou um reenvio do mesmo formulário só volta para esse destino, sem repetir a ação.
+ */
+function envio_conferir(): void
+{
+    $envio = (string) ($_POST['_envio'] ?? '');
+    if (!preg_match('/^[0-9a-f]{24}$/', $envio)) {
+        return;
+    }
+    $feitos = $_SESSION['envios'] ?? null;
+    if (is_array($feitos) && isset($feitos[$envio])) {
+        header('Location: ' . url((string) $feitos[$envio]));
+        exit;
+    }
+    envio_atual($envio);
+}
+
+function envio_atual(?string $envio = null): ?string
+{
+    static $atual = null;
+    if ($envio !== null) {
+        $atual = $envio;
+    }
+
+    return $atual;
 }
 
 function flash_set(string $mensagem, string $tipo = 'ok'): void
@@ -685,6 +754,7 @@ function render(string $view, array $dados = []): void
     $dados['viewFile'] = OPERACOES_ROOT . '/views/' . $view . '.php';
     $parcial = (string) ($_SERVER['HTTP_X_FLUXO'] ?? '') === '1';
     $dados['flash'] = $parcial ? null : ($dados['flash'] ?? flash_get());
+    $dados['calmaMs'] = calma_restante_ms();
     $dados['titulo'] = $dados['titulo'] ?? 'Pátio';
     $dados['corpo'] = $dados['corpo'] ?? '';
     $dados['atualizar'] = $dados['atualizar'] ?? 0;

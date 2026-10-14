@@ -15,7 +15,7 @@
         <link rel="stylesheet" href="<?= e(asset('assets/dashboard.css')) ?>">
     <?php endif; ?>
 </head>
-<body class="<?= e((string) $corpo) ?>">
+<body class="<?= e((string) $corpo) ?>" data-calma="<?= (int) ($calmaMs ?? 0) ?>">
     <header class="site">
         <a class="brand" href="<?= e(url('/')) ?>">
             <img class="brand-logo" src="<?= e(url('assets/logo.png')) ?>" alt="">
@@ -83,6 +83,7 @@
         <?php endif; ?>
         <?php require $viewFile; ?>
     </main>
+    <script src="<?= e(asset('assets/envio.js')) ?>"></script>
     <?php if (!empty($fluxoUrl)): ?>
         <script src="<?= e(asset('assets/fluxo.js')) ?>"></script>
     <?php endif; ?>

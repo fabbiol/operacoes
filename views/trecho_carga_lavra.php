@@ -20,6 +20,7 @@
             ?></p>
             <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/concluir-carga')) ?>">
                 <?= csrf_field() ?>
+                <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                 <button type="submit" class="btn primario">Carga concluída</button>
             </form>
         </article>
@@ -53,6 +54,7 @@
                     <?= csrf_field() ?>
                     <input type="hidden" name="retroescavadeira_id" value="<?= (int) ($retroEscolhida['id'] ?? 0) ?>">
                     <input type="hidden" name="operador" value="<?= e(Auth::usuario()) ?>">
+                    <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                     <button type="submit" class="btn primario">Iniciar carga</button>
                 </form>
             </article>
