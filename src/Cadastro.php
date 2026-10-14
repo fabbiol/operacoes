@@ -136,7 +136,22 @@ final class Cadastro
             if ($atual === null) {
                 throw new InvalidArgumentException('Cadastro não encontrado.');
             }
-            self::atualizar($tipo, $id, $nome, $observacoes, $ativo, $ficha);
+            // Desmarcar "Ativo" na ficha tem as mesmas regras do botão Desativar da lista.
+            if ((int) $atual['ativo'] === 1 && $ativo === 0) {
+                self::exigirPodeDesativar($chave, $tipo, $id);
+            }
+            $pdo = Db::pdo();
+            $pdo->beginTransaction();
+            try {
+                if ($ficha !== null && array_key_exists('capacidade_t', $ficha)) {
+                    self::congelarToneladas($id, $atual['capacidade_t'] ?? null, $ficha['capacidade_t']);
+                }
+                self::atualizar($tipo, $id, $nome, $observacoes, $ativo, $ficha);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
             if ($pendente !== null) {
                 self::gravarFoto($chave, $id, $pendente);
                 $pendente = null;
@@ -192,15 +207,44 @@ final class Cadastro
         if ($atual === null) {
             throw new InvalidArgumentException('Cadastro não encontrado.');
         }
-        if ((int) $atual['ativo'] === 1 && self::emTrabalho($chave, $id)) {
-            throw new InvalidArgumentException('Essa máquina está em trabalho agora. Encerre a viagem ou a carga antes de desativar.');
+        if ((int) $atual['ativo'] === 1) {
+            self::exigirPodeDesativar($chave, $tipo, $id);
         }
         $sql = sprintf('UPDATE %s SET ativo = ? WHERE id = ?', $tipo['tabela']);
         $comando = Db::pdo()->prepare($sql);
         $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
     }
 
-    private static function emTrabalho(string $chave, int $id): bool
+    /** Máquina em trabalho ou com alguém não pode ser desativada: o turno de quem está com ela se perderia. */
+    private static function exigirPodeDesativar(string $chave, array $tipo, int $id): void
+    {
+        if (self::emTrabalho($chave, $id)) {
+            throw new InvalidArgumentException('Essa máquina está em trabalho agora. Encerre a viagem ou a carga antes de desativar.');
+        }
+        $posse = !empty($tipo['ficha']) ? Posse::daMaquina(Horimetro::tipoDaChave($chave), $id) : null;
+        if ($posse !== null) {
+            throw new InvalidArgumentException('Essa máquina está com ' . $posse['usuario'] . '. Libere a máquina antes de desativar.');
+        }
+    }
+
+    /**
+     * Antes de mudar a capacidade do caminhão, as viagens carregadas que ainda não têm as toneladas gravadas
+     * (caminhão que estava sem capacidade) ficam com a capacidade com que já eram contadas.
+     * Assim a correção vale só para as próximas viagens.
+     */
+    private static function congelarToneladas(int $caminhaoId, mixed $anterior, mixed $nova): void
+    {
+        $valor = $anterior !== null && $anterior !== '' ? $anterior : $nova;
+        if ($valor === null || $valor === '') {
+            return;
+        }
+        Db::pdo()->prepare(
+            'UPDATE ciclos_lavra SET capacidade_t = ?
+             WHERE caminhao_id = ? AND fim_carga IS NOT NULL AND capacidade_t IS NULL'
+        )->execute([$valor, $caminhaoId]);
+    }
+
+    public static function emTrabalho(string $chave, int $id): bool
     {
         $sql = match ($chave) {
             'caminhoes' => "SELECT 1 FROM ciclos_lavra WHERE caminhao_id = ? AND status IN ('na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando') LIMIT 1",
@@ -285,35 +329,7 @@ final class Cadastro
     /** @return array{tmp: string, ext: string}|null */
     private static function prepararFoto(): ?array
     {
-        if (!isset($_FILES['foto']) || !is_array($_FILES['foto'])) {
-            return null;
-        }
-        $erro = (int) ($_FILES['foto']['error'] ?? UPLOAD_ERR_NO_FILE);
-        if ($erro === UPLOAD_ERR_NO_FILE) {
-            return null;
-        }
-        if ($erro !== UPLOAD_ERR_OK) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-        $tamanho = (int) ($_FILES['foto']['size'] ?? 0);
-        if ($tamanho < 1 || $tamanho > 5 * 1024 * 1024) {
-            throw new InvalidArgumentException('A foto pode ter no máximo 5 MB.');
-        }
-        $origem = (string) ($_FILES['foto']['tmp_name'] ?? '');
-        if ($origem === '' || !is_uploaded_file($origem)) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($origem);
-        $extensoes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-        if (!is_string($mime) || !isset($extensoes[$mime])) {
-            throw new InvalidArgumentException('A foto precisa ser JPG, PNG ou WebP.');
-        }
-        $tmp = tempnam(sys_get_temp_dir(), 'opfoto');
-        if ($tmp === false || !move_uploaded_file($origem, $tmp)) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-
-        return ['tmp' => $tmp, 'ext' => $extensoes[$mime]];
+        return Fotos::receber(Fotos::LADO_MAQUINA);
     }
 
     private static function inserir(array $tipo, string $nome, ?string $observacoes, int $ativo, ?array $ficha): int

@@ -63,7 +63,8 @@ function Test-DestinoSeguro([string]$destino) {
 }
 
 # $primeiros e $ultimos (caminhos relativos à pasta) mudam a ordem de envio dentro da pasta.
-function Add-Arquivos([System.Collections.Generic.List[object]]$lista, [string]$pasta, [string]$credencial, [string]$prefixo, [string[]]$primeiros = @(), [string[]]$ultimos = @()) {
+# $fora (caminhos relativos) ficam de fora: são enviados em outro ponto da ordem.
+function Add-Arquivos([System.Collections.Generic.List[object]]$lista, [string]$pasta, [string]$credencial, [string]$prefixo, [string[]]$primeiros = @(), [string[]]$ultimos = @(), [string[]]$fora = @()) {
     if (-not (Test-Path -LiteralPath $pasta)) {
         return
     }
@@ -77,6 +78,9 @@ function Add-Arquivos([System.Collections.Generic.List[object]]$lista, [string]$
             return
         }
         $relativo = $_.FullName.Substring($base.Length).TrimStart('\', '/') -replace '\\', '/'
+        if ($fora -contains $relativo) {
+            return
+        }
         $destino = if ($prefixo) { ($prefixo.Trim('/') + '/' + $relativo) } else { $relativo }
         if (-not (Test-DestinoSeguro $destino)) {
             throw "Destino recusado: $destino"
@@ -94,7 +98,11 @@ function Add-Arquivos([System.Collections.Generic.List[object]]$lista, [string]$
             $meio.Add($item)
         }
     }
-    foreach ($item in $inicio) { $lista.Add($item) }
+    foreach ($nome in $primeiros) {
+        foreach ($item in $inicio) {
+            if ($item.Destino.EndsWith('/' + $nome) -or $item.Destino -eq $nome) { $lista.Add($item) }
+        }
+    }
     foreach ($item in $meio) { $lista.Add($item) }
     foreach ($nome in $ultimos) {
         foreach ($item in $fim) {
@@ -229,9 +237,12 @@ $site = Read-Site
 $lista = New-Object 'System.Collections.Generic.List[object]'
 # Ordem de envio: o site continua no ar enquanto os arquivos sobem.
 # 1. O schema primeiro: o código antigo ignora as tabelas novas.
-# 2. As telas: as novas funcionam com o código antigo.
-# 3. O código, com as classes novas antes e Auth.php e bootstrap.php por último.
-# 4. Os arquivos públicos, com o index.php por último.
+# 2. As classes novas e o bootstrap.php, que só passa a carregá-las.
+# 3. As telas: as novas funcionam com o código antigo.
+# 4. O resto do código, começando pelo Db.php (ele atualiza o banco), o Lavra.php logo depois (grava a coluna nova
+#    das toneladas) e o Auth.php (o Pessoas.php novo usa função nova dele).
+# 5. Os arquivos públicos e, por fim, helpers.php e index.php um logo depois do outro:
+#    o index.php novo usa funções novas do helpers.php, e o antigo usa funções que o novo mantém.
 $schema = Join-Path $raiz 'database\schema.sql'
 if (-not (Test-Path -LiteralPath $schema)) {
     throw 'Falta database\schema.sql'
@@ -245,9 +256,27 @@ $lista.Add([pscustomobject]@{
     Destino    = $destinoSchema
     Arquivo    = $schema
 })
+$classesNovas = @('Posse.php', 'Fotos.php', 'bootstrap.php')
+foreach ($nome in $classesNovas) {
+    $lista.Add([pscustomobject]@{
+        Credencial = 'pai'
+        Destino    = $site.appDirectory.Trim('/') + '/src/' + $nome
+        Arquivo    = Join-Path (Join-Path $raiz 'src') $nome
+    })
+}
 Add-Arquivos $lista (Join-Path $raiz 'views') 'pai' ($site.appDirectory + '/views') @('trecho_operador.php', 'tablets.php')
-Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src') @('Tablets.php', 'helpers.php', 'Db.php') @('Auth.php', 'bootstrap.php')
-Add-Arquivos $lista (Join-Path $raiz 'public') 'subdominio' '' @() @('index.php')
+Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src') @('Db.php', 'Lavra.php', 'Tablets.php', 'Auth.php') @() ($classesNovas + @('helpers.php'))
+Add-Arquivos $lista (Join-Path $raiz 'public') 'subdominio' '' @() @() @('index.php')
+$lista.Add([pscustomobject]@{
+    Credencial = 'pai'
+    Destino    = $site.appDirectory.Trim('/') + '/src/helpers.php'
+    Arquivo    = Join-Path (Join-Path $raiz 'src') 'helpers.php'
+})
+$lista.Add([pscustomobject]@{
+    Credencial = 'subdominio'
+    Destino    = 'index.php'
+    Arquivo    = Join-Path (Join-Path $raiz 'public') 'index.php'
+})
 
 Write-Host ("{0} arquivos para {1}" -f $lista.Count, $site.domain)
 if ($Listar) {

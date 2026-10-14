@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 final class Db
 {
+    /**
+     * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
+     * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
+     */
+    private const MIGRACOES = '2026-10-segunda-leva';
+
     private static ?PDO $pdo = null;
 
     public static function pdo(): PDO
@@ -78,28 +84,46 @@ final class Db
         }
 
         $marca = OPERACOES_ROOT . '/storage/.schema-ok';
-        $hash = hash('sha256', $sql);
+        // A marca leva também a versão das mudanças deste arquivo. Na publicação o schema.sql sobe antes do Db.php,
+        // e o código antigo (inclusive o que ainda está no cache do PHP por alguns segundos depois do envio)
+        // grava a marca da versão dele, e não a do Db.php novo: assim o código novo sempre roda as próprias mudanças.
+        $hash = hash('sha256', $sql . self::MIGRACOES);
         if (is_file($marca) && trim((string) file_get_contents($marca)) === $hash) {
             return;
         }
 
-        $limpo = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;
-        $comandos = array_filter(array_map('trim', explode(';', $limpo)));
-        foreach ($comandos as $comando) {
-            $pdo->exec($comando);
-        }
+        // Um pedido de cada vez: dois pedidos juntos tentariam criar a mesma coluna.
+        $trava = $pdo->query('SELECT GET_LOCK(CONCAT(DATABASE(), \':migrar\'), 30)')->fetchColumn();
+        try {
+            clearstatcache(true, $marca);
+            if (is_file($marca) && trim((string) file_get_contents($marca)) === $hash) {
+                return;
+            }
 
-        self::retirarCaminhaoDaFila($pdo);
-        self::garantirPapel($pdo);
-        self::garantirPessoa($pdo);
-        self::garantirFicha($pdo);
-        self::garantirRetro($pdo);
-        self::garantirEstrada($pdo);
+            $limpo = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;
+            $comandos = array_filter(array_map('trim', explode(';', $limpo)));
+            foreach ($comandos as $comando) {
+                $pdo->exec($comando);
+            }
 
-        if (!is_dir(dirname($marca))) {
-            mkdir(dirname($marca), 0775, true);
+            self::retirarCaminhaoDaFila($pdo);
+            self::garantirPapel($pdo);
+            self::garantirPessoa($pdo);
+            self::garantirFicha($pdo);
+            self::garantirRetro($pdo);
+            self::garantirEstrada($pdo);
+            self::garantirHorimetro($pdo);
+            self::garantirToneladasDaViagem($pdo);
+
+            if (!is_dir(dirname($marca))) {
+                mkdir(dirname($marca), 0775, true);
+            }
+            file_put_contents($marca, $hash);
+        } finally {
+            if ((int) $trava === 1) {
+                $pdo->query('SELECT RELEASE_LOCK(CONCAT(DATABASE(), \':migrar\'))');
+            }
         }
-        file_put_contents($marca, $hash);
     }
 
     private static function retirarCaminhaoDaFila(PDO $pdo): void
@@ -358,6 +382,51 @@ final class Db
                  FOREIGN KEY (retroescavadeira_id) REFERENCES retroescavadeiras (id)'
             );
         }
+    }
+
+    /** @return list<string> */
+    private static function colunasDe(PDO $pdo, string $tabela): array
+    {
+        $colunas = [];
+        foreach ($pdo->query('SHOW COLUMNS FROM ' . $tabela) as $coluna) {
+            $colunas[] = (string) ($coluna['Field'] ?? $coluna['field']);
+        }
+
+        return $colunas;
+    }
+
+    /** Leitura de horímetro errada é anulada pelo administrativo, com motivo, sem apagar o registro. */
+    private static function garantirHorimetro(PDO $pdo): void
+    {
+        $colunas = self::colunasDe($pdo, 'horimetros');
+        $novas = [
+            'anulado_em' => 'DATETIME NULL',
+            'anulado_por' => 'VARCHAR(40) NULL',
+            'anulado_motivo' => 'VARCHAR(200) NULL',
+        ];
+        foreach ($novas as $nome => $tipo) {
+            if (!in_array($nome, $colunas, true)) {
+                $pdo->exec('ALTER TABLE horimetros ADD COLUMN ' . $nome . ' ' . $tipo);
+            }
+        }
+    }
+
+    /**
+     * A viagem guarda as toneladas do caminhão na hora em que saiu carregado.
+     * Mudar a capacidade no cadastro depois não altera a produção dos dias anteriores.
+     */
+    private static function garantirToneladasDaViagem(PDO $pdo): void
+    {
+        if (in_array('capacidade_t', self::colunasDe($pdo, 'ciclos_lavra'), true)) {
+            return;
+        }
+        $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN capacidade_t DECIMAL(8,2) NULL AFTER operador_carga');
+        // As viagens antigas ficam com a capacidade de hoje, que é a mesma conta que o sistema já fazia.
+        $pdo->exec(
+            'UPDATE ciclos_lavra c JOIN caminhoes k ON k.id = c.caminhao_id
+             SET c.capacidade_t = k.capacidade_t
+             WHERE c.fim_carga IS NOT NULL AND c.capacidade_t IS NULL'
+        );
     }
 
     private static function garantirEstrada(PDO $pdo): void

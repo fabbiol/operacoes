@@ -18,7 +18,7 @@
                         <strong><?= e($item['nome']) ?></strong>
                         <?php $situacao = ['estado' => $item['estado'], 'rotulo' => $item['rotulo'], 'falta' => null, 'proxima' => null]; require __DIR__ . '/trecho_situacao.php'; ?>
                     </header>
-                    <p class="meta">Horímetro <?= e(Horimetro::texto($item['atual'])) ?></p>
+                    <p class="meta">Horímetro <?= e(Horimetro::texto($item['atual'])) ?><?php if (!empty($item['posse'])): ?> · com <?= e((string) $item['posse']['usuario']) ?> desde <?= e(quando((string) $item['posse']['iniciado_em'])) ?><?php endif; ?></p>
                     <?php if ($item['planos'] === []): ?>
                         <p class="meta">Nenhum serviço ativo.</p>
                     <?php else: ?>

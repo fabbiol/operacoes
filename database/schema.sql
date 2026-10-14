@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     operador VARCHAR(120) NULL,
     retroescavadeira_id INT UNSIGNED NULL,
     operador_carga VARCHAR(120) NULL,
+    capacidade_t DECIMAL(8,2) NULL,
     encerramento VARCHAR(160) NULL,
     encerramento_ciente_em DATETIME NULL,
     encerramento_ciente_por VARCHAR(120) NULL,
@@ -146,6 +147,9 @@ CREATE TABLE IF NOT EXISTS horimetros (
     leitura DECIMAL(10,1) NOT NULL,
     lido_em DATETIME NOT NULL,
     usuario VARCHAR(40) NOT NULL,
+    anulado_em DATETIME NULL,
+    anulado_por VARCHAR(40) NULL,
+    anulado_motivo VARCHAR(200) NULL,
     PRIMARY KEY (id),
     KEY idx_horimetro_maquina (tipo, maquina_id, leitura)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -213,4 +217,21 @@ CREATE TABLE IF NOT EXISTS login_falhas (
     KEY idx_falha_usuario (usuario, ip, criado_em),
     KEY idx_falha_ip (ip, criado_em),
     KEY idx_falha_quando (criado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Quem está com cada máquina agora. Uma linha por máquina e por pessoa; some quando a máquina é solta.
+CREATE TABLE IF NOT EXISTS maquina_posse (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    usuario_id INT UNSIGNED NOT NULL,
+    usuario VARCHAR(40) NOT NULL,
+    entrada DECIMAL(10,1) NULL,
+    entrada_id INT UNSIGNED NULL,
+    iniciado_em DATETIME NOT NULL,
+    precisa_soltar TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_posse_maquina (tipo, maquina_id),
+    UNIQUE KEY uniq_posse_usuario (usuario_id),
+    KEY idx_posse_nome (usuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

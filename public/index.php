@@ -208,10 +208,12 @@ function despachar(string $path, string $method): void
         $retroId = (int) ($_POST['retroescavadeira_id'] ?? 0);
         $retro = $retroId > 0 ? Cadastro::buscar('retros', $retroId) : null;
         $ativa = $retro !== null && (int) ($retro['ativo'] ?? 0) === 1;
-        if (Auth::admin() && $ativa) {
+        if (!Auth::admin()) {
+            // O operador escolhe a retro na tela da máquina, com o horímetro.
+            redirect('/maquina');
+        }
+        if ($ativa) {
             $_SESSION['retroescavadeira_id'] = $retroId;
-        } elseif ($ativa && maquina_esta_livre('retro', $retroId)) {
-            maquina_definir('retro', $retroId);
         } else {
             flash_set('Selecione a retroescavadeira.', 'erro');
         }
@@ -277,6 +279,35 @@ function despachar(string $path, string $method): void
         try {
             Horimetro::lancar($tipo, (int) $m[2], (string) ($_POST['leitura'] ?? ''), Auth::usuario());
             flash_set('Horímetro lançado.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/liberar$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        try {
+            flash_set(liberar_maquina($m[1], (int) $m[2], (string) ($_POST['leitura'] ?? '')));
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/horimetro/(\d+)/anular$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        try {
+            flash_set(Horimetro::anular(
+                (int) $m[3],
+                Horimetro::tipoDaChave($m[1]),
+                (int) $m[2],
+                (string) ($_POST['motivo'] ?? ''),
+                Auth::usuario(),
+                (string) ($_POST['correta'] ?? '')
+            ));
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
@@ -969,18 +1000,19 @@ function exigir_maquina(): void
     }
     $trabalho = maquina_do_trabalho();
     if ($trabalho !== null) {
-        maquina_definir($trabalho['tipo'], $trabalho['id']);
+        maquina_adotar($trabalho['tipo'], $trabalho['id']);
 
         return;
     }
     $escolhida = maquina_escolhida();
-    if ($escolhida !== null && maquina_esta_livre($escolhida['tipo'], (int) $escolhida['id'])) {
-        return;
+    if ($escolhida === null) {
+        redirect('/maquina');
     }
-    if ($escolhida !== null) {
-        maquina_limpar();
+    // A máquina está num trabalho de outra pessoa (registro de antes da posse ir para o banco): a posse não vale.
+    if (Cadastro::emTrabalho((string) maquina_chave($escolhida['tipo']), (int) $escolhida['id'])) {
+        Posse::fechar(Auth::id());
+        redirect('/maquina');
     }
-    redirect('/maquina');
 }
 
 function tela_maquina(string $method): void
@@ -991,7 +1023,7 @@ function tela_maquina(string $method): void
 
     $travada = maquina_do_trabalho();
     if ($travada !== null) {
-        maquina_definir($travada['tipo'], $travada['id']);
+        maquina_adotar($travada['tipo'], $travada['id']);
     }
 
     $erro = null;
@@ -1016,11 +1048,16 @@ function tela_maquina(string $method): void
             }
         } else {
             $bruto = (string) ($_POST['maquina'] ?? '');
-            if (preg_match('/^(caminhao|pa|retro):(\d+)$/', $bruto, $partes) && maquina_esta_livre($partes[1], (int) $partes[2])) {
+            if (preg_match('/^(caminhao|pa|retro):(\d+)$/', $bruto, $partes)) {
                 try {
                     horimetro_assumir($partes[1], (int) $partes[2], (string) ($_POST['leitura'] ?? ''));
                     redirect(maquina_destino());
                 } catch (InvalidArgumentException $e) {
+                    if (maquina_do_trabalho() !== null) {
+                        // Um trabalho com outra máquina começou neste instante: a tela volta mostrando essa máquina.
+                        flash_set($e->getMessage(), 'erro');
+                        redirect('/maquina');
+                    }
                     $erro = $e->getMessage();
                 }
             } else {
@@ -1029,10 +1066,12 @@ function tela_maquina(string $method): void
         }
     }
 
+    $escolher = $travada === null && !$soltar;
     render('maquina', [
         'titulo' => 'Máquina',
         'corpo' => 'lavra',
-        'maquinas' => $travada === null && !$soltar ? maquinas_livres() : [],
+        'maquinas' => $escolher ? maquinas_livres() : [],
+        'comOutros' => $escolher ? maquinas_com_outros() : [],
         'atual' => $atual,
         'travada' => $travada !== null,
         'soltar' => $soltar,
@@ -1470,6 +1509,45 @@ function tela_sair_no_trabalho(array $trabalho): void
     ]);
 }
 
+/**
+ * O administrativo libera uma máquina que ficou com alguém (esqueceu de soltar, faltou, sessão caiu).
+ * Com a leitura do painel, o turno de quem estava com ela é gravado; sem leitura, o turno fica sem as horas.
+ */
+function liberar_maquina(string $chave, int $id, string $leitura): string
+{
+    $tipo = Horimetro::tipoDaChave($chave);
+
+    return (string) Db::comTrava(Posse::TRAVA, static function () use ($chave, $tipo, $id, $leitura): string {
+        $posse = Posse::daMaquina($tipo, $id);
+        if ($posse === null) {
+            return 'Essa máquina já estava livre.';
+        }
+        if (Cadastro::emTrabalho($chave, $id)) {
+            throw new InvalidArgumentException('Essa máquina está em trabalho agora. Conclua ou cancele o trabalho antes de liberar.');
+        }
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            $turno = false;
+            if (trim($leitura) !== '') {
+                $saida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
+                $entrada = $posse['entrada'] !== null ? (float) $posse['entrada'] : null;
+                if ($entrada !== null && round($saida, 1) >= round($entrada, 1)) {
+                    Horimetro::registrarTurno($tipo, $id, $entrada, $saida, (string) $posse['iniciado_em'], (string) $posse['usuario']);
+                    $turno = true;
+                }
+            }
+            Posse::liberar($tipo, $id);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+
+        return 'Máquina liberada. Estava com ' . $posse['usuario'] . ($turno ? '; o turno foi gravado.' : '.');
+    });
+}
+
 function tela_soltar(array $maquina, ?string $erro, string $destino): void
 {
     render('maquina', [
@@ -1605,13 +1683,7 @@ function tela_pessoa_foto(int $id): void
         http_response_code(404);
         exit;
     }
-
-    header('Content-Type: ' . $arquivo['tipo']);
-    header('X-Content-Type-Options: nosniff');
-    header('Cache-Control: private, max-age=3600');
-    header('Content-Length: ' . (string) filesize($arquivo['caminho']));
-    readfile($arquivo['caminho']);
-    exit;
+    Fotos::servir($arquivo['caminho'], $arquivo['tipo'], Fotos::LADO_PESSOA);
 }
 
 function tela_cadastro_foto(string $chave, int $id): void
@@ -1626,13 +1698,7 @@ function tela_cadastro_foto(string $chave, int $id): void
         http_response_code(404);
         exit;
     }
-
-    header('Content-Type: ' . $arquivo['tipo']);
-    header('X-Content-Type-Options: nosniff');
-    header('Cache-Control: private, max-age=3600');
-    header('Content-Length: ' . (string) filesize($arquivo['caminho']));
-    readfile($arquivo['caminho']);
-    exit;
+    Fotos::servir($arquivo['caminho'], $arquivo['tipo'], Fotos::LADO_MAQUINA);
 }
 
 function tela_cadastro_form(string $chave, ?int $id, string $method): void

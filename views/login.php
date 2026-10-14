@@ -18,7 +18,7 @@
                     <input type="hidden" name="pessoa" value="<?= (int) $pessoa['id'] ?>">
                     <button type="submit" class="rosto">
                         <?php if (!empty($pessoa['foto'])): ?>
-                            <img src="<?= e(url('entrada/' . (int) $pessoa['id'] . '/foto')) ?>" alt="">
+                            <img src="<?= e(url('entrada/' . (int) $pessoa['id'] . '/foto')) ?>" alt="" loading="lazy" decoding="async">
                         <?php else: ?>
                             <span class="rosto-vazio"><?= e($iniciais) ?></span>
                         <?php endif; ?>

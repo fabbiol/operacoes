@@ -117,6 +117,9 @@ final class Pessoas
         if ($nome === null || $nome === '' || preg_match('/\s/u', $nome)) {
             throw new InvalidArgumentException('O usuário é o primeiro nome, sem sobrenome.');
         }
+        if ($atual !== null && $nome !== (string) $atual['nome'] && Auth::configuradoNoServidor((string) $atual['nome'])) {
+            throw new InvalidArgumentException('Esse usuário vem da configuração do servidor (APP_USUARIOS). Para trocar o nome, troque lá.');
+        }
         $completo = self::nomeCompleto((string) ($post['nome_completo'] ?? ''));
 
         $admin = $atual !== null && (int) $atual['administrador'] === 1;
@@ -135,6 +138,12 @@ final class Pessoas
         }
 
         $ativo = $fixo ? 1 : (isset($post['ativo']) ? 1 : 0);
+        if ($atual !== null && (int) $atual['ativo'] === 1 && $ativo === 0) {
+            self::exigirSemMaquina($atual);
+        }
+        if ($atual !== null) {
+            self::exigirFuncaoDaMaquina($atual, $motorista === 1, $operador === 1);
+        }
         $senha = (string) ($post['senha'] ?? '');
         if (trim($senha) !== '') {
             $senha = trim($senha);
@@ -151,7 +160,7 @@ final class Pessoas
             if ($id === null) {
                 $idSalvo = self::inserir($nome, $completo, $senha, $papel, $motorista, $operador, $ativo);
             } else {
-                self::atualizar($id, $nome, $completo, $senha, $papel, $motorista, $operador, $ativo, $admin);
+                self::atualizar($id, (string) $atual['nome'], $nome, $completo, $senha, $papel, $motorista, $operador, $ativo, $admin);
                 $idSalvo = $id;
             }
 
@@ -189,8 +198,39 @@ final class Pessoas
         if ((int) $atual['id'] === Auth::id()) {
             throw new InvalidArgumentException('Você não pode desativar o seu próprio acesso.');
         }
+        if ((int) $atual['ativo'] === 1) {
+            self::exigirSemMaquina($atual);
+        }
         $comando = Db::pdo()->prepare('UPDATE usuarios SET ativo = ? WHERE id = ?');
         $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
+    }
+
+    /** Quem está com uma máquina não é desativado: a máquina ficaria presa a uma pessoa que não entra mais. */
+    private static function exigirSemMaquina(array $pessoa): void
+    {
+        $posse = Posse::doUsuario((int) $pessoa['id'], true);
+        if ($posse !== null) {
+            throw new InvalidArgumentException(
+                $pessoa['nome'] . ' está com ' . Posse::nomeDaMaquina((string) $posse['tipo'], (int) $posse['maquina_id'])
+                . '. Libere a máquina na ficha dela antes de desativar.'
+            );
+        }
+    }
+
+    /** A função nova precisa continuar permitindo a máquina que a pessoa está usando, senão o turno dela se perde. */
+    private static function exigirFuncaoDaMaquina(array $pessoa, bool $motorista, bool $operador): void
+    {
+        $posse = Posse::doUsuario((int) $pessoa['id'], true);
+        if ($posse === null) {
+            return;
+        }
+        $permite = (string) $posse['tipo'] === 'caminhao' ? $motorista : $operador;
+        if (!$permite) {
+            throw new InvalidArgumentException(
+                $pessoa['nome'] . ' está com ' . Posse::nomeDaMaquina((string) $posse['tipo'], (int) $posse['maquina_id'])
+                . '. Libere a máquina na ficha dela antes de trocar a função.'
+            );
+        }
     }
 
     public static function arquivoFoto(int $id): ?array
@@ -243,6 +283,7 @@ final class Pessoas
 
     private static function atualizar(
         int $id,
+        string $nomeAntigo,
         string $nome,
         string $completo,
         string $senha,
@@ -263,11 +304,44 @@ final class Pessoas
         }
         $sql .= ' WHERE id = ?';
         $params[] = $id;
-        $comando = Db::pdo()->prepare($sql);
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
         try {
-            $comando->execute($params);
-        } catch (PDOException $e) {
-            self::traduzirDuplicado($e);
+            try {
+                $pdo->prepare($sql)->execute($params);
+            } catch (PDOException $e) {
+                self::traduzirDuplicado($e);
+            }
+            if ($nome !== $nomeAntigo) {
+                self::levarHistorico($nomeAntigo, $nome);
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * O trabalho fica registrado com o nome de quem fez. Ao trocar o nome, o histórico vai junto:
+     * viagens, cargas, horímetro, turnos, manutenções, a máquina que a pessoa está usando agora.
+     * O texto livre das observações fica como foi escrito.
+     */
+    private static function levarHistorico(string $antigo, string $novo): void
+    {
+        $colunas = [
+            'fila_carregamentos' => ['operador', 'autorizado_por'],
+            'ciclos_lavra' => ['operador', 'operador_carga', 'encerramento_ciente_por'],
+            'horimetros' => ['usuario', 'anulado_por'],
+            'horimetro_turnos' => ['usuario'],
+            'manutencoes' => ['usuario'],
+            'tablets' => ['autorizado_por'],
+            'maquina_posse' => ['usuario'],
+        ];
+        foreach ($colunas as $tabela => $lista) {
+            foreach ($lista as $coluna) {
+                Db::pdo()->prepare(sprintf('UPDATE %s SET %s = ? WHERE %s = ?', $tabela, $coluna, $coluna))->execute([$novo, $antigo]);
+            }
         }
     }
 
@@ -280,35 +354,7 @@ final class Pessoas
     /** @return array{tmp: string, ext: string}|null */
     private static function prepararFoto(): ?array
     {
-        if (!isset($_FILES['foto']) || !is_array($_FILES['foto'])) {
-            return null;
-        }
-        $erro = (int) ($_FILES['foto']['error'] ?? UPLOAD_ERR_NO_FILE);
-        if ($erro === UPLOAD_ERR_NO_FILE) {
-            return null;
-        }
-        if ($erro !== UPLOAD_ERR_OK) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-        $tamanho = (int) ($_FILES['foto']['size'] ?? 0);
-        if ($tamanho < 1 || $tamanho > 5 * 1024 * 1024) {
-            throw new InvalidArgumentException('A foto pode ter no máximo 5 MB.');
-        }
-        $origem = (string) ($_FILES['foto']['tmp_name'] ?? '');
-        if ($origem === '' || !is_uploaded_file($origem)) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($origem);
-        $extensoes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-        if (!is_string($mime) || !isset($extensoes[$mime])) {
-            throw new InvalidArgumentException('A foto precisa ser JPG, PNG ou WebP.');
-        }
-        $tmp = tempnam(sys_get_temp_dir(), 'opfoto');
-        if ($tmp === false || !move_uploaded_file($origem, $tmp)) {
-            throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
-        }
-
-        return ['tmp' => $tmp, 'ext' => $extensoes[$mime]];
+        return Fotos::receber(Fotos::LADO_PESSOA);
     }
 
     private static function gravarFoto(int $id, array $pendente): void

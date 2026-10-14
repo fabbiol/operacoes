@@ -13,6 +13,8 @@ require OPERACOES_ROOT . '/src/Operacoes.php';
 require OPERACOES_ROOT . '/src/Lavra.php';
 require OPERACOES_ROOT . '/src/Dashboard.php';
 require OPERACOES_ROOT . '/src/Horimetro.php';
+require OPERACOES_ROOT . '/src/Posse.php';
+require OPERACOES_ROOT . '/src/Fotos.php';
 require OPERACOES_ROOT . '/src/Tablets.php';
 
 carregar_env(OPERACOES_ROOT . '/.env');

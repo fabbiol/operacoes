@@ -86,6 +86,18 @@ final class Auth
         return in_array($nome, self::administradores(), true);
     }
 
+    /** Pessoa criada pela lista APP_USUARIOS do servidor: se o nome mudar aqui, o servidor cria a antiga de novo. */
+    public static function configuradoNoServidor(string $nome): bool
+    {
+        foreach (array_keys(self::listaConfigurada()) as $configurado) {
+            if (mb_strtolower((string) $configurado, 'UTF-8') === mb_strtolower($nome, 'UTF-8')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function falhaLogin(): string
     {
         return self::$falhaLogin;
@@ -170,7 +182,7 @@ final class Auth
 
         $eu = self::eu();
         if ($eu === null || (int) ($eu['ativo'] ?? 0) !== 1) {
-            unset($_SESSION['auth'], $_SESSION['usuario'], $_SESSION['visto']);
+            unset($_SESSION['auth'], $_SESSION['usuario'], $_SESSION['usuario_id'], $_SESSION['visto']);
             self::$eu = null;
             self::$euCarregado = false;
             flash_set('Esse acesso está desativado.', 'erro');
@@ -180,7 +192,7 @@ final class Auth
         // Quem entrou pela foto sai junto quando o tablet é revogado.
         $tablet = (int) ($_SESSION['tablet_id'] ?? 0);
         if ($tablet > 0 && !Tablets::ativo($tablet)) {
-            unset($_SESSION['auth'], $_SESSION['usuario'], $_SESSION['visto'], $_SESSION['tablet_id']);
+            unset($_SESSION['auth'], $_SESSION['usuario'], $_SESSION['usuario_id'], $_SESSION['visto'], $_SESSION['tablet_id']);
             self::$eu = null;
             self::$euCarregado = false;
             flash_set('Este tablet foi revogado pelo administrativo.', 'erro');
@@ -229,7 +241,7 @@ final class Auth
             Db::pdo()->prepare('DELETE FROM login_falhas WHERE usuario = ? AND ip = ?')->execute([$chave, $ip]);
             self::$senhaFraca = (int) $linha['administrador'] === 1
                 && (mb_strlen($senha, 'UTF-8') < self::SENHA_ADMIN_MINIMA || $senha === 'troque-esta-senha');
-            self::abrirSessao((string) $linha['nome']);
+            self::abrirSessao((int) $linha['id'], (string) $linha['nome']);
 
             return true;
         }
@@ -250,7 +262,7 @@ final class Auth
         if ($pessoa === null) {
             return false;
         }
-        self::abrirSessao((string) $pessoa['nome']);
+        self::abrirSessao((int) $pessoa['id'], (string) $pessoa['nome']);
         $_SESSION['tablet_id'] = (int) (Tablets::atual()['id'] ?? 0);
         Tablets::registrarUso();
 
@@ -265,7 +277,7 @@ final class Auth
 
         $visto = (int) ($_SESSION['visto'] ?? 0);
         if ($visto > 0 && (time() - $visto) > self::SESSAO_SEGUNDOS) {
-            unset($_SESSION['auth'], $_SESSION['usuario'], $_SESSION['visto']);
+            unset($_SESSION['auth'], $_SESSION['usuario'], $_SESSION['usuario_id'], $_SESSION['visto']);
             flash_set('A sessão expirou. Entre de novo.', 'erro');
 
             return;
@@ -376,11 +388,13 @@ final class Auth
         }
     }
 
-    private static function abrirSessao(string $nome): void
+    private static function abrirSessao(int $id, string $nome): void
     {
         session_regenerate_id(true);
         $_SESSION['auth'] = true;
         $_SESSION['usuario'] = $nome;
+        // A pessoa é reconhecida pelo número: se o administrativo trocar o nome, a sessão continua valendo.
+        $_SESSION['usuario_id'] = $id;
         $_SESSION['visto'] = time();
         unset($_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno'], $_SESSION['cookie_em'], $_SESSION['tablet_id']);
     }
@@ -394,12 +408,23 @@ final class Auth
         if (!self::ok()) {
             return null;
         }
-        $busca = Db::pdo()->prepare(
-            'SELECT id, nome, administrador, motorista, operador, foto, ativo FROM usuarios WHERE nome = ? LIMIT 1'
-        );
-        $busca->execute([self::usuario()]);
+        $sql = 'SELECT id, nome, administrador, motorista, operador, foto, ativo FROM usuarios';
+        $id = (int) ($_SESSION['usuario_id'] ?? 0);
+        if ($id > 0) {
+            $busca = Db::pdo()->prepare($sql . ' WHERE id = ? LIMIT 1');
+            $busca->execute([$id]);
+        } else {
+            // Sessão aberta antes desta versão, que guardava só o nome.
+            $busca = Db::pdo()->prepare($sql . ' WHERE nome = ? LIMIT 1');
+            $busca->execute([self::usuario()]);
+        }
         $linha = $busca->fetch();
         self::$eu = $linha ?: null;
+        if (self::$eu !== null) {
+            $_SESSION['usuario_id'] = (int) self::$eu['id'];
+            // Com o nome trocado pelo administrativo, a sessão aberta passa a usar o nome novo.
+            $_SESSION['usuario'] = (string) self::$eu['nome'];
+        }
 
         return self::$eu;
     }

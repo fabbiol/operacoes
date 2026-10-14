@@ -164,59 +164,121 @@ function maquina_item(string $tipo, string $chave, array $cadastro): array
     ];
 }
 
-function maquina_limpar(): void
+/**
+ * Posse da máquina de quem está usando o sistema (null para o administrativo ou sem máquina).
+ * Fica no banco: vale em qualquer tablet e não some quando a sessão cai.
+ */
+function posse_atual(): ?array
 {
-    unset($_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno']);
+    if (!Auth::ok() || Auth::admin()) {
+        return null;
+    }
+    $usuarioId = Auth::id();
+    if ($usuarioId < 1) {
+        return null;
+    }
+    posse_da_sessao_antiga($usuarioId);
+
+    return Posse::doUsuario($usuarioId);
 }
 
-function maquina_definir(string $tipo, int $id): void
+/**
+ * Antes desta versão a máquina e o horímetro de entrada ficavam só na sessão.
+ * Quem já estava com uma máquina na hora da atualização continua com ela, agora gravada no banco.
+ */
+function posse_da_sessao_antiga(int $usuarioId): void
 {
-    $_SESSION['maquina'] = ['tipo' => $tipo, 'id' => $id];
-    if ($tipo === 'retro') {
-        $_SESSION['retroescavadeira_id'] = $id;
-    } else {
-        unset($_SESSION['retroescavadeira_id']);
+    if (!isset($_SESSION['maquina']) && !isset($_SESSION['horimetro_turno'])) {
+        return;
     }
+    $bruta = $_SESSION['maquina'] ?? null;
+    $turno = $_SESSION['horimetro_turno'] ?? null;
+    unset($_SESSION['maquina'], $_SESSION['horimetro_turno']);
+    if (!is_array($bruta)) {
+        return;
+    }
+    $tipo = (string) ($bruta['tipo'] ?? '');
+    $id = (int) ($bruta['id'] ?? 0);
+    if (maquina_chave($tipo) === null || $id < 1 || !in_array($tipo, maquina_tipos_do_usuario(), true)) {
+        return;
+    }
+    Db::comTrava(Posse::TRAVA, static function () use ($tipo, $id, $turno, $usuarioId): void {
+        if (Posse::doUsuario($usuarioId, true) !== null || Posse::daMaquina($tipo, $id) !== null) {
+            return;
+        }
+        $mesma = is_array($turno) && ($turno['tipo'] ?? '') === $tipo && (int) ($turno['id'] ?? 0) === $id;
+        $iniciado = $mesma ? (string) ($turno['iniciado_em'] ?? '') : '';
+        Posse::abrir(
+            $tipo,
+            $id,
+            $usuarioId,
+            Auth::usuario(),
+            $mesma && isset($turno['entrada']) ? (float) $turno['entrada'] : null,
+            null,
+            $iniciado !== '' ? $iniciado : null,
+            $mesma && !empty($turno['precisa_soltar'])
+        );
+    });
 }
 
 function maquina_escolhida(): ?array
 {
-    $bruta = $_SESSION['maquina'] ?? null;
-    if (!is_array($bruta)) {
+    $posse = posse_atual();
+    if ($posse === null) {
         return null;
     }
-    $tipo = (string) ($bruta['tipo'] ?? '');
-    $id = (int) ($bruta['id'] ?? 0);
+    $tipo = (string) $posse['tipo'];
+    $id = (int) $posse['maquina_id'];
     $chave = maquina_chave($tipo);
-    if ($chave === null || $id < 1 || !in_array($tipo, maquina_tipos_do_usuario(), true)) {
-        maquina_limpar();
+    $cadastro = $chave !== null ? Cadastro::buscar($chave, $id) : null;
+    if ($cadastro === null || (int) ($cadastro['ativo'] ?? 0) !== 1 || !in_array($tipo, maquina_tipos_do_usuario(), true)) {
+        // Máquina desativada ou função trocada: essa posse não vale mais.
+        Posse::fechar(Auth::id());
 
         return null;
     }
-    $cadastro = Cadastro::buscar($chave, $id);
-    if ($cadastro === null || (int) ($cadastro['ativo'] ?? 0) !== 1) {
-        maquina_limpar();
 
-        return null;
-    }
-    if ($tipo === 'retro') {
-        $_SESSION['retroescavadeira_id'] = $id;
-    }
-
-    return maquina_item($tipo, $chave, $cadastro);
+    return maquina_item($tipo, (string) $chave, $cadastro);
 }
 
+/** O trabalho em andamento manda: a máquina dele fica com quem está trabalhando. */
+function maquina_adotar(string $tipo, int $id): void
+{
+    $posse = posse_atual();
+    if ($posse !== null && (string) $posse['tipo'] === $tipo && (int) $posse['maquina_id'] === $id) {
+        return;
+    }
+    $usuarioId = Auth::id();
+    Db::comTrava(Posse::TRAVA, static function () use ($tipo, $id, $usuarioId): void {
+        $minha = Posse::doUsuario($usuarioId, true);
+        if ($minha !== null && (string) $minha['tipo'] === $tipo && (int) $minha['maquina_id'] === $id) {
+            return;
+        }
+        $dono = Posse::daMaquina($tipo, $id);
+        if ($dono !== null) {
+            Posse::liberar($tipo, $id);
+        }
+        if ($minha !== null) {
+            Posse::trocarMaquina($usuarioId, $tipo, $id);
+        } else {
+            Posse::abrir($tipo, $id, $usuarioId, Auth::usuario(), null, null);
+        }
+    });
+}
+
+/** Máquinas que a pessoa pode usar: sem trabalho em andamento e sem estar com outra pessoa. */
 function maquinas_livres(): array
 {
     $lista = [];
     $tipos = maquina_tipos_do_usuario();
+    $tomadas = array_filter(Posse::todas(), static fn (array $posse): bool => (int) $posse['usuario_id'] !== Auth::id());
     if (in_array('caminhao', $tipos, true)) {
         $ocupados = [];
         foreach (Lavra::abertos() as $ciclo) {
             $ocupados[(int) $ciclo['caminhao_id']] = true;
         }
         foreach (Cadastro::opcoes('caminhoes') as $item) {
-            if (isset($ocupados[(int) $item['id']])) {
+            if (isset($ocupados[(int) $item['id']]) || isset($tomadas['caminhao:' . (int) $item['id']])) {
                 continue;
             }
             $lista[] = maquina_item('caminhao', 'caminhoes', $item);
@@ -225,7 +287,7 @@ function maquinas_livres(): array
     if (in_array('pa', $tipos, true)) {
         $ocupados = Operacoes::pasEmUso();
         foreach (Cadastro::opcoes('pas') as $item) {
-            if (isset($ocupados[(int) $item['id']])) {
+            if (isset($ocupados[(int) $item['id']]) || isset($tomadas['pa:' . (int) $item['id']])) {
                 continue;
             }
             $lista[] = maquina_item('pa', 'pas', $item);
@@ -234,11 +296,31 @@ function maquinas_livres(): array
     if (in_array('retro', $tipos, true)) {
         $ocupados = Lavra::retrosEmUso();
         foreach (Cadastro::opcoes('retros') as $item) {
-            if (isset($ocupados[(int) $item['id']])) {
+            if (isset($ocupados[(int) $item['id']]) || isset($tomadas['retro:' . (int) $item['id']])) {
                 continue;
             }
             $lista[] = maquina_item('retro', 'retros', $item);
         }
+    }
+
+    return $lista;
+}
+
+/** Máquinas do tipo da pessoa que estão com outra pessoa, para ela saber com quem falar. */
+function maquinas_com_outros(): array
+{
+    $tipos = maquina_tipos_do_usuario();
+    $lista = [];
+    foreach (Posse::todas() as $posse) {
+        $tipo = (string) $posse['tipo'];
+        if (!in_array($tipo, $tipos, true) || (int) $posse['usuario_id'] === Auth::id()) {
+            continue;
+        }
+        $lista[] = [
+            'nome' => Posse::nomeDaMaquina($tipo, (int) $posse['maquina_id']),
+            'usuario' => (string) $posse['usuario'],
+            'desde' => (string) $posse['iniciado_em'],
+        ];
     }
 
     return $lista;
@@ -293,71 +375,109 @@ function maquina_destino(): string
 
 function horimetro_entrada(): ?float
 {
-    $turno = $_SESSION['horimetro_turno'] ?? null;
-    $maquina = maquina_escolhida();
-    if (!is_array($turno) || $maquina === null) {
-        return null;
-    }
-    if (($turno['tipo'] ?? '') !== $maquina['tipo'] || (int) ($turno['id'] ?? 0) !== (int) $maquina['id']) {
-        return null;
-    }
+    $posse = posse_atual();
 
-    return isset($turno['entrada']) ? (float) $turno['entrada'] : null;
+    return $posse !== null && $posse['entrada'] !== null ? (float) $posse['entrada'] : null;
 }
 
+/** Assume a máquina com a leitura do horímetro. A leitura e a posse gravam juntas ou nenhuma grava. */
 function horimetro_assumir(string $tipo, int $id, string $leitura): void
 {
-    $lida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
-    maquina_definir($tipo, $id);
-    $_SESSION['horimetro_turno'] = [
-        'tipo' => $tipo,
-        'id' => $id,
-        'entrada' => $lida,
-        'iniciado_em' => agora_sql(),
-        'precisa_soltar' => false,
-    ];
+    $usuarioId = Auth::id();
+    Db::comTrava(Posse::TRAVA, static function () use ($tipo, $id, $leitura, $usuarioId): void {
+        $minha = Posse::doUsuario($usuarioId, true);
+        if ($minha !== null) {
+            // Toque repetido em Confirmar: a máquina já é desta pessoa.
+            if ((string) $minha['tipo'] === $tipo && (int) $minha['maquina_id'] === $id) {
+                return;
+            }
+            throw new InvalidArgumentException('Você já está com ' . Posse::nomeDaMaquina((string) $minha['tipo'], (int) $minha['maquina_id']) . '. Solte essa máquina antes.');
+        }
+        // O administrativo pode ter acabado de iniciar um trabalho desta pessoa com outra máquina.
+        $trabalho = maquina_do_trabalho();
+        if ($trabalho !== null) {
+            throw new InvalidArgumentException(
+                'O administrativo acabou de iniciar um trabalho seu com ' . Posse::nomeDaMaquina($trabalho['tipo'], (int) $trabalho['id']) . '. Use essa máquina.'
+            );
+        }
+        if (!maquina_esta_livre($tipo, $id)) {
+            $dono = Posse::daMaquina($tipo, $id);
+            throw new InvalidArgumentException(
+                $dono !== null
+                    ? 'Essa máquina acabou de ser assumida por ' . $dono['usuario'] . '. Escolha outra.'
+                    : 'Essa máquina não está livre agora. Escolha outra.'
+            );
+        }
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            $lida = Horimetro::lancarComId($tipo, $id, $leitura, Auth::usuario());
+            Posse::abrir($tipo, $id, $usuarioId, Auth::usuario(), $lida['leitura'], $lida['id']);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    });
 }
 
 function horimetro_marcar_soltar(): void
 {
-    $turno = $_SESSION['horimetro_turno'] ?? [];
-    if (!is_array($turno)) {
-        $turno = [];
+    if (posse_atual() !== null) {
+        Posse::marcarSoltar(Auth::id());
     }
-    $turno['precisa_soltar'] = true;
-    $_SESSION['horimetro_turno'] = $turno;
 }
 
 function horimetro_precisa_soltar(): bool
 {
-    $turno = $_SESSION['horimetro_turno'] ?? null;
-
-    return is_array($turno) && !empty($turno['precisa_soltar']);
+    return !empty(posse_atual()['precisa_soltar']);
 }
 
+/** Solta a máquina com a leitura de saída e grava o turno. Um segundo toque não grava de novo. */
 function horimetro_soltar(string $leitura): void
 {
-    $maquina = maquina_escolhida();
-    if ($maquina === null) {
+    if (maquina_escolhida() === null) {
         return;
     }
     if (maquina_do_trabalho() !== null) {
         throw new InvalidArgumentException('Conclua o trabalho desta máquina antes de soltar.');
     }
-    $entrada = horimetro_entrada();
-    $saida = Horimetro::lancar($maquina['tipo'], (int) $maquina['id'], $leitura, Auth::usuario());
-    if ($entrada !== null) {
-        $iniciado = $_SESSION['horimetro_turno']['iniciado_em'] ?? null;
-        Horimetro::registrarTurno(
-            $maquina['tipo'],
-            (int) $maquina['id'],
-            $entrada,
-            $saida,
-            is_string($iniciado) && $iniciado !== '' ? $iniciado : null,
-            Auth::usuario()
-        );
-    }
-    maquina_limpar();
+    $usuarioId = Auth::id();
+    Db::comTrava(Posse::TRAVA, static function () use ($leitura, $usuarioId): void {
+        $posse = Posse::doUsuario($usuarioId, true);
+        if ($posse === null) {
+            return;
+        }
+        $tipo = (string) $posse['tipo'];
+        $id = (int) $posse['maquina_id'];
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            $saida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
+            $entrada = $posse['entrada'] !== null ? (float) $posse['entrada'] : null;
+            if ($entrada !== null && round($saida, 1) >= round($entrada, 1)) {
+                Horimetro::registrarTurno($tipo, $id, $entrada, $saida, (string) $posse['iniciado_em'], Auth::usuario());
+            }
+            Posse::fechar($usuarioId);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    });
+}
+
+/**
+ * Só para a publicação: no instante entre o envio deste arquivo e o do index.php novo,
+ * o index.php antigo ainda chama estas duas funções.
+ */
+function maquina_definir(string $tipo, int $id): void
+{
+    maquina_adotar($tipo, $id);
+}
+
+function maquina_limpar(): void
+{
 }
 
 function maquinas_do_usuario(): array
