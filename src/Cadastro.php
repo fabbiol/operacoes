@@ -140,7 +140,18 @@ final class Cadastro
             if ((int) $atual['ativo'] === 1 && $ativo === 0) {
                 self::exigirPodeDesativar($chave, $tipo, $id);
             }
-            self::atualizar($tipo, $id, $nome, $observacoes, $ativo, $ficha);
+            $pdo = Db::pdo();
+            $pdo->beginTransaction();
+            try {
+                if ($ficha !== null && array_key_exists('capacidade_t', $ficha)) {
+                    self::congelarToneladas($id, $atual['capacidade_t'] ?? null, $ficha['capacidade_t']);
+                }
+                self::atualizar($tipo, $id, $nome, $observacoes, $ativo, $ficha);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
             if ($pendente !== null) {
                 self::gravarFoto($chave, $id, $pendente);
                 $pendente = null;
@@ -214,6 +225,23 @@ final class Cadastro
         if ($posse !== null) {
             throw new InvalidArgumentException('Essa máquina está com ' . $posse['usuario'] . '. Libere a máquina antes de desativar.');
         }
+    }
+
+    /**
+     * Antes de mudar a capacidade do caminhão, as viagens carregadas que ainda não têm as toneladas gravadas
+     * (caminhão que estava sem capacidade) ficam com a capacidade com que já eram contadas.
+     * Assim a correção vale só para as próximas viagens.
+     */
+    private static function congelarToneladas(int $caminhaoId, mixed $anterior, mixed $nova): void
+    {
+        $valor = $anterior !== null && $anterior !== '' ? $anterior : $nova;
+        if ($valor === null || $valor === '') {
+            return;
+        }
+        Db::pdo()->prepare(
+            'UPDATE ciclos_lavra SET capacidade_t = ?
+             WHERE caminhao_id = ? AND fim_carga IS NOT NULL AND capacidade_t IS NULL'
+        )->execute([$valor, $caminhaoId]);
     }
 
     public static function emTrabalho(string $chave, int $id): bool
