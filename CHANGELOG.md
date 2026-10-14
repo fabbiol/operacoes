@@ -5,7 +5,7 @@
 Os itens que tinham ficado para a próxima leva. Cada item tem um commit próprio no Git com os detalhes.
 
 ### 1. Horímetro com conferência e correção
-Uma leitura maior do que a máquina conseguiria rodar desde a última (horas passadas no relógio + 1 h de folga) é recusada, com a última leitura e a hora dela na mensagem. Assim um 12345 digitado no lugar de 1234,5 não trava a máquina. Na ficha da máquina, o administrativo anula uma leitura errada com um motivo; a leitura fica no histórico, riscada, e deixa de valer.
+Uma leitura maior do que a máquina conseguiria rodar desde a última (horas passadas no relógio + 1 h de folga) é recusada, com a última leitura e a hora dela na mensagem. Assim um 12345 digitado no lugar de 1234,5 não trava a máquina. Na ficha da máquina, o administrativo anula uma leitura errada com um motivo; a leitura fica no histórico, riscada, e deixa de valer. Se a leitura anulada é a entrada de quem está com a máquina, dá para informar a leitura certa, e o turno da pessoa continua sendo somado. Um serviço de manutenção registrado sobre uma leitura anulada não trava o plano: o vencimento é recalculado e o serviço pode ser registrado de novo com o horímetro certo.
 
 ### 2. Quem está com cada máquina fica gravado no banco
 A máquina assumida e o horímetro de entrada do turno ficam no banco, não mais só na sessão do tablet. A pessoa continua com a máquina se a sessão cair ou se entrar por outro tablet, e duas pessoas não pegam a mesma máquina. A tela de escolher máquina mostra quais estão com outras pessoas. Na ficha da máquina, o administrativo vê com quem ela está e pode **Liberar máquina** de quem foi embora sem soltar (com a leitura do painel, o turno da pessoa é gravado). O administrativo não inicia carga com máquina que está com outra pessoa, nem para um operador que está com outra máquina. Enquanto a máquina não for solta ou liberada, nem ela nem a pessoa que está com ela podem ser desativadas, e a pessoa não troca para uma função que não usa essa máquina.
@@ -14,7 +14,7 @@ A máquina assumida e o horímetro de entrada do turno ficam no banco, não mais
 A viagem guarda a capacidade do caminhão na hora em que sai carregado. Corrigir a capacidade no cadastro não muda mais a produção dos dias anteriores. Viagens de caminhão que estava sem capacidade passam a contar com a primeira capacidade preenchida e ficam com ela. A atualização do banco também ficou protegida na publicação: o código novo sempre cria as próprias colunas, mesmo que um pedido chegue no meio do envio dos arquivos.
 
 ### 4. Fotos leves
-A foto enviada é reduzida no servidor (máquinas até 960 px, pessoas até 640 px, em JPG) e sai de pé mesmo tirada com o aparelho deitado. Fotos antigas grandes são reduzidas na primeira vez que alguém as abre. O tablet guarda as fotos e só confere se mudaram. O limite de envio passou para 10 MB.
+A foto enviada é reduzida no servidor (máquinas até 960 px, pessoas até 640 px, em JPG) e sai de pé mesmo tirada com o aparelho deitado. Fotos antigas grandes são reduzidas na primeira vez que alguém as abre. O tablet guarda as fotos por uma hora sem pedir de novo, e depois só confere se mudaram. O limite de envio passou para 10 MB; foto acima de 50 megapixels é recusada.
 
 ### 5. Trocar o nome de uma pessoa
 Ao trocar o usuário em Pessoas, o histórico vai junto (viagens, cargas, horímetro, turnos, manutenções, a máquina que ela está usando), e quem estiver com o tablet aberto continua trabalhando, já com o nome novo. Quem vem de `APP_USUARIOS` tem o nome trocado no servidor.
@@ -22,7 +22,8 @@ Ao trocar o usuário em Pessoas, o histórico vai junto (viagens, cargas, horím
 ### Ao publicar esta versão
 1. Pode publicar com o turno rodando: ninguém precisa entrar de novo, e quem estiver com máquina continua com ela e com o horímetro de entrada. A publicação foi simulada arquivo por arquivo sobre uma cópia da versão anterior, com tablets e TV usando o sistema, sem erro.
 2. O banco é atualizado sozinho no primeiro acesso depois da publicação (tabela `maquina_posse` e colunas novas em `horimetros` e `ciclos_lavra`).
-3. Para quem mexer no código: ao criar ou mudar uma função `garantir*()` em `src/Db.php`, troque o valor de `Db::MIGRACOES` (o README explica).
+3. Nas primeiras horas depois de publicar, evite trocar o nome de quem está com o tablet aberto: a sessão aberta antes desta versão ainda guarda só o nome e cai (como já acontecia antes). Depois do primeiro acesso de cada tablet, a troca de nome não derruba mais ninguém.
+4. Para quem mexer no código: ao criar ou mudar uma função `garantir*()` em `src/Db.php`, troque o valor de `Db::MIGRACOES` (o README explica).
 
 ## Outubro de 2026: primeira leva de melhorias
 
