@@ -300,8 +300,14 @@ function despachar(string $path, string $method): void
         exigir_cadastro($m[1]);
         csrf_check();
         try {
-            Horimetro::anular((int) $m[3], Horimetro::tipoDaChave($m[1]), (int) $m[2], (string) ($_POST['motivo'] ?? ''), Auth::usuario());
-            flash_set('Leitura anulada. O horímetro atual passa a ser a maior leitura que sobrou.');
+            flash_set(Horimetro::anular(
+                (int) $m[3],
+                Horimetro::tipoDaChave($m[1]),
+                (int) $m[2],
+                (string) ($_POST['motivo'] ?? ''),
+                Auth::usuario(),
+                (string) ($_POST['correta'] ?? '')
+            ));
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }

@@ -63,8 +63,11 @@ final class Horimetro
         return self::lancarComId($tipo, $id, $bruto, $usuario)['leitura'];
     }
 
-    /** @return array{id: int, leitura: float} */
-    public static function lancarComId(string $tipo, int $id, string $bruto, string $usuario): array
+    /**
+     * @param string|null $lidoEm hora da leitura, quando ela é de antes (a entrada certa no lugar de uma anulada)
+     * @return array{id: int, leitura: float}
+     */
+    public static function lancarComId(string $tipo, int $id, string $bruto, string $usuario, ?string $lidoEm = null): array
     {
         self::exigirMaquina($tipo, $id);
         $leitura = self::lerHoras($bruto, 'Horímetro', true);
@@ -75,7 +78,8 @@ final class Horimetro
                 throw new InvalidArgumentException('A leitura não pode ser menor que o horímetro atual, ' . self::texto($atual) . '.');
             }
             // Um número digitado errado (12345 em vez de 1234,5) travaria a máquina: a leitura não passa do tempo real.
-            $passou = max(0.0, (time() - (int) strtotime((string) $ultima['lido_em'])) / 3600);
+            $quando = $lidoEm !== null ? (int) strtotime($lidoEm) : time();
+            $passou = max(0.0, ($quando - (int) strtotime((string) $ultima['lido_em'])) / 3600);
             if (round($leitura, 1) > round($atual + $passou + self::FOLGA_H, 1)) {
                 throw new InvalidArgumentException(
                     'A leitura passa do possível: a última foi ' . self::texto($atual) . ' em ' . quando((string) $ultima['lido_em'])
@@ -87,26 +91,58 @@ final class Horimetro
             'INSERT INTO horimetros (tipo, maquina_id, leitura, lido_em, usuario)
              VALUES (?, ?, ?, ?, ?)'
         );
-        $comando->execute([$tipo, $id, self::gravar($leitura), agora_sql(), $usuario]);
+        $comando->execute([$tipo, $id, self::gravar($leitura), $lidoEm ?? agora_sql(), $usuario]);
 
         return ['id' => (int) Db::pdo()->lastInsertId(), 'leitura' => $leitura];
     }
 
-    /** O administrativo anula uma leitura errada. O registro fica, marcado, e deixa de valer. */
-    public static function anular(int $leituraId, string $tipo, int $maquinaId, string $motivo, string $usuario): void
+    /**
+     * O administrativo anula uma leitura errada. O registro fica, marcado, e deixa de valer.
+     * Se a leitura é a entrada de quem está com a máquina, a leitura certa (opcional) passa a ser a entrada,
+     * gravada com a hora da anulada; sem ela, o turno dessa pessoa fica sem entrada e não é somado.
+     * Devolve o aviso para a tela.
+     */
+    public static function anular(int $leituraId, string $tipo, int $maquinaId, string $motivo, string $usuario, string $correta = ''): string
     {
         self::exigirMaquina($tipo, $maquinaId);
         $motivo = limpar_texto($motivo, 200, true, 'o motivo');
-        $comando = Db::pdo()->prepare(
-            'UPDATE horimetros
-             SET anulado_em = ?, anulado_por = ?, anulado_motivo = ?
-             WHERE id = ? AND tipo = ? AND maquina_id = ? AND anulado_em IS NULL'
-        );
-        $comando->execute([agora_sql(), $usuario, $motivo, $leituraId, $tipo, $maquinaId]);
-        if ($comando->rowCount() < 1) {
+        $busca = Db::pdo()->prepare('SELECT lido_em FROM horimetros WHERE id = ? AND tipo = ? AND maquina_id = ? AND anulado_em IS NULL');
+        $busca->execute([$leituraId, $tipo, $maquinaId]);
+        $lidoEm = $busca->fetchColumn();
+        if ($lidoEm === false) {
             throw new InvalidArgumentException('Essa leitura não é desta máquina ou já foi anulada.');
         }
-        Posse::esquecerEntrada($leituraId);
+        $posse = Posse::daMaquina($tipo, $maquinaId);
+        $entrada = $posse !== null && (int) ($posse['entrada_id'] ?? 0) === $leituraId;
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            $comando = $pdo->prepare(
+                'UPDATE horimetros
+                 SET anulado_em = ?, anulado_por = ?, anulado_motivo = ?
+                 WHERE id = ? AND tipo = ? AND maquina_id = ? AND anulado_em IS NULL'
+            );
+            $comando->execute([agora_sql(), $usuario, $motivo, $leituraId, $tipo, $maquinaId]);
+            if ($comando->rowCount() < 1) {
+                throw new InvalidArgumentException('Essa leitura não é desta máquina ou já foi anulada.');
+            }
+            $aviso = 'Leitura anulada. O horímetro atual passa a ser a maior leitura que sobrou.';
+            if ($entrada && trim($correta) !== '') {
+                $certa = self::lancarComId($tipo, $maquinaId, $correta, $usuario, (string) $lidoEm);
+                Posse::trocarEntrada($leituraId, $certa['id'], $certa['leitura']);
+                $aviso = 'Leitura anulada. A entrada de ' . $posse['usuario'] . ' passa a ser ' . self::texto($certa['leitura']) . '.';
+            } elseif ($entrada) {
+                Posse::esquecerEntrada($leituraId);
+                $aviso = 'Leitura anulada. O turno de ' . $posse['usuario'] . ' ficou sem a entrada e não será somado.'
+                    . ' Para somar, anule informando a leitura certa da entrada, ou peça para a pessoa soltar e assumir de novo.';
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+
+        return $aviso;
     }
 
     /** @return list<array<string, mixed>> */
@@ -158,7 +194,9 @@ final class Horimetro
             throw new InvalidArgumentException('O serviço não pode ficar acima do horímetro atual, ' . self::texto($atual) . '.');
         }
         $ultima = self::ultimaFeita($planoId);
-        if ($ultima !== null && round($horas, 1) < round($ultima, 1)) {
+        // Serviço gravado sobre uma leitura que depois foi anulada fica acima do horímetro atual:
+        // nesse caso o registro novo, com o horímetro certo, substitui aquele.
+        if ($ultima !== null && round($ultima, 1) <= round($atual, 1) && round($horas, 1) < round($ultima, 1)) {
             throw new InvalidArgumentException('O serviço não pode ficar abaixo da última vez, ' . self::texto($ultima) . '.');
         }
         $nota = limpar_longo($observacoes, 4000);
@@ -337,7 +375,8 @@ final class Horimetro
         if ($ultima === null) {
             return ['estado' => 'sem_servico', 'rotulo' => 'Ainda sem serviço', 'falta' => null, 'proxima' => null];
         }
-        $proxima = round($ultima + $intervalo, 1);
+        // O serviço não pode ter sido feito acima do horímetro real (leitura anulada depois do registro).
+        $proxima = round(min($ultima, $atual) + $intervalo, 1);
         $falta = round($proxima - $atual, 1);
         if ($falta <= 0) {
             return ['estado' => 'vencida', 'rotulo' => 'Vencida', 'falta' => $falta, 'proxima' => $proxima];
@@ -378,7 +417,7 @@ final class Horimetro
         $busca = Db::pdo()->prepare(
             'SELECT horimetro FROM manutencoes
              WHERE plano_id = ?
-             ORDER BY horimetro DESC, id DESC
+             ORDER BY feito_em DESC, id DESC
              LIMIT 1'
         );
         $busca->execute([$planoId]);

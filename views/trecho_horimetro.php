@@ -47,6 +47,13 @@
                                     <span>Motivo</span>
                                     <input type="text" name="motivo" maxlength="200" required placeholder="Ex.: digitado errado">
                                 </label>
+                                <?php if ($posse !== null && (int) ($posse['entrada_id'] ?? 0) === (int) $leitura['id']): ?>
+                                    <p class="nota">Esta é a entrada de <?= e((string) $posse['usuario']) ?>, que está com a máquina. Sem a leitura certa, o turno dela não é somado.</p>
+                                    <label class="campo">
+                                        <span>Leitura certa da entrada (opcional)</span>
+                                        <input type="text" name="correta" inputmode="decimal" maxlength="10" placeholder="h">
+                                    </label>
+                                <?php endif; ?>
                                 <button type="submit" class="btn perigo">Anular esta leitura</button>
                             </form>
                         </details>

@@ -115,6 +115,14 @@ final class Posse
         Db::pdo()->prepare('UPDATE maquina_posse SET precisa_soltar = 1 WHERE usuario_id = ?')->execute([$usuarioId]);
     }
 
+    /** A leitura de entrada foi anulada e o administrativo informou a certa: ela passa a ser a entrada do turno. */
+    public static function trocarEntrada(int $leituraAnulada, int $leituraCerta, float $valor): void
+    {
+        self::$doUsuario = [];
+        Db::pdo()->prepare('UPDATE maquina_posse SET entrada = ?, entrada_id = ? WHERE entrada_id = ?')
+            ->execute([number_format($valor, 1, '.', ''), $leituraCerta, $leituraAnulada]);
+    }
+
     /** A leitura de entrada foi anulada: o turno fica sem entrada e não é somado ao soltar. */
     public static function esquecerEntrada(int $leituraId): void
     {
