@@ -10,7 +10,7 @@
         <a class="btn secundario" href="<?= e(url('lavra/resumo')) ?>">Tempos de hoje</a>
     </div>
 </section>
-<p class="nota">Na garagem, Chegou na lavra abre a viagem. No britador, o motorista volta para a lavra ou vai para a garagem. Encerrar viagem interrompe o ciclo, e o horímetro final entra no Sair.</p>
+<p class="nota ajuda">Na garagem, Chegou na lavra abre a viagem. No britador, o motorista volta para a lavra ou vai para a garagem. Encerrar viagem interrompe o ciclo, e o horímetro final entra no Sair.</p>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($emCiclo === [] && $livres === []): ?>
@@ -30,9 +30,6 @@
             <?php $etapa = Lavra::etapas()[$ciclo['status']]; ?>
             <?php $desde = Lavra::desde($ciclo); ?>
             <article class="cartao destaque">
-                <?php if (isset(Lavra::etapas()[$ciclo['status']])): ?>
-                    <a class="btn encerrar-viagem" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a>
-                <?php endif; ?>
                 <?php
                 $cancelarCiclo = null;
                 $ficha = $ciclo;
@@ -77,7 +74,7 @@
                         <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn primario">Chegou na lavra</button>
                     </form>
-                    <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/garagem')) ?>">
+                    <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/garagem')) ?>" class="acao-separada">
                         <?= csrf_field() ?>
                         <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn secundario">Garagem</button>
@@ -88,6 +85,9 @@
                         <input type="hidden" name="etapa" value="<?= e($ciclo['status']) ?>">
                         <button type="submit" class="btn primario"><?= e($etapa['acao']) ?></button>
                     </form>
+                <?php endif; ?>
+                <?php if (isset(Lavra::etapas()[$ciclo['status']])): ?>
+                    <a class="btn encerrar-viagem" href="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/encerrar')) ?>">Encerrar viagem</a>
                 <?php endif; ?>
             </article>
         <?php endforeach; ?>

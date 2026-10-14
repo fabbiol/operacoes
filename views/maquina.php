@@ -71,7 +71,7 @@
         </fieldset>
         <label class="campo">
             <span>Horímetro agora</span>
-            <input type="text" name="leitura" inputmode="decimal" maxlength="10" required placeholder="h" autofocus>
+            <input type="text" name="leitura" inputmode="decimal" maxlength="10" required placeholder="h">
         </label>
         <button type="submit" class="btn primario">Confirmar</button>
     </form>

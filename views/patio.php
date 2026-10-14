@@ -5,7 +5,7 @@
     </div>
     <a class="btn secundario" href="<?= e(url('patio/resumo')) ?>">Tempos de hoje</a>
 </section>
-<p class="nota">A fila começa na liberação e a carga no toque de iniciar. Finalize quando a carga estiver no caminhão.</p>
+<p class="nota ajuda">A fila começa na liberação e a carga no toque de iniciar. Finalize quando a carga estiver no caminhão.</p>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <?php if ($ordens === []): ?>

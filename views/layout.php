@@ -54,7 +54,7 @@
                     <?php if (Auth::temFoto()): ?>
                         <img class="avatar" src="<?= e(url('usuarios/' . Auth::id() . '/foto')) ?>" alt="">
                     <?php endif; ?>
-                    <span><?= e(Auth::usuario()) ?> · <?= e(Auth::rotuloPapel()) ?></span>
+                    <span class="site-nome"><?= e(Auth::usuario()) ?><span class="site-papel"> · <?= e(Auth::rotuloPapel()) ?></span></span>
                     <?php foreach (maquinas_do_usuario() as $maquina): ?>
                         <span class="site-maquina">
                             <?php if (!empty($maquina['foto'])): ?>
