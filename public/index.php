@@ -1047,6 +1047,11 @@ function tela_maquina(string $method): void
                     horimetro_assumir($partes[1], (int) $partes[2], (string) ($_POST['leitura'] ?? ''));
                     redirect(maquina_destino());
                 } catch (InvalidArgumentException $e) {
+                    if (maquina_do_trabalho() !== null) {
+                        // Um trabalho com outra máquina começou neste instante: a tela volta mostrando essa máquina.
+                        flash_set($e->getMessage(), 'erro');
+                        redirect('/maquina');
+                    }
                     $erro = $e->getMessage();
                 }
             } else {

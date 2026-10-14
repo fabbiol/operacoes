@@ -136,6 +136,10 @@ final class Cadastro
             if ($atual === null) {
                 throw new InvalidArgumentException('Cadastro não encontrado.');
             }
+            // Desmarcar "Ativo" na ficha tem as mesmas regras do botão Desativar da lista.
+            if ((int) $atual['ativo'] === 1 && $ativo === 0) {
+                self::exigirPodeDesativar($chave, $tipo, $id);
+            }
             self::atualizar($tipo, $id, $nome, $observacoes, $ativo, $ficha);
             if ($pendente !== null) {
                 self::gravarFoto($chave, $id, $pendente);
@@ -192,16 +196,24 @@ final class Cadastro
         if ($atual === null) {
             throw new InvalidArgumentException('Cadastro não encontrado.');
         }
-        if ((int) $atual['ativo'] === 1 && self::emTrabalho($chave, $id)) {
-            throw new InvalidArgumentException('Essa máquina está em trabalho agora. Encerre a viagem ou a carga antes de desativar.');
-        }
-        $posse = (int) $atual['ativo'] === 1 && !empty($tipo['ficha']) ? Posse::daMaquina(Horimetro::tipoDaChave($chave), $id) : null;
-        if ($posse !== null) {
-            throw new InvalidArgumentException('Essa máquina está com ' . $posse['usuario'] . '. Libere a máquina antes de desativar.');
+        if ((int) $atual['ativo'] === 1) {
+            self::exigirPodeDesativar($chave, $tipo, $id);
         }
         $sql = sprintf('UPDATE %s SET ativo = ? WHERE id = ?', $tipo['tabela']);
         $comando = Db::pdo()->prepare($sql);
         $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
+    }
+
+    /** Máquina em trabalho ou com alguém não pode ser desativada: o turno de quem está com ela se perderia. */
+    private static function exigirPodeDesativar(string $chave, array $tipo, int $id): void
+    {
+        if (self::emTrabalho($chave, $id)) {
+            throw new InvalidArgumentException('Essa máquina está em trabalho agora. Encerre a viagem ou a carga antes de desativar.');
+        }
+        $posse = !empty($tipo['ficha']) ? Posse::daMaquina(Horimetro::tipoDaChave($chave), $id) : null;
+        if ($posse !== null) {
+            throw new InvalidArgumentException('Essa máquina está com ' . $posse['usuario'] . '. Libere a máquina antes de desativar.');
+        }
     }
 
     public static function emTrabalho(string $chave, int $id): bool

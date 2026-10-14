@@ -138,6 +138,12 @@ final class Pessoas
         }
 
         $ativo = $fixo ? 1 : (isset($post['ativo']) ? 1 : 0);
+        if ($atual !== null && (int) $atual['ativo'] === 1 && $ativo === 0) {
+            self::exigirSemMaquina($atual);
+        }
+        if ($atual !== null) {
+            self::exigirFuncaoDaMaquina($atual, $motorista === 1, $operador === 1);
+        }
         $senha = (string) ($post['senha'] ?? '');
         if (trim($senha) !== '') {
             $senha = trim($senha);
@@ -192,8 +198,39 @@ final class Pessoas
         if ((int) $atual['id'] === Auth::id()) {
             throw new InvalidArgumentException('Você não pode desativar o seu próprio acesso.');
         }
+        if ((int) $atual['ativo'] === 1) {
+            self::exigirSemMaquina($atual);
+        }
         $comando = Db::pdo()->prepare('UPDATE usuarios SET ativo = ? WHERE id = ?');
         $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
+    }
+
+    /** Quem está com uma máquina não é desativado: a máquina ficaria presa a uma pessoa que não entra mais. */
+    private static function exigirSemMaquina(array $pessoa): void
+    {
+        $posse = Posse::doUsuario((int) $pessoa['id'], true);
+        if ($posse !== null) {
+            throw new InvalidArgumentException(
+                $pessoa['nome'] . ' está com ' . Posse::nomeDaMaquina((string) $posse['tipo'], (int) $posse['maquina_id'])
+                . '. Libere a máquina na ficha dela antes de desativar.'
+            );
+        }
+    }
+
+    /** A função nova precisa continuar permitindo a máquina que a pessoa está usando, senão o turno dela se perde. */
+    private static function exigirFuncaoDaMaquina(array $pessoa, bool $motorista, bool $operador): void
+    {
+        $posse = Posse::doUsuario((int) $pessoa['id'], true);
+        if ($posse === null) {
+            return;
+        }
+        $permite = (string) $posse['tipo'] === 'caminhao' ? $motorista : $operador;
+        if (!$permite) {
+            throw new InvalidArgumentException(
+                $pessoa['nome'] . ' está com ' . Posse::nomeDaMaquina((string) $posse['tipo'], (int) $posse['maquina_id'])
+                . '. Libere a máquina na ficha dela antes de trocar a função.'
+            );
+        }
     }
 
     public static function arquivoFoto(int $id): ?array

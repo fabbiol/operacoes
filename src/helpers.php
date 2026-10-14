@@ -393,6 +393,13 @@ function horimetro_assumir(string $tipo, int $id, string $leitura): void
             }
             throw new InvalidArgumentException('Você já está com ' . Posse::nomeDaMaquina((string) $minha['tipo'], (int) $minha['maquina_id']) . '. Solte essa máquina antes.');
         }
+        // O administrativo pode ter acabado de iniciar um trabalho desta pessoa com outra máquina.
+        $trabalho = maquina_do_trabalho();
+        if ($trabalho !== null) {
+            throw new InvalidArgumentException(
+                'O administrativo acabou de iniciar um trabalho seu com ' . Posse::nomeDaMaquina($trabalho['tipo'], (int) $trabalho['id']) . '. Use essa máquina.'
+            );
+        }
         if (!maquina_esta_livre($tipo, $id)) {
             $dono = Posse::daMaquina($tipo, $id);
             throw new InvalidArgumentException(
