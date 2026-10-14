@@ -613,6 +613,7 @@ button.rosto img { object-fit: cover; object-position: center; }
 .caminhao-nome .link-discreto { display: table; margin-top: 8px; }
 .lavra .btn.encerrar-viagem { margin: 0 0 8px; background: var(--saida); color: white; }
 .lavra .btn.encerrar-viagem:hover { background: #63190f; }
+.espera-patio { margin: 8px 0 0; color: var(--muted); font-weight: 700; text-align: center; }
 .lavra button.link-discreto {
     width: auto;
     min-height: 0;

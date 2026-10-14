@@ -192,9 +192,30 @@ final class Cadastro
         if ($atual === null) {
             throw new InvalidArgumentException('Cadastro não encontrado.');
         }
+        if ((int) $atual['ativo'] === 1 && self::emTrabalho($chave, $id)) {
+            throw new InvalidArgumentException('Essa máquina está em trabalho agora. Encerre a viagem ou a carga antes de desativar.');
+        }
         $sql = sprintf('UPDATE %s SET ativo = ? WHERE id = ?', $tipo['tabela']);
         $comando = Db::pdo()->prepare($sql);
         $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
+    }
+
+    private static function emTrabalho(string $chave, int $id): bool
+    {
+        $sql = match ($chave) {
+            'caminhoes' => "SELECT 1 FROM ciclos_lavra WHERE caminhao_id = ? AND status IN ('na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando') LIMIT 1",
+            'pas' => "SELECT 1 FROM fila_carregamentos WHERE pa_carregadeira_id = ? AND status = 'carregando' LIMIT 1",
+            'retros' => "SELECT 1 FROM ciclos_lavra WHERE retroescavadeira_id = ? AND status = 'carregando'
+                         UNION SELECT 1 FROM fila_carregamentos WHERE retroescavadeira_id = ? AND status = 'carregando' LIMIT 1",
+            default => null,
+        };
+        if ($sql === null) {
+            return false;
+        }
+        $busca = Db::pdo()->prepare($sql);
+        $busca->execute($chave === 'retros' ? [$id, $id] : [$id]);
+
+        return (bool) $busca->fetchColumn();
     }
 
     private static function colunas(array $tipo): string

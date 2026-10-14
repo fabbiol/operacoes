@@ -40,6 +40,17 @@ final class Pessoas
         ));
     }
 
+    /** @return list<string> nomes de quem pode carregar no pátio */
+    public static function operadores(): array
+    {
+        $nomes = [];
+        foreach (Db::pdo()->query('SELECT nome FROM usuarios WHERE ativo = 1 AND administrador = 0 AND operador = 1 ORDER BY nome ASC') as $linha) {
+            $nomes[] = (string) $linha['nome'];
+        }
+
+        return $nomes;
+    }
+
     public static function elegivelEntrada(int $id): ?array
     {
         if ($id < 1) {

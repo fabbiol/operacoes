@@ -60,6 +60,8 @@
                 <?php endif; ?>
                 <?php if ($ordem['status'] === 'carregando'): ?>
                     <a class="btn concluir" href="<?= e(url('carregamentos/' . $ordem['id'] . '/finalizar')) ?>">Finalizar carregamento</a>
+                <?php elseif (!empty($ocupado)): ?>
+                    <p class="espera-patio"><?= e($ocupado) ?></p>
                 <?php else: ?>
                     <a class="btn primario" href="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>">Iniciar carregamento</a>
                 <?php endif; ?>

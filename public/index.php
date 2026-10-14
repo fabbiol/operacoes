@@ -727,6 +727,7 @@ function patio_marca(): string
             (string) $ordem['status'],
             $ordem['fim_carregamento'] ?? null,
         ], Operacoes::enviadasHoje()),
+        'ocupado' => Auth::admin() ? null : patio_ocupado(),
     ]);
 }
 
@@ -789,11 +790,27 @@ function fila_marca(): string
     ]);
 }
 
+/** O que impede o operador de iniciar outra carga no pátio agora. */
+function patio_ocupado(): ?string
+{
+    $ordem = Operacoes::ordemDoOperador(Auth::usuario());
+    if ($ordem !== null) {
+        return 'Finalize a ' . $ordem . ' antes de iniciar outra.';
+    }
+    $carga = Lavra::cargaDoOperador(Auth::usuario());
+    if ($carga !== null) {
+        return 'Conclua a carga do ' . $carga['placa'] . ' na lavra antes de iniciar no pátio.';
+    }
+
+    return null;
+}
+
 function tela_patio(): void
 {
     render('patio', [
         'titulo' => 'Pátio',
         'corpo' => 'patio',
+        'ocupado' => Auth::admin() ? null : patio_ocupado(),
         'ordens' => Operacoes::patio(),
         'enviadas' => Operacoes::enviadasHoje(),
         'fluxoUrl' => url('patio/situacao'),
@@ -828,7 +845,9 @@ function tela_iniciar(int $id, string $method): void
 {
     $ordem = ordem_ou_404($id);
     $erro = null;
-    $operador = (string) ($_POST['operador'] ?? Auth::usuario());
+    // Quem não é do administrativo carrega sempre no próprio nome, como na lavra.
+    $operador = Auth::admin() ? trim((string) ($_POST['operador'] ?? '')) : Auth::usuario();
+    $operadores = Auth::admin() ? Pessoas::operadores() : [];
     $paId = (int) ($_POST['pa_carregadeira_id'] ?? 0);
     $pas = Cadastro::opcoes('pas');
     $semPa = $pas === [];
@@ -846,7 +865,10 @@ function tela_iniciar(int $id, string $method): void
         }
     }
 
-    if ($method === 'POST' && ($retroPatio !== null || (Auth::admin() && $semPa))) {
+    if ($method === 'POST' && Auth::admin() && $operadores !== [] && !in_array($operador, $operadores, true)) {
+        csrf_check();
+        $erro = 'Escolha um operador da lista.';
+    } elseif ($method === 'POST' && ($retroPatio !== null || (Auth::admin() && $semPa))) {
         csrf_check();
         try {
             $retroId = $retroPatio !== null
@@ -879,6 +901,7 @@ function tela_iniciar(int $id, string $method): void
         'retros' => $semPa ? Cadastro::opcoes('retros') : [],
         'emUso' => Operacoes::pasEmUso($id),
         'operador' => $operador,
+        'operadores' => $operadores,
         'paId' => $paId,
         'paFixa' => $paFixa,
         'retroPatio' => $retroPatio,

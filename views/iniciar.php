@@ -13,10 +13,7 @@
         <?php if (($retroPatio['detalhe'] ?? '') !== ''): ?>
             <p class="meta"><?= e((string) $retroPatio['detalhe']) ?></p>
         <?php endif; ?>
-        <label class="campo">
-            <span>Operador</span>
-            <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na retro">
-        </label>
+        <?php require __DIR__ . '/trecho_operador.php'; ?>
         <div class="botoes">
             <button type="submit" class="btn primario">Iniciar carregamento</button>
             <a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar</a>
@@ -36,10 +33,7 @@
         <?php if (($paFixa['detalhe'] ?? '') !== ''): ?>
             <p class="meta"><?= e((string) $paFixa['detalhe']) ?></p>
         <?php endif; ?>
-        <label class="campo">
-            <span>Operador</span>
-            <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na pá">
-        </label>
+        <?php require __DIR__ . '/trecho_operador.php'; ?>
         <div class="botoes">
             <button type="submit" class="btn primario">Iniciar carregamento</button>
             <a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar</a>
@@ -78,10 +72,7 @@
                 </label>
             <?php endforeach; ?>
         </fieldset>
-        <label class="campo">
-            <span>Operador</span>
-            <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na retro">
-        </label>
+        <?php require __DIR__ . '/trecho_operador.php'; ?>
         <div class="botoes">
             <button type="submit" class="btn primario">Iniciar carregamento</button>
             <a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar</a>
@@ -124,10 +115,7 @@
                 </label>
             <?php endforeach; ?>
         </fieldset>
-        <label class="campo">
-            <span>Operador</span>
-            <input type="text" name="operador" maxlength="120" required value="<?= e($operador) ?>" autocomplete="name" placeholder="Quem está na pá">
-        </label>
+        <?php require __DIR__ . '/trecho_operador.php'; ?>
         <div class="botoes">
             <button type="submit" class="btn primario">Iniciar carregamento</button>
             <a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar</a>

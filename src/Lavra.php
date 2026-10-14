@@ -657,6 +657,11 @@ final class Lavra
 
     public static function iniciarCarga(int $id, int $retroId, string $operador, ?string $esperada = null): void
     {
+        Db::comTrava('inicio_carga', static fn () => self::iniciarCargaSemCorrida($id, $retroId, $operador, $esperada));
+    }
+
+    private static function iniciarCargaSemCorrida(int $id, int $retroId, string $operador, ?string $esperada): void
+    {
         $ciclo = self::exigir($id);
         self::conferirEtapa($ciclo, $esperada);
         if ($ciclo['status'] !== 'na_fila') {

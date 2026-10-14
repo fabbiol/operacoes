@@ -170,6 +170,21 @@ final class Operacoes
         return self::paEmOperacao($operador) !== null;
     }
 
+    /** Ordem que o operador está carregando no pátio, se houver. */
+    public static function ordemDoOperador(string $operador, int $excetoOrdemId = 0): ?string
+    {
+        $comando = Db::pdo()->prepare(
+            "SELECT ordem FROM fila_carregamentos
+             WHERE status = 'carregando' AND operador = ? AND id <> ?
+             ORDER BY inicio_carregamento DESC, id DESC
+             LIMIT 1"
+        );
+        $comando->execute([$operador, $excetoOrdemId]);
+        $ordem = $comando->fetchColumn();
+
+        return $ordem === false ? null : (string) $ordem;
+    }
+
     public static function paEmOperacao(string $operador): ?array
     {
         $comando = Db::pdo()->prepare(
@@ -328,6 +343,16 @@ final class Operacoes
 
     public static function iniciar(int $id, int $paId, string $operador): void
     {
+        Db::comTrava('inicio_carga', static fn () => self::iniciarSemCorrida($id, $paId, $operador));
+    }
+
+    public static function iniciarComRetro(int $id, int $retroId, string $operador): void
+    {
+        Db::comTrava('inicio_carga', static fn () => self::iniciarComRetroSemCorrida($id, $retroId, $operador));
+    }
+
+    private static function iniciarSemCorrida(int $id, int $paId, string $operador): void
+    {
         $ordem = self::exigir($id);
         if ($ordem['status'] !== 'liberado') {
             throw new InvalidArgumentException('Só dá para iniciar uma ordem que está liberada.');
@@ -339,10 +364,15 @@ final class Operacoes
         if (Lavra::operadorEmCarga($operador)) {
             throw new InvalidArgumentException('Esse operador já está carregando um caminhão na lavra.');
         }
+        self::exigirOperadorLivre($operador, $id);
         $pa = Db::pdo()->prepare('SELECT id FROM pas_carregadeiras WHERE id = ? AND ativo = 1');
         $pa->execute([$paId]);
         if (!$pa->fetch()) {
             throw new InvalidArgumentException('Essa pá carregadeira não está disponível.');
+        }
+        $emUso = self::pasEmUso($id);
+        if (isset($emUso[$paId])) {
+            throw new InvalidArgumentException('Essa pá já está carregando a ' . $emUso[$paId] . '. Finalize aquela carga antes.');
         }
 
         $comando = Db::pdo()->prepare(
@@ -354,7 +384,7 @@ final class Operacoes
         self::exigirAlteracao($comando);
     }
 
-    public static function iniciarComRetro(int $id, int $retroId, string $operador): void
+    private static function iniciarComRetroSemCorrida(int $id, int $retroId, string $operador): void
     {
         $ordem = self::exigir($id);
         if ($ordem['status'] !== 'liberado') {
@@ -370,6 +400,7 @@ final class Operacoes
         if (Lavra::operadorEmCarga($operador)) {
             throw new InvalidArgumentException('Esse operador já está carregando um caminhão na lavra.');
         }
+        self::exigirOperadorLivre($operador, $id);
         $retro = Db::pdo()->prepare('SELECT id FROM retroescavadeiras WHERE id = ? AND ativo = 1');
         $retro->execute([$retroId]);
         if (!$retro->fetch()) {
@@ -489,6 +520,17 @@ final class Operacoes
         }
         if ((int) $linha['ativo'] !== 1 && $id !== $atual) {
             throw new InvalidArgumentException('O cadastro escolhido para ' . $rotulo . ' está inativo.');
+        }
+    }
+
+    private static function exigirOperadorLivre(string $operador, int $ordemId): void
+    {
+        $outra = self::ordemDoOperador($operador, $ordemId);
+        if ($outra !== null) {
+            throw new InvalidArgumentException('Esse operador já está carregando a ' . $outra . '. Finalize aquela carga antes.');
+        }
+        if (Lavra::abertoDo($operador) !== null) {
+            throw new InvalidArgumentException('Esse operador está com uma viagem aberta na lavra. Encerre a viagem antes.');
         }
     }
 
