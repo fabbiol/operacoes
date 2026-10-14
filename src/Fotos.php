@@ -170,6 +170,10 @@ final class Fotos
         if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) {
             return false;
         }
+        // Biblioteca sem WebP: a foto WebP fica como veio, como antes.
+        if ($mime === 'image/webp' && (!function_exists('imagecreatefromwebp') || !function_exists('imagewebp'))) {
+            return false;
+        }
         // Sem a extensão exif não dá para saber o giro: regravar a foto a deixaria deitada para sempre.
         return $mime !== 'image/jpeg' || function_exists('exif_read_data');
     }
@@ -193,14 +197,12 @@ final class Fotos
                 return null;
             }
         }
-        if ($mime === 'image/webp' && !function_exists('imagecreatefromwebp')) {
-            return null;
-        }
         $imagem = @imagecreatefromstring($dados);
         if ($imagem === false) {
             return null;
         }
-        $paleta = !imageistruecolor($imagem);
+        // PNG de poucas cores e sem transparência pode voltar para paleta (a conversão perderia o fundo transparente).
+        $paleta = !imageistruecolor($imagem) && imagecolortransparent($imagem) === -1;
         $largura = imagesx($imagem);
         $altura = imagesy($imagem);
         $fator = min(1.0, $lado / max($largura, $altura));
@@ -220,7 +222,7 @@ final class Fotos
             $destino = self::endireitar($destino, self::orientacao($dados));
         }
         if ($saida === 'image/png' && $paleta) {
-            // Desenho em PNG de poucas cores continua com paleta; em cores cheias ficaria maior que o original.
+            // Em cores cheias ficaria maior que o original.
             imagetruecolortopalette($destino, false, 256);
         }
 
