@@ -80,6 +80,10 @@ function despachar(string $path, string $method): void
         redirect('/login');
     }
 
+    if ($path === 'sair') {
+        redirect('/');
+    }
+
     if ($path === 'maquina') {
         tela_maquina($method);
         return;

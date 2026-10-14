@@ -406,6 +406,34 @@ function redirect(string $caminho): never
     exit;
 }
 
+function requisicao_https(): bool
+{
+    return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+}
+
+function caminho_de_volta(): string
+{
+    $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+    $partes = $referer !== '' ? parse_url($referer) : false;
+    if (!is_array($partes) || ($partes['host'] ?? '') === '' || ($partes['host'] ?? '') !== parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST)) {
+        return '/';
+    }
+    $caminho = (string) ($partes['path'] ?? '/');
+    if (preg_match('/[\\\\\x00-\x1f]/', $caminho)) {
+        return '/';
+    }
+    $base = rtrim(env_str('APP_BASE'), '/');
+    if ($base !== '' && str_starts_with($caminho, $base)) {
+        $caminho = substr($caminho, strlen($base));
+    }
+    $caminho = '/' . ltrim($caminho, '/');
+    if (isset($partes['query']) && $partes['query'] !== '') {
+        $caminho .= '?' . $partes['query'];
+    }
+
+    return $caminho;
+}
+
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf'])) {
@@ -424,8 +452,8 @@ function csrf_check(): void
 {
     $enviado = (string) ($_POST['_csrf'] ?? '');
     if ($enviado === '' || !hash_equals(csrf_token(), $enviado)) {
-        http_response_code(419);
-        exit('A sessão expirou. Volte e tente de novo.');
+        flash_set('A tela estava desatualizada. Confira e tente de novo.', 'atencao');
+        redirect(caminho_de_volta());
     }
 }
 

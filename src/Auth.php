@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 final class Auth
 {
+    public const SESSAO_SEGUNDOS = 50400;
     private const MAX_TENTATIVAS = 5;
     private const BLOQUEIO_SEGUNDOS = 60;
-    private const SESSAO_SEGUNDOS = 50400;
 
     private static ?array $eu = null;
     private static bool $euCarregado = false;
@@ -232,6 +232,7 @@ final class Auth
         }
 
         $_SESSION['visto'] = time();
+        self::renovarCookie();
     }
 
     public static function sair(): void
@@ -255,6 +256,24 @@ final class Auth
         }
 
         return $nome;
+    }
+
+    /** O cookie da sessão vale o turno e é renovado enquanto o tablet está em uso. */
+    private static function renovarCookie(): void
+    {
+        if ((int) ($_SESSION['cookie_em'] ?? 0) > time() - 600 || headers_sent()) {
+            return;
+        }
+        $params = session_get_cookie_params();
+        setcookie(session_name(), (string) session_id(), [
+            'expires' => time() + self::SESSAO_SEGUNDOS,
+            'path' => $params['path'],
+            'domain' => $params['domain'],
+            'secure' => (bool) $params['secure'],
+            'httponly' => (bool) $params['httponly'],
+            'samesite' => (string) ($params['samesite'] ?? 'Strict'),
+        ]);
+        $_SESSION['cookie_em'] = time();
     }
 
     private static function garantirUsuarios(): void
@@ -298,7 +317,7 @@ final class Auth
         $_SESSION['auth'] = true;
         $_SESSION['usuario'] = $nome;
         $_SESSION['visto'] = time();
-        unset($_SESSION['login_falhas'], $_SESSION['login_bloqueado_ate'], $_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno']);
+        unset($_SESSION['login_falhas'], $_SESSION['login_bloqueado_ate'], $_SESSION['maquina'], $_SESSION['retroescavadeira_id'], $_SESSION['horimetro_turno'], $_SESSION['cookie_em']);
     }
 
     private static function eu(): ?array

@@ -22,6 +22,10 @@ Abra `http://127.0.0.1:8081`. O primeiro acesso fica em `APP_USUARIOS`, no forma
 
 O motorista abre a lavra. O operador abre a lavra e o pátio. Quem está nas duas funções abre as duas operações. O administrativo visualiza e faz tudo, inclusive os cadastros de caminhões, pás e retroescavadeiras, a fila de carregamento, os materiais e as pessoas.
 
+## Sessão
+
+As sessões ficam em `storage/sessoes` e duram o turno (14 horas). Ao publicar esta versão pela primeira vez, todos precisam entrar de novo, e quem estiver com máquina assumida perde o horímetro de entrada daquele turno. Publique entre turnos.
+
 ## Docker
 
 ```bash

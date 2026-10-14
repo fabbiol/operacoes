@@ -5,3 +5,5 @@ storage/.schema-ok
 storage/fotos/
 .DS_Store
 Thumbs.db
+storage/sessoes/
+storage/.htaccess
