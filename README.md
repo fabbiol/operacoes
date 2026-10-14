@@ -36,6 +36,14 @@ Cinco senhas erradas seguidas para o mesmo usuário bloqueiam a entrada por 15 m
 
 As sessões ficam em `storage/sessoes` e duram o turno (14 horas). Ao publicar esta versão pela primeira vez, todos precisam entrar de novo, e quem estiver com máquina assumida perde o horímetro de entrada daquele turno. Publique entre turnos.
 
+## Máquinas
+
+Quem está com cada máquina fica gravado no banco (tabela `maquina_posse`), com o horímetro de entrada. A máquina continua com a pessoa se a sessão cair ou se ela entrar por outro tablet, e ninguém mais consegue assumir a mesma máquina até ela soltar.
+
+Se alguém foi embora sem soltar, o administrativo abre a ficha da máquina e usa **Liberar máquina**. Com a leitura do painel, o turno da pessoa é gravado; sem leitura, a máquina só fica livre. Uma máquina com alguém não pode ser desativada.
+
+O administrativo não consegue iniciar uma carga com uma máquina que está com outra pessoa, nem para um operador que está com outra máquina.
+
 ## Docker
 
 ```bash

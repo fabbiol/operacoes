@@ -374,6 +374,7 @@ final class Operacoes
         if (isset($emUso[$paId])) {
             throw new InvalidArgumentException('Essa pá já está carregando a ' . $emUso[$paId] . '. Finalize aquela carga antes.');
         }
+        Posse::exigirCompativel('pa', $paId, $operador);
 
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
@@ -410,6 +411,7 @@ final class Operacoes
         if (isset($emUso[$retroId])) {
             throw new InvalidArgumentException('Essa retroescavadeira já está carregando o ' . $emUso[$retroId] . '.');
         }
+        Posse::exigirCompativel('retro', $retroId, $operador);
 
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos

@@ -76,3 +76,20 @@
         <button type="submit" class="btn primario">Confirmar</button>
     </form>
 <?php endif; ?>
+
+<?php if (($comOutros ?? []) !== []): ?>
+    <section class="bloco com-outros">
+        <h2>Com outras pessoas</h2>
+        <ul class="cadastro">
+            <?php foreach ($comOutros as $outra): ?>
+                <li>
+                    <span class="cadastro-texto">
+                        <strong><?= e((string) $outra['nome']) ?></strong>
+                        <small>Com <?= e((string) $outra['usuario']) ?> desde <?= e(quando((string) $outra['desde'])) ?></small>
+                    </span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+        <p class="nota">Se a pessoa já foi embora sem soltar, o administrativo libera a máquina na ficha dela.</p>
+    </section>
+<?php endif; ?>

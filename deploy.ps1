@@ -246,7 +246,7 @@ $lista.Add([pscustomobject]@{
     Arquivo    = $schema
 })
 Add-Arquivos $lista (Join-Path $raiz 'views') 'pai' ($site.appDirectory + '/views') @('trecho_operador.php', 'tablets.php')
-Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src') @('Tablets.php', 'helpers.php', 'Db.php') @('Auth.php', 'bootstrap.php')
+Add-Arquivos $lista (Join-Path $raiz 'src') 'pai' ($site.appDirectory + '/src') @('Tablets.php', 'Posse.php', 'helpers.php', 'Db.php') @('Auth.php', 'bootstrap.php')
 Add-Arquivos $lista (Join-Path $raiz 'public') 'subdominio' '' @() @('index.php')
 
 Write-Host ("{0} arquivos para {1}" -f $lista.Count, $site.domain)

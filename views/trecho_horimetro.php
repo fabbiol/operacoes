@@ -1,6 +1,24 @@
 <section class="bloco horimetro">
     <h2>Horímetro</h2>
     <p class="meta">Atual: <?= e(Horimetro::texto($horimetro['atual'])) ?></p>
+    <?php $posse = $horimetro['posse'] ?? null; ?>
+    <?php if ($posse !== null): ?>
+        <div class="posse">
+            <p class="meta">Com <strong><?= e((string) $posse['usuario']) ?></strong> desde <?= e(quando((string) $posse['iniciado_em'])) ?><?php if ($posse['entrada'] !== null): ?> · entrou com <?= e(Horimetro::texto((float) $posse['entrada'])) ?><?php else: ?> · sem leitura de entrada<?php endif; ?></p>
+            <details class="anular">
+                <summary>Liberar máquina</summary>
+                <form method="post" action="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/liberar')) ?>" class="formulario">
+                    <?= csrf_field() ?>
+                    <p class="nota">Use quando a pessoa foi embora sem soltar. Com a leitura do painel, o turno dela é gravado.</p>
+                    <label class="campo">
+                        <span>Horímetro agora (opcional)</span>
+                        <input type="text" name="leitura" inputmode="decimal" maxlength="10" placeholder="h">
+                    </label>
+                    <button type="submit" class="btn perigo">Liberar a máquina</button>
+                </form>
+            </details>
+        </div>
+    <?php endif; ?>
     <form method="post" action="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/horimetro')) ?>" class="formulario">
         <?= csrf_field() ?>
         <label class="campo">

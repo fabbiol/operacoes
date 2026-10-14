@@ -106,6 +106,7 @@ final class Horimetro
         if ($comando->rowCount() < 1) {
             throw new InvalidArgumentException('Essa leitura não é desta máquina ou já foi anulada.');
         }
+        Posse::esquecerEntrada($leituraId);
     }
 
     /** @return list<array<string, mixed>> */
@@ -206,6 +207,7 @@ final class Horimetro
             'rotulo' => self::rotuloEstado($pior),
             'historico' => self::historico($tipo, $id),
             'turnos' => self::turnosDaMaquina($tipo, $id),
+            'posse' => Posse::daMaquina($tipo, $id),
         ];
     }
 
@@ -294,6 +296,7 @@ final class Horimetro
                     'chave' => $chave,
                     'nome' => (string) $item['nome'],
                     'atual' => $ficha['atual'],
+                    'posse' => $ficha['posse'],
                     'estado' => $ficha['estado'],
                     'rotulo' => $ficha['rotulo'],
                     'planos' => array_values(array_filter(

@@ -350,6 +350,8 @@ h2 { margin: 0 0 10px; font-size: 18px; }
 .cadastro li .anular summary { cursor: pointer; color: var(--saida); font-weight: 700; }
 .cadastro li .anular[open] { flex: 1 1 100%; }
 .cadastro li:has(.anular[open]) { flex-wrap: wrap; }
+.posse { margin: 8px 0 12px; padding: 10px 12px; border-left: 4px solid var(--saida); background: #fdf3f1; }
+.posse .anular summary { cursor: pointer; color: var(--saida); font-weight: 700; padding: 6px 0; }
 
 .selo {
     display: inline-flex;

@@ -195,12 +195,16 @@ final class Cadastro
         if ((int) $atual['ativo'] === 1 && self::emTrabalho($chave, $id)) {
             throw new InvalidArgumentException('Essa máquina está em trabalho agora. Encerre a viagem ou a carga antes de desativar.');
         }
+        $posse = (int) $atual['ativo'] === 1 && !empty($tipo['ficha']) ? Posse::daMaquina(Horimetro::tipoDaChave($chave), $id) : null;
+        if ($posse !== null) {
+            throw new InvalidArgumentException('Essa máquina está com ' . $posse['usuario'] . '. Libere a máquina antes de desativar.');
+        }
         $sql = sprintf('UPDATE %s SET ativo = ? WHERE id = ?', $tipo['tabela']);
         $comando = Db::pdo()->prepare($sql);
         $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
     }
 
-    private static function emTrabalho(string $chave, int $id): bool
+    public static function emTrabalho(string $chave, int $id): bool
     {
         $sql = match ($chave) {
             'caminhoes' => "SELECT 1 FROM ciclos_lavra WHERE caminhao_id = ? AND status IN ('na_fila', 'carregando', 'em_viagem', 'no_britador', 'retornando') LIMIT 1",

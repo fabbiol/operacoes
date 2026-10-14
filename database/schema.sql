@@ -217,3 +217,20 @@ CREATE TABLE IF NOT EXISTS login_falhas (
     KEY idx_falha_ip (ip, criado_em),
     KEY idx_falha_quando (criado_em)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Quem está com cada máquina agora. Uma linha por máquina e por pessoa; some quando a máquina é solta.
+CREATE TABLE IF NOT EXISTS maquina_posse (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    usuario_id INT UNSIGNED NOT NULL,
+    usuario VARCHAR(40) NOT NULL,
+    entrada DECIMAL(10,1) NULL,
+    entrada_id INT UNSIGNED NULL,
+    iniciado_em DATETIME NOT NULL,
+    precisa_soltar TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_posse_maquina (tipo, maquina_id),
+    UNIQUE KEY uniq_posse_usuario (usuario_id),
+    KEY idx_posse_nome (usuario)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
