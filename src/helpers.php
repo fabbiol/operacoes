@@ -266,11 +266,12 @@ function maquina_adotar(string $tipo, int $id): void
     });
 }
 
+/** Máquinas que a pessoa pode usar: sem trabalho em andamento e sem estar com outra pessoa. */
 function maquinas_livres(): array
 {
     $lista = [];
     $tipos = maquina_tipos_do_usuario();
-    $tomadas = Posse::todas();
+    $tomadas = array_filter(Posse::todas(), static fn (array $posse): bool => (int) $posse['usuario_id'] !== Auth::id());
     if (in_array('caminhao', $tipos, true)) {
         $ocupados = [];
         foreach (Lavra::abertos() as $ciclo) {
@@ -457,6 +458,19 @@ function horimetro_soltar(string $leitura): void
             throw $e;
         }
     });
+}
+
+/**
+ * Só para a publicação: no instante entre o envio deste arquivo e o do index.php novo,
+ * o index.php antigo ainda chama estas duas funções.
+ */
+function maquina_definir(string $tipo, int $id): void
+{
+    maquina_adotar($tipo, $id);
+}
+
+function maquina_limpar(): void
+{
 }
 
 function maquinas_do_usuario(): array
