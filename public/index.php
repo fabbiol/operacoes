@@ -1566,7 +1566,9 @@ function leitura_da_nota(array $nota, ?int $materialId): array
             : 'Não achei a unidade na nota. Confira a unidade.';
     }
     if ($nota['emitida_em'] === null) {
-        $avisos[] = 'Não achei a hora em que a nota foi emitida. Preencha, se souber.';
+        $avisos[] = !empty($nota['data_emissao'])
+            ? 'O PDF desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
+            : 'Não achei a hora em que a nota foi emitida. Preencha "Nota emitida em", se souber.';
     }
     $repetida = Operacoes::ordemComNota($nota['chave'], $nota['nf']);
     if ($repetida !== null) {
