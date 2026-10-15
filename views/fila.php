@@ -9,6 +9,7 @@ $filtros = [
     'liberado' => ['Liberadas', $contagens['liberado'] ?? 0],
     'carregando' => ['Carregando', $contagens['carregando'] ?? 0],
     'aguardando_conferencia' => ['Conferir', $contagens['aguardando_conferencia'] ?? 0],
+    'saldo' => ['Saldo a buscar', $contagens['saldo'] ?? 0],
     'concluido' => ['Concluídas', $contagens['concluido'] ?? 0],
     'cancelado' => ['Canceladas', $contagens['cancelado'] ?? 0],
     'todas' => ['Todas', array_sum($contagens)],
@@ -56,7 +57,13 @@ $filtros = [
                     <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
                 </header>
                 <p class="cliente"><?= e($ordem['cliente']) ?></p>
-                <p class="carga"><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                <p class="carga"><?php
+                    $quanto = $ordem['quantidade_carregada'] !== null ? (string) $ordem['quantidade_carregada'] : (string) $ordem['quantidade_autorizada'];
+                    echo e(((int) ($ordem['fracionado'] ?? 0) === 1 && $ordem['quantidade_carregada'] === null ? 'Saldo ' : '') . formatar_quantidade($quanto) . ' ' . unidade_rotulo($ordem['unidade']) . ' · ' . $ordem['material_nome']);
+                ?></p>
+                <?php if ((int) ($ordem['fracionado'] ?? 0) === 1): ?>
+                    <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span></p>
+                <?php endif; ?>
                 <p class="meta">Pedido <?= e($ordem['pedido']) ?> · NF <?= e($ordem['nf']) ?><?php if ($ordem['pa_nome']): ?> · <?= e($ordem['pa_nome']) ?><?php endif; ?> · <?= e(quando($ordem['data'])) ?></p>
             </a>
         <?php endforeach; ?>

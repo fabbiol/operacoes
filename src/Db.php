@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-nota-fiscal';
+    private const MIGRACOES = '2026-10-fracionado';
 
     private static ?PDO $pdo = null;
 
@@ -111,6 +111,7 @@ final class Db
             self::garantirPessoa($pdo);
             self::garantirEscavadeira($pdo);
             self::garantirNotaFiscal($pdo);
+            self::garantirFracionado($pdo);
             self::garantirFicha($pdo);
             self::garantirRetro($pdo);
             self::garantirEstrada($pdo);
@@ -243,6 +244,43 @@ final class Db
         }
         if (!isset($indices['idx_fila_nf_chave'])) {
             $pdo->exec('ALTER TABLE fila_carregamentos ADD KEY idx_fila_nf_chave (nf_chave)');
+        }
+    }
+
+    /**
+     * Carregamento fracionado: uma nota para o total, buscada em várias viagens. Cada viagem é uma linha da fila,
+     * ligada à primeira (ordem_principal_id), com a quantidade que o operador informou ao finalizar.
+     * A viagem seguinte espera o cliente voltar na situação "saldo". A nota guarda também o valor (nf_valor).
+     */
+    private static function garantirFracionado(PDO $pdo): void
+    {
+        $colunas = self::colunasDe($pdo, 'fila_carregamentos');
+        $novas = [
+            'nf_valor' => 'DECIMAL(12,2) NULL AFTER nf_chave',
+            'fracionado' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER unidade',
+            'ordem_principal_id' => 'INT UNSIGNED NULL AFTER fracionado',
+            'viagem' => 'SMALLINT UNSIGNED NOT NULL DEFAULT 1 AFTER ordem_principal_id',
+            'quantidade_carregada' => 'DECIMAL(12,2) NULL AFTER viagem',
+        ];
+        foreach ($novas as $coluna => $tipo) {
+            if (!in_array($coluna, $colunas, true)) {
+                $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN ' . $coluna . ' ' . $tipo);
+            }
+        }
+        $indices = [];
+        foreach ($pdo->query('SHOW INDEX FROM fila_carregamentos') as $indice) {
+            $indices[(string) ($indice['Key_name'] ?? $indice['key_name'])] = true;
+        }
+        if (!isset($indices['idx_fila_principal'])) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD KEY idx_fila_principal (ordem_principal_id)');
+        }
+        $status = $pdo->query("SHOW COLUMNS FROM fila_carregamentos LIKE 'status'")->fetch();
+        if ($status && !str_contains((string) ($status['Type'] ?? $status['type']), "'saldo'")) {
+            $pdo->exec(
+                "ALTER TABLE fila_carregamentos MODIFY COLUMN status ENUM(
+                    'aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'concluido', 'cancelado', 'saldo'
+                ) NOT NULL DEFAULT 'aguardando_autorizacao'"
+            );
         }
     }
 

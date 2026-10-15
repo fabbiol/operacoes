@@ -1,6 +1,10 @@
 <div class="monitor-topo">
-    <p class="monitor-nota">O caminhão na estrada acompanha a etapa do ciclo, o tempo desde o último toque e a distância de cada trecho.</p>
-    <button type="button" id="ampliar" class="ampliar">Ampliar</button>
+    <p class="monitor-nota">Para a TV: toque em Tela cheia. Os números se atualizam sozinhos; se a conexão cair, a TV avisa desde quando está sem atualizar.</p>
+    <label class="monitor-opcao">
+        <input type="checkbox" id="mostrar-vendas">
+        <span>Mostrar o vendido do dia (R$) nesta tela</span>
+    </label>
+    <button type="button" id="ampliar" class="ampliar">Tela cheia</button>
 </div>
 <form class="estrada-medidas" method="post" action="<?= e(url('dashboard/estrada')) ?>">
     <?= csrf_field() ?>
@@ -13,6 +17,6 @@
     <button type="submit">Salvar</button>
     <p>Informe os quilômetros medidos. A ida e o retorno podem ter comprimentos diferentes. O caminhão para no fim do trecho até o próximo toque.</p>
 </form>
-<div id="monitor" class="monitor"></div>
+<div id="monitor" class="tv"></div>
 <script id="monitor-dados" type="application/json" data-url="<?= e(url('dashboard/dados')) ?>"><?= json_encode($instantaneo, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
 <script src="<?= e(asset('assets/dashboard.js')) ?>"></script>

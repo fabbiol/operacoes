@@ -18,6 +18,39 @@ A hora em que o caminhão foi carregado continua vindo do pátio (início e fim 
 
 Ler o PDF precisa do programa `pdftotext` (pacote `poppler-utils`), que já vem no Docker. Num servidor sem ele (por exemplo a hospedagem compartilhada da Hostinger), use o XML.
 
+## Carregamento fracionado
+
+Quando o cliente leva o material da nota em várias viagens (por exemplo, uma nota de 1,5 m³ buscada em 3 viagens de 0,5 m³), marque **Carregamento fracionado** ao lançar a ordem. A nota é lançada uma vez só, com a quantidade total.
+
+- **No pátio**: ao finalizar, o operador informa **quanto foi carregado nesta viagem**. O sistema não aceita mais do que o saldo da nota.
+- **O que sobra**: vira a próxima viagem (CAR-012-2, CAR-012-3...), com a situação **Saldo a buscar**. Ela não entra na fila do pátio sozinha.
+- **Quando o cliente volta**: toque em **O cliente voltou: liberar viagem** na ficha da ordem, ou em **Liberar viagem** no **Controle de carga**. A viagem vai para a fila do pátio com o saldo que falta.
+- **Cliente não vai buscar o resto**: na viagem com saldo, **Encerrar saldo** (cancela só o que faltava; o que já foi carregado continua).
+- A ficha da ordem mostra todas as viagens da nota, com quanto cada uma levou e o saldo.
+
+## Controle de carga e vendido do dia
+
+**Fila › Controle** (só administrativo) mostra, para o dia escolhido:
+
+- **Vendido no dia**: a soma do valor das notas emitidas no dia (a data e hora da nota; sem ela, o dia do lançamento). Cada nota conta uma vez, mesmo fracionada. Notas canceladas não contam. Se alguma nota estiver sem valor, a tela avisa quantas.
+- **Carregado no dia**: o que saiu do pátio, em t e m³, contando cada viagem do fracionado pelo que foi carregado de verdade.
+- **Saldo a buscar**: as notas fracionadas esperando o cliente voltar, com o botão **Liberar viagem**.
+- **Notas do dia**: cada nota com o vendido, o carregado, o saldo, o valor e a situação.
+
+O **valor da nota** vem sozinho ao ler o XML (valor total da nota) ou o PDF (VALOR TOTAL DA NOTA). Também dá para digitar no campo **Valor da nota (R$)** da ordem. O Painel mostra o **Vendido hoje** e quantas notas têm saldo a buscar.
+
+## Monitor da TV
+
+A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. Toque em **Tela cheia** na TV.
+
+- **No alto**: o carregado hoje (o número maior), a fila do pátio com a maior espera, quantas pás estão carregando, as viagens da lavra e os caminhões em ciclo.
+- **Pátio**: cada pá com o cliente e há quanto tempo está carregando; a fila com o tempo de espera de cada cliente. Espera de 30 minutos ou mais fica **amarela**, de 1 hora ou mais fica **vermelha**. O que não cabe na tela aparece como "+ N na fila".
+- **Lavra**: o circuito com os caminhões (azul = carregado indo para o britador, cinza = voltando vazio, contorno = na lavra) e a lista do que cada caminhão está fazendo.
+- **Por hora**: cargas do pátio e viagens da lavra em cada hora do dia; a hora atual em azul.
+- Os relógios contam sozinhos e os números se atualizam a cada 8 segundos. Se a internet da TV cair, aparece **"Sem atualização desde ..."** em amarelo; depois de 3 minutos os números ficam apagados, para ninguém ler número velho como se fosse de agora.
+- **Vendido do dia (R$)**: fica escondido na TV, porque os motoristas também veem a tela. Para mostrar, marque **Mostrar o vendido do dia (R$) nesta tela** (vale só para aquele aparelho).
+- A imagem anda 2 pixels de tempos em tempos para não marcar a tela, e a página recarrega sozinha às 3h da manhã.
+
 ## Local no Windows
 
 O MariaDB da máquina precisa estar no ar (o mesmo da porta `3307`). Crie o banco uma vez:

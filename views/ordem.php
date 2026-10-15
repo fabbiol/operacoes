@@ -10,7 +10,17 @@
     <div><dt>Cliente</dt><dd><?= e($ordem['cliente']) ?></dd></div>
     <div><dt>Pedido</dt><dd><?= e($ordem['pedido']) ?></dd></div>
     <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php endif; ?></dd></div>
-    <div><dt>Material</dt><dd><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></dd></div>
+    <div><dt>Material</dt><dd><?php
+        $fracionado = (int) ($ordem['fracionado'] ?? 0) === 1;
+        $rotuloQuantidade = $fracionado && (int) ($ordem['ordem_principal_id'] ?? 0) > 0 ? 'saldo ' : '';
+        echo e($rotuloQuantidade . formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . unidade_rotulo($ordem['unidade']) . ' · ' . $ordem['material_nome']);
+        if ($ordem['quantidade_carregada'] !== null) {
+            echo e(' · carregado nesta viagem: ' . formatar_quantidade((string) $ordem['quantidade_carregada']) . ' ' . unidade_rotulo($ordem['unidade']));
+        }
+    ?></dd></div>
+    <?php if ($ordem['nf_valor'] !== null): ?>
+        <div><dt>Valor da nota</dt><dd>R$ <?= e(formatar_quantidade((string) $ordem['nf_valor'])) ?></dd></div>
+    <?php endif; ?>
     <div><dt><?= (int) ($ordem['retroescavadeira_id'] ?? 0) > 0 ? 'Escavadeira hidráulica' : 'Pá carregadeira' ?></dt><dd><?= e($ordem['pa_nome'] ?: 'Escolhida ao iniciar') ?></dd></div>
     <div><dt>Operador</dt><dd><?= e($ordem['operador'] ?: '—') ?></dd></div>
 </dl>
@@ -47,6 +57,35 @@
     </li>
 </ol>
 
+<?php if (!empty($grupo)): ?>
+    <section class="bloco viagens">
+        <h2>Fracionado: viagens desta nota</h2>
+        <?php $unidade = unidade_rotulo((string) $ordem['unidade']); ?>
+        <dl class="ficha">
+            <div><dt>Total da nota</dt><dd><?= e(formatar_quantidade($grupo['total']) . ' ' . $unidade) ?></dd></div>
+            <div><dt>Já carregado</dt><dd><?= e(formatar_quantidade($grupo['carregado']) . ' ' . $unidade) ?></dd></div>
+            <div><dt>Saldo</dt><dd><?= e(formatar_quantidade($grupo['saldo']) . ' ' . $unidade) ?><?= $grupo['encerrado'] ? ' (encerrado)' : '' ?></dd></div>
+        </dl>
+        <div class="tabela-rolagem">
+            <table class="tabela">
+                <thead><tr><th>Viagem</th><th>Ordem</th><th>Situação</th><th>Carregado</th><th>Fim</th><th>Operador</th></tr></thead>
+                <tbody>
+                    <?php foreach ($grupo['viagens'] as $viagem): ?>
+                        <tr class="<?= (int) $viagem['id'] === (int) $ordem['id'] ? 'atual' : '' ?>">
+                            <td><?= (int) $viagem['viagem'] ?></td>
+                            <td><a href="<?= e(url('ordens/' . $viagem['id'])) ?>"><?= e($viagem['ordem']) ?></a></td>
+                            <td><span class="selo status-<?= e($viagem['status']) ?>"><?= e(status_rotulo($viagem['status'])) ?></span></td>
+                            <td><?= $viagem['quantidade_carregada'] !== null ? e(formatar_quantidade((string) $viagem['quantidade_carregada']) . ' ' . $unidade) : '—' ?></td>
+                            <td><?= $viagem['fim_carregamento'] ? e(quando((string) $viagem['fim_carregamento'])) : '—' ?></td>
+                            <td><?= e($viagem['operador'] ?: '—') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+<?php endif; ?>
+
 <?php if ($ordem['observacoes']): ?>
     <section class="bloco">
         <h2>Observações</h2>
@@ -55,10 +94,10 @@
 <?php endif; ?>
 
 <div class="botoes">
-    <?php if ($ordem['status'] === 'aguardando_autorizacao'): ?>
+    <?php if ($ordem['status'] === 'aguardando_autorizacao' || $ordem['status'] === 'saldo'): ?>
         <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/liberar')) ?>">
             <?= csrf_field() ?>
-            <button type="submit" class="btn primario">Liberar ordem</button>
+            <button type="submit" class="btn primario"><?= $ordem['status'] === 'saldo' ? 'O cliente voltou: liberar viagem' : 'Liberar ordem' ?></button>
         </form>
     <?php endif; ?>
     <?php if ($ordem['status'] === 'aguardando_conferencia'): ?>
@@ -67,8 +106,8 @@
             <button type="submit" class="btn concluir">Concluir</button>
         </form>
     <?php endif; ?>
-    <?php if (in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia'], true)): ?>
-        <a class="btn perigo" href="<?= e(url('ordens/' . $ordem['id'] . '/cancelar')) ?>">Cancelar</a>
+    <?php if (in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true)): ?>
+        <a class="btn perigo" href="<?= e(url('ordens/' . $ordem['id'] . '/cancelar')) ?>"><?= $ordem['status'] === 'saldo' ? 'Encerrar saldo' : 'Cancelar' ?></a>
     <?php endif; ?>
     <a class="btn secundario" href="<?= e(url('fila')) ?>">Voltar à fila</a>
 </div>

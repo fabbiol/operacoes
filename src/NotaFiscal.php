@@ -125,6 +125,7 @@ final class NotaFiscal
             'cliente' => self::texto($nota, './*[local-name()="dest"]/*[local-name()="xNome"]'),
             'pedido' => $pedido,
             'emitida_em' => self::horaLocal($emissao),
+            'valor' => self::texto($nota, './*[local-name()="total"]/*[local-name()="ICMSTot"]/*[local-name()="vNF"]'),
         ], $itens);
     }
 
@@ -193,6 +194,7 @@ final class NotaFiscal
             'pedido' => self::pedidoNoTexto($adicionais !== '' ? $adicionais : $texto),
             'emitida_em' => $emitida,
             'data_emissao' => $dataEmissao,
+            'valor' => self::valorDoPdf($linhas, $texto),
         ], $itens);
     }
 
@@ -426,6 +428,28 @@ final class NotaFiscal
         return $itens;
     }
 
+    /** Valor total da nota: embaixo de "VALOR TOTAL DA NOTA" (ou "V. TOTAL DA NOTA"), ou no canhoto. */
+    private static function valorDoPdf(array $linhas, string $texto): ?string
+    {
+        foreach ($linhas as $i => $linha) {
+            foreach (['VALORTOTALDANOTA', 'V.TOTALDANOTA', 'VTOTALDANOTA', 'VLR.TOTALDANOTA'] as $titulo) {
+                $posicao = self::posicaoTitulo($linha, $titulo);
+                if ($posicao === null) {
+                    continue;
+                }
+                $valor = self::valorNaColuna($linhas, $i, $posicao);
+                if ($valor !== null && preg_match('/^(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})$/u', $valor, $achado)) {
+                    return str_replace(',', '.', str_replace('.', '', $achado[1]));
+                }
+            }
+        }
+        if (preg_match('/VALOR\s+TOTAL\s*:\s*(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/u', $texto, $achado)) {
+            return str_replace(',', '.', str_replace('.', '', $achado[1]));
+        }
+
+        return null;
+    }
+
     /** O texto dos dados adicionais (informações complementares), onde costuma estar o pedido. */
     private static function dadosAdicionais(array $linhas): string
     {
@@ -564,6 +588,7 @@ final class NotaFiscal
             'unidade_nota' => $unidadeNota,
             'outros_materiais' => array_keys($outros),
             'emitida_em' => $dados['emitida_em'] ?? null,
+            'valor' => isset($dados['valor']) && is_numeric($dados['valor']) && (float) $dados['valor'] > 0 ? round((float) $dados['valor'], 2) : null,
             'data_emissao' => $dados['data_emissao'] ?? (isset($dados['emitida_em']) ? substr((string) $dados['emitida_em'], 0, 10) : null),
         ];
     }

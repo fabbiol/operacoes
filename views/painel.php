@@ -7,6 +7,19 @@
 </section>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
+<section class="vendas-dia">
+    <a class="venda" href="<?= e(url('controle')) ?>">
+        <span>Vendido hoje</span>
+        <strong>R$ <?= e(formatar_quantidade($vendas['valor'])) ?></strong>
+        <small><?= (int) $vendas['notas'] ?> <?= (int) $vendas['notas'] === 1 ? 'nota' : 'notas' ?><?= $vendas['sem_valor'] > 0 ? ' · ' . (int) $vendas['sem_valor'] . ' sem valor' : '' ?></small>
+    </a>
+    <a class="venda" href="<?= e(url('fila?situacao=saldo')) ?>">
+        <span>Saldo a buscar</span>
+        <strong><?= (int) $saldos ?></strong>
+        <small><?= (int) $saldos === 1 ? 'nota fracionada esperando o cliente' : 'notas fracionadas esperando o cliente' ?></small>
+    </a>
+</section>
+
 <?php if ($autorizar > 0 || $conferir > 0): ?>
     <nav class="parado" aria-label="Esperando o administrativo">
         <?php if ($autorizar > 0): ?>
