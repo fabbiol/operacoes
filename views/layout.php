@@ -1,7 +1,9 @@
 <?php
 try {
     $maquinasMenu = Auth::ok() ? maquinas_do_usuario() : [];
-    $oferecerApp = ($corpo ?? '') !== 'dashboard' && Tablets::autorizado();
+    // Dentro do app Android a faixa de baixar o app não aparece.
+    $noApp = str_contains((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 'ProsperaApp');
+    $oferecerApp = ($corpo ?? '') !== 'dashboard' && !$noApp && Tablets::autorizado();
 } catch (Throwable) {
     // Banco fora do ar: a tela de erro aparece mesmo assim.
     $maquinasMenu = [];
@@ -94,7 +96,7 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
             <div id="instalar" class="instalar" hidden>
                 <p><strong>Instale o app da Próspera neste tablet.</strong> Ele abre pelo ícone, em tela cheia.</p>
                 <div class="instalar-botoes">
-                    <button type="button" class="btn primario" data-instalar>Instalar</button>
+                    <a class="btn primario" href="<?= e(url('app')) ?>">Baixar o app</a>
                     <button type="button" class="btn secundario" data-depois>Agora não</button>
                 </div>
             </div>

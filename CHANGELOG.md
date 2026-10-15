@@ -1,5 +1,21 @@
 # O que mudou
 
+## Outubro de 2026: app Android do tablet
+
+Os tablets Positivo não oferecem "Instalar app" no Chrome, então o sistema ganhou um **app Android** de verdade: ícone da Próspera na tela inicial, tela cheia, sem a barra do Chrome. As telas continuam vindo do sistema, então as melhorias chegam sozinhas, sem instalar o app de novo.
+
+- **Baixar**: a página `/app` do sistema (por exemplo `https://operacoes.fabbiol.tech/app`) tem o botão **Baixar o app** e o passo a passo. Ela abre sem entrar no sistema.
+- **Faixa nos tablets autorizados**: "Instale o app da Próspera neste tablet" agora leva para essa página (**Baixar o app**). Dentro do app a faixa não aparece.
+- **Tela acesa**: dentro do app, quem mantém a tela acesa com máquina assumida é o próprio app.
+- **Sem conexão**: o app mostra o aviso e tenta de novo a cada 10 segundos, também na primeira vez que abre.
+- **Senhas**: o Android não oferece para guardar senhas digitadas no app.
+- O código do app fica em `android/`, e o README explica como montar uma versão nova.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. Em cada tablet: abra `/app` no Chrome, baixe e instale o app, abra pelo ícone e **autorize o tablet de novo dentro do app** (Pessoas › Tablets).
+3. Guarde o arquivo da chave do app (`prospera-app.jks`) e a senha dela num lugar seguro, fora do Git. Sem ela não dá para atualizar o app depois sem desinstalar.
+
 ## Outubro de 2026: entrada pela foto pede a senha
 
 No tablet autorizado, tocar na foto não entra mais direto. A pessoa toca na foto dela, aparece a foto com o nome e o campo **Senha de (nome)**, e ela só entra com a senha dela (a mesma cadastrada em Pessoas). Assim ninguém entra no nome de outra pessoa.

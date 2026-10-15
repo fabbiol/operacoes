@@ -752,3 +752,8 @@ body.lavra .site, body.patio .site, body.trabalhos .site { position: static; }
 .instalar[hidden] { display: none; }
 .instalar p { margin: 0; flex: 1 1 260px; }
 .instalar-botoes { display: flex; gap: 8px; }
+
+/* Página do app Android: passos numerados, fáceis de seguir no tablet. */
+.passos { margin: 0 0 22px; padding-left: 22px; display: grid; gap: 10px; }
+.passos li { padding-left: 4px; }
+.folha > h2 { margin-top: 22px; }

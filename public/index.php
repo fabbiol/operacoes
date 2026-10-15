@@ -53,6 +53,15 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    // Página para baixar o app Android do tablet. Aberta sem entrar: o tablet novo ainda não tem ninguém.
+    if ($path === 'app') {
+        render('app_android', [
+            'titulo' => 'App do tablet',
+            'noApp' => str_contains((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 'ProsperaApp'),
+        ]);
+        return;
+    }
+
     Auth::exigir();
 
     if ($path === 'sair' && $method === 'POST') {

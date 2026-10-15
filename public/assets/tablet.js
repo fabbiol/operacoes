@@ -10,8 +10,16 @@
         });
     }
 
-    // Tela acesa enquanto a pessoa está com uma máquina (e no monitor da TV). Ao soltar a máquina, a tela volta a apagar sozinha.
-    if (corpo.getAttribute('data-acesa') === '1' && navigator.wakeLock) {
+    // Dentro do app Android da Próspera quem mantém a tela acesa é o próprio app.
+    var app = window.ProsperaApp;
+    if (app && app.telaAcesa) {
+        try {
+            app.telaAcesa(corpo.getAttribute('data-acesa') === '1');
+        } catch (e) {
+            // App antigo, sem essa função: a tela segue o normal do tablet.
+        }
+    } else if (corpo.getAttribute('data-acesa') === '1' && navigator.wakeLock) {
+        // Tela acesa enquanto a pessoa está com uma máquina (e no monitor da TV). Ao soltar a máquina, a tela volta a apagar sozinha.
         var trava = null;
         var pedindo = false;
         var acender = function () {
@@ -30,34 +38,17 @@
         document.addEventListener('visibilitychange', acender);
     }
 
-    // Botão "Instalar" nos tablets autorizados, enquanto o app ainda não está instalado.
+    // Nos tablets autorizados, fora do app: a faixa que leva para baixar o app.
     var faixa = document.getElementById('instalar');
-    if (!faixa) return;
+    if (!faixa || app || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)) return;
     var CHAVE = 'operacoes-instalar-depois';
-    var adiado = function () {
-        try {
-            return Number(window.localStorage.getItem(CHAVE) || 0) > Date.now();
-        } catch (e) {
-            return false;
-        }
-    };
-    var pedido = null;
-    window.addEventListener('beforeinstallprompt', function (evento) {
-        evento.preventDefault();
-        pedido = evento;
-        if (!adiado()) faixa.hidden = false;
-    });
-    window.addEventListener('appinstalled', function () {
-        pedido = null;
-        faixa.hidden = true;
-    });
-    faixa.querySelector('[data-instalar]').addEventListener('click', function () {
-        if (!pedido) return;
-        var atual = pedido;
-        pedido = null;
-        faixa.hidden = true;
-        atual.prompt();
-    });
+    var adiado = false;
+    try {
+        adiado = Number(window.localStorage.getItem(CHAVE) || 0) > Date.now();
+    } catch (e) {
+        adiado = false;
+    }
+    if (!adiado) faixa.hidden = false;
     faixa.querySelector('[data-depois]').addEventListener('click', function () {
         faixa.hidden = true;
         try {

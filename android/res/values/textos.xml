@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nome">Próspera</string>
+    <color name="papel">#f5f3ed</color>
+    <color name="tinta">#191b1b</color>
+    <color name="ouro">#f2b705</color>
+    <color name="fundo_icone">#161717</color>
+    <style name="Tema" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/papel</item>
+        <item name="android:colorPrimaryDark">@color/papel</item>
+        <item name="android:statusBarColor">@color/papel</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorAccent">@color/ouro</item>
+    </style>
+</resources>
