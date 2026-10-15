@@ -29,4 +29,41 @@
         // O Android solta a trava quando o tablet bloqueia ou outra tela fica na frente: pede de novo ao voltar.
         document.addEventListener('visibilitychange', acender);
     }
+
+    // Botão "Instalar" nos tablets autorizados, enquanto o app ainda não está instalado.
+    var faixa = document.getElementById('instalar');
+    if (!faixa) return;
+    var CHAVE = 'operacoes-instalar-depois';
+    var adiado = function () {
+        try {
+            return Number(window.localStorage.getItem(CHAVE) || 0) > Date.now();
+        } catch (e) {
+            return false;
+        }
+    };
+    var pedido = null;
+    window.addEventListener('beforeinstallprompt', function (evento) {
+        evento.preventDefault();
+        pedido = evento;
+        if (!adiado()) faixa.hidden = false;
+    });
+    window.addEventListener('appinstalled', function () {
+        pedido = null;
+        faixa.hidden = true;
+    });
+    faixa.querySelector('[data-instalar]').addEventListener('click', function () {
+        if (!pedido) return;
+        var atual = pedido;
+        pedido = null;
+        faixa.hidden = true;
+        atual.prompt();
+    });
+    faixa.querySelector('[data-depois]').addEventListener('click', function () {
+        faixa.hidden = true;
+        try {
+            window.localStorage.setItem(CHAVE, String(Date.now() + 7 * 24 * 3600 * 1000));
+        } catch (e) {
+            // Sem como guardar: a faixa volta na próxima tela.
+        }
+    });
 })();

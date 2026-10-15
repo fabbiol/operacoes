@@ -1,9 +1,11 @@
 <?php
 try {
     $maquinasMenu = Auth::ok() ? maquinas_do_usuario() : [];
+    $oferecerApp = ($corpo ?? '') !== 'dashboard' && Tablets::autorizado();
 } catch (Throwable) {
     // Banco fora do ar: a tela de erro aparece mesmo assim.
     $maquinasMenu = [];
+    $oferecerApp = false;
 }
 // A tela fica acesa enquanto a pessoa está com uma máquina, e no monitor da TV.
 $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
@@ -88,6 +90,15 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
         <span id="conexao-leitor" class="so-leitor" role="status" aria-live="polite"></span>
     <?php endif; ?>
     <main class="folha">
+        <?php if ($oferecerApp): ?>
+            <div id="instalar" class="instalar" hidden>
+                <p><strong>Instale o app da Próspera neste tablet.</strong> Ele abre pelo ícone, em tela cheia.</p>
+                <div class="instalar-botoes">
+                    <button type="button" class="btn primario" data-instalar>Instalar</button>
+                    <button type="button" class="btn secundario" data-depois>Agora não</button>
+                </div>
+            </div>
+        <?php endif; ?>
         <?php if (!empty($flash)): ?>
             <p class="aviso <?= e($flash['tipo']) ?>"><?= e($flash['mensagem']) ?></p>
         <?php endif; ?>
