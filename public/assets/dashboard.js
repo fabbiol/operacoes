@@ -99,8 +99,10 @@
             tile('Caminhões na lavra', String(l.operacao), esperando ? esperando + ' esperando a escavadeira' : 'nenhum esperando')
         ];
         if (mostrarVendas && estado.vendas) {
+            var semValor = estado.vendas.sem_valor || 0;
             lista.push(tile('Vendido hoje', dinheiro(estado.vendas.valor),
-                estado.vendas.notas + (estado.vendas.notas === 1 ? ' nota' : ' notas')));
+                estado.vendas.notas + (estado.vendas.notas === 1 ? ' nota' : ' notas') +
+                (semValor ? ' · ' + semValor + ' sem valor' : '')));
         }
         return '<section class="tv-numeros n' + lista.length + '">' + lista.join('') + '</section>';
     }

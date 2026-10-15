@@ -39,6 +39,8 @@ Quando o cliente leva o material da nota em várias viagens (por exemplo, uma no
 
 O **valor da nota** vem sozinho ao ler o XML (valor total da nota) ou o PDF (VALOR TOTAL DA NOTA). Também dá para digitar no campo **Valor da nota (R$)** da ordem. O Painel mostra o **Vendido hoje** e quantas notas têm saldo a buscar.
 
+**Nota sem valor** (lançada antes desta função, ou digitada sem valor): não entra no vendido do dia, e o Controle avisa quantas são. Digite o valor direto na coluna **Valor** de **Notas do dia** e toque em **Salvar**, ou na ficha da ordem (**Salvar valor**). Vale também para carregamento já concluído. Na ficha dá para **Corrigir valor** depois de concluído.
+
 ## Monitor da TV
 
 A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. Toque em **Tela cheia** na TV.
@@ -49,6 +51,7 @@ A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. T
 - **Por hora**: cargas do pátio e viagens da lavra em cada hora do dia; a hora atual em azul.
 - Os relógios contam sozinhos e os números se atualizam a cada 8 segundos. Se a internet da TV cair, aparece **"Sem atualização desde ..."** em amarelo; depois de 3 minutos os números ficam apagados, para ninguém ler número velho como se fosse de agora.
 - **Vendido do dia (R$)**: fica escondido na TV, porque os motoristas também veem a tela. Para mostrar, marque **Mostrar o vendido do dia (R$) nesta tela** (vale só para aquele aparelho).
+- As letras são menores na página do Monitor (no computador do escritório) e um pouco maiores na **Tela cheia** da TV.
 - A imagem anda 2 pixels de tempos em tempos para não marcar a tela, e a página recarrega sozinha às 3h da manhã.
 
 ## Local no Windows

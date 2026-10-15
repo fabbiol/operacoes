@@ -528,6 +528,20 @@ function despachar(string $path, string $method): void
         redirect(($_POST['voltar'] ?? '') === 'controle' ? '/controle' : '/ordens/' . $m[1]);
     }
 
+    if (preg_match('#^ordens/(\d+)/valor$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            Operacoes::definirValor((int) $m[1], (string) ($_POST['nf_valor'] ?? ''));
+            flash_set('Valor da nota salvo.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        $dia = (string) ($_POST['dia'] ?? '');
+        redirect(($_POST['voltar'] ?? '') === 'controle'
+            ? '/controle' . (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) ? '?dia=' . $dia : '')
+            : '/ordens/' . $m[1]);
+    }
+
     if (preg_match('#^ordens/(\d+)/concluir$#', $path, $m) && $method === 'POST') {
         csrf_check();
         try {

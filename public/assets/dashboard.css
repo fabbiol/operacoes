@@ -76,18 +76,21 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 }
 .estrada-medidas p { flex-basis: 100%; margin: 0; color: var(--tv-apagado); font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 600; }
 
-/* ---------- A tela da TV ---------- */
+/* ---------- A tela da TV ----------
+ * As medidas acompanham a largura da tela, vezes --k: menor na página do administrativo,
+ * maior na tela cheia da TV (lida de longe). */
 .tv {
-    --t-heroi: clamp(44px, 5vw, 120px);
-    --t-valor: clamp(34px, 3.9vw, 94px);
-    --t-rotulo: clamp(14px, 1.35vw, 32px);
-    --t-detalhe: clamp(13px, 1.15vw, 28px);
-    --t-titulo: clamp(18px, 1.75vw, 42px);
-    --t-item: clamp(16px, 1.75vw, 42px);
-    --t-item-2: clamp(13px, 1.2vw, 29px);
-    --t-tempo: clamp(17px, 1.75vw, 42px);
-    --t-relogio: clamp(30px, 3vw, 72px);
-    --vao: clamp(8px, 0.8vw, 18px);
+    --k: 0.7;
+    --t-heroi: clamp(34px, calc(5vw * var(--k)), 120px);
+    --t-valor: clamp(28px, calc(3.9vw * var(--k)), 94px);
+    --t-rotulo: clamp(13px, calc(1.35vw * var(--k)), 32px);
+    --t-detalhe: clamp(12px, calc(1.15vw * var(--k)), 28px);
+    --t-titulo: clamp(17px, calc(1.75vw * var(--k)), 42px);
+    --t-item: clamp(15px, calc(1.75vw * var(--k)), 42px);
+    --t-item-2: clamp(12px, calc(1.2vw * var(--k)), 29px);
+    --t-tempo: clamp(15px, calc(1.75vw * var(--k)), 42px);
+    --t-relogio: clamp(26px, calc(3vw * var(--k)), 72px);
+    --vao: clamp(8px, calc(0.8vw * var(--k)), 18px);
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     gap: var(--vao);
@@ -122,8 +125,8 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
     flex-direction: column;
     justify-content: space-between;
     min-width: 0;
-    padding: clamp(10px, 1vw, 24px) clamp(12px, 1.2vw, 28px);
-    border-radius: clamp(10px, 0.9vw, 20px);
+    padding: clamp(10px, calc(1vw * var(--k)), 24px) clamp(12px, calc(1.2vw * var(--k)), 28px);
+    border-radius: clamp(10px, calc(0.9vw * var(--k)), 20px);
     background: var(--tv-superficie);
     border: 1px solid var(--tv-linha);
 }
@@ -144,8 +147,8 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
     gap: calc(var(--vao) * 0.8);
     min-height: 0;
     overflow: hidden;
-    padding: clamp(12px, 1.1vw, 26px);
-    border-radius: clamp(12px, 1vw, 22px);
+    padding: clamp(12px, calc(1.1vw * var(--k)), 26px);
+    border-radius: clamp(12px, calc(1vw * var(--k)), 22px);
     background: var(--tv-superficie);
     border: 1px solid var(--tv-linha);
 }
@@ -159,10 +162,10 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 .tv-maquinas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: calc(var(--vao) * 0.7); }
 .tv-maquina {
     min-width: 0;
-    padding: clamp(8px, 0.7vw, 16px) clamp(10px, 1vw, 22px);
-    border-radius: clamp(8px, 0.7vw, 16px);
+    padding: clamp(8px, calc(0.7vw * var(--k)), 16px) clamp(10px, calc(1vw * var(--k)), 22px);
+    border-radius: clamp(8px, calc(0.7vw * var(--k)), 16px);
     background: var(--tv-elevado);
-    border-left: clamp(4px, 0.35vw, 8px) solid var(--tv-linha);
+    border-left: clamp(4px, calc(0.35vw * var(--k)), 8px) solid var(--tv-linha);
 }
 .tv-maquina.ocupada { border-left-color: var(--tv-azul); }
 .tv-maquina > strong { display: block; font-size: var(--t-item); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -182,7 +185,7 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
     grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
     align-items: center;
     gap: var(--vao);
-    padding: clamp(4px, 0.4vw, 10px) 0;
+    padding: clamp(4px, calc(0.4vw * var(--k)), 10px) 0;
     line-height: 1.15;
     border-bottom: 1px solid var(--tv-linha);
 }
@@ -226,9 +229,9 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
 .tv-caminhoes li > span:not(.tv-tempo) { color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Circuito da lavra. */
-.tv-circuito { position: relative; flex: none; height: clamp(100px, 9vw, 220px); }
+.tv-circuito { position: relative; flex: none; height: clamp(90px, calc(9vw * var(--k)), 220px); }
 .tv-circuito svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.tv-circuito path { fill: none; stroke: var(--tv-linha); stroke-width: clamp(8px, 0.9vw, 20px); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.tv-circuito path { fill: none; stroke: var(--tv-linha); stroke-width: clamp(8px, calc(0.9vw * var(--k)), 20px); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .tv-posto {
     position: absolute;
     top: 50%;
@@ -262,22 +265,22 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
 /* Por hora: colunas finas, uma série por gráfico, a hora atual em azul e as outras em cinza. */
 .tv-horas { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--vao); }
 .tv-hora {
-    padding: clamp(10px, 0.9vw, 22px) clamp(12px, 1.1vw, 26px);
-    border-radius: clamp(12px, 1vw, 22px);
+    padding: clamp(10px, calc(0.9vw * var(--k)), 22px) clamp(12px, calc(1.1vw * var(--k)), 26px);
+    border-radius: clamp(12px, calc(1vw * var(--k)), 22px);
     background: var(--tv-superficie);
     border: 1px solid var(--tv-linha);
 }
 .tv-hora header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--vao); margin-bottom: 0.2em; line-height: 1.2; }
 .tv-hora h3 { color: var(--tv-texto-2); font-size: var(--t-rotulo); text-transform: uppercase; letter-spacing: 0.04em; }
 .tv-hora header span { font-size: var(--t-rotulo); font-weight: 800; }
-.tv-colunas { display: flex; align-items: flex-end; gap: 2px; height: clamp(60px, 4.8vw, 120px); border-bottom: 1px solid var(--tv-linha); }
+.tv-colunas { display: flex; align-items: flex-end; gap: 2px; height: clamp(56px, calc(4.8vw * var(--k)), 120px); border-bottom: 1px solid var(--tv-linha); }
 .tv-coluna { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
 .tv-coluna i { display: block; width: min(24px, 60%); min-height: 2px; border-radius: 4px 4px 0 0; background: #4d4c47; }
 .tv-coluna.agora i { background: var(--tv-azul); }
 .tv-coluna.futuro i { background: transparent; }
 .tv-coluna b { color: var(--tv-texto); font-size: var(--t-item-2); font-variant-numeric: tabular-nums; margin-bottom: 0.15em; }
-.tv-coluna small { position: absolute; bottom: -1.5em; color: var(--tv-apagado); font-size: clamp(11px, 0.85vw, 20px); font-variant-numeric: tabular-nums; }
-.tv-hora { padding-bottom: clamp(22px, 1.9vw, 44px); }
+.tv-coluna small { position: absolute; bottom: -1.5em; color: var(--tv-apagado); font-size: clamp(11px, calc(0.85vw * var(--k)), 20px); font-variant-numeric: tabular-nums; }
+.tv-hora { padding-bottom: clamp(22px, calc(1.9vw * var(--k)), 44px); }
 .tv-coluna b { line-height: 1.2; }
 
 /* Sem atualização: aviso em amarelo; muito tempo sem atualizar: os números apagam. */
@@ -295,7 +298,7 @@ body.dashboard.tela-cheia .folha { width: 100%; max-width: none; margin: 0; padd
 body.dashboard.tela-cheia .monitor-topo { position: fixed; right: 8px; bottom: 8px; z-index: 5; margin: 0; }
 body.dashboard.tela-cheia .ampliar { opacity: 0.25; min-height: 32px; padding: 4px 10px; font-size: 12px; }
 body.dashboard.tela-cheia .ampliar:hover, body.dashboard.tela-cheia .ampliar:focus { opacity: 1; }
-body.dashboard.tela-cheia .tv { height: calc(100vh - 2 * clamp(10px, 1.2vw, 28px)); }
+body.dashboard.tela-cheia .tv { --k: 0.85; height: calc(100vh - 2 * clamp(10px, 1.2vw, 28px)); }
 
 /* Telas estreitas (celular do administrativo): tudo em uma coluna. */
 @media (max-width: 900px) {

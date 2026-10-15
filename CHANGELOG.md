@@ -1,5 +1,15 @@
 # O que mudou
 
+## Outubro de 2026: valor da nota já concluída e Monitor menor
+
+- **Nota sem valor**: no **Controle de carga**, a nota sem valor tem o campo para digitar o valor e **Salvar**, mesmo com o carregamento concluído. Na ficha da ordem também (**Salvar valor**, e **Corrigir valor** se estiver errado). O valor entra no vendido do dia na hora.
+- **Monitor**: o quadro "Vendido hoje" avisa quantas notas estão sem valor. Letras menores na página e um pouco menores na tela cheia, para caber mais da fila.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+3. Depois, em **Fila › Controle**, digite o valor das notas de hoje que estão sem valor.
+
 ## Outubro de 2026: carregamento fracionado, controle de carga e Monitor novo
 
 **Carregamento fracionado**: para o cliente que leva a nota em várias viagens (3 viagens de 0,5 m³, por exemplo). Marque **Carregamento fracionado** ao lançar a ordem. A nota é lançada uma vez, com o total.

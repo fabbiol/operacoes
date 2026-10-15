@@ -112,6 +112,18 @@
     <a class="btn secundario" href="<?= e(url('fila')) ?>">Voltar à fila</a>
 </div>
 
+<?php if ($ordem['status'] !== 'cancelado' && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && (empty($editavel) || !empty($formulario['travado']))): ?>
+    <form class="valor-nota bloco" method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/valor')) ?>">
+        <?= csrf_field() ?>
+        <label class="campo">
+            <span>Valor da nota (R$)</span>
+            <input type="text" name="nf_valor" inputmode="decimal" maxlength="16" required placeholder="Ex.: 476,40" value="<?= $ordem['nf_valor'] !== null ? e(formatar_quantidade((string) $ordem['nf_valor'])) : '' ?>">
+        </label>
+        <button type="submit" class="btn secundario"><?= $ordem['nf_valor'] !== null ? 'Corrigir valor' : 'Salvar valor' ?></button>
+        <p class="nota"><?= $ordem['nf_valor'] !== null ? 'Se o valor estiver errado, corrija aqui.' : 'Esta nota está sem valor e não entra no vendido do dia. Preencha o valor total da nota.' ?></p>
+    </form>
+<?php endif; ?>
+
 <?php if (!empty($editavel) && !empty($formulario)): ?>
     <?php $secao = true; ?>
     <?php extract($formulario, EXTR_SKIP); ?>
