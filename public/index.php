@@ -497,6 +497,11 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'controle') {
+        tela_controle();
+        return;
+    }
+
     if ($path === 'ordens/nova/nota') {
         tela_ler_nota($method);
         return;
@@ -520,7 +525,7 @@ function despachar(string $path, string $method): void
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
-        redirect('/ordens/' . $m[1]);
+        redirect(($_POST['voltar'] ?? '') === 'controle' ? '/controle' : '/ordens/' . $m[1]);
     }
 
     if (preg_match('#^ordens/(\d+)/concluir$#', $path, $m) && $method === 'POST') {
@@ -1413,6 +1418,8 @@ function tela_painel(): void
         'fluxoUrl' => url('painel/situacao'),
         'fluxoMarca' => painel_marca(),
         'autorizar' => (int) ($contagens['aguardando_autorizacao'] ?? 0),
+        'saldos' => (int) ($contagens['saldo'] ?? 0),
+        'vendas' => Operacoes::vendas($dia),
         'conferir' => (int) ($contagens['aguardando_conferencia'] ?? 0),
         'liberadas' => (int) ($contagens['liberado'] ?? 0),
         'carregando' => Operacoes::listar('carregando', ''),
@@ -1596,6 +1603,30 @@ function data_hora_para_input(?string $dataHora): string
     $ts = strtotime($dataHora);
 
     return $ts ? date('Y-m-d\TH:i:s', $ts) : '';
+}
+
+/** Controle de carga do administrativo: vendido, carregado e saldo das notas. */
+function tela_controle(): void
+{
+    $dia = trim((string) ($_GET['dia'] ?? date('Y-m-d')));
+    $data = DateTimeImmutable::createFromFormat('!Y-m-d', $dia);
+    if (!$data || $data->format('Y-m-d') !== $dia) {
+        $dia = date('Y-m-d');
+        $data = new DateTimeImmutable($dia);
+    }
+    $controle = Operacoes::controle($dia);
+
+    render('controle', [
+        'titulo' => 'Controle de carga',
+        'corpo' => 'fila',
+        'dia' => $dia,
+        'anterior' => $data->modify('-1 day')->format('Y-m-d'),
+        'seguinte' => $data->modify('+1 day')->format('Y-m-d'),
+        'vendas' => Operacoes::vendas($dia),
+        'carregado' => Operacoes::carregadoNoDia($dia),
+        'notas' => $controle['notas'],
+        'saldos' => $controle['saldos'],
+    ]);
 }
 
 function tela_cancelar(int $id, string $method): void
