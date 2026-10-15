@@ -16,7 +16,7 @@ $versaoApp = '1.0';
 <p>O app abre o sistema em tela cheia, com o ícone da Próspera na tela do tablet. As telas são as mesmas do sistema: as mudanças chegam sozinhas, sem instalar de novo.</p>
 
 <div class="botoes">
-    <a class="btn primario" href="<?= e(url('app/prospera.apk') . '?v=' . rawurlencode($versaoApp)) ?>">Baixar o app (versão <?= e($versaoApp) ?>)</a>
+    <a class="btn primario" href="<?= e(url('baixar/prospera.apk') . '?v=' . rawurlencode($versaoApp)) ?>">Baixar o app (versão <?= e($versaoApp) ?>)</a>
 </div>
 
 <h2>Como instalar no tablet</h2>
