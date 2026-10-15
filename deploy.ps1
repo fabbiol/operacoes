@@ -1,4 +1,4 @@
-# Publica o código em operacoes.prosperamt.com.br.
+﻿# Publica o código em operacoes.prosperamt.com.br.
 # O público vai para a raiz do subdomínio. src, views e o schema vão para a pasta pai.
 # Não envia .env, fotos, banco nem viagens, e não mexe no site prosperamt.com.br.
 #
@@ -6,6 +6,7 @@
 #   .hostinger\token
 #   %USERPROFILE%\.hostinger\token
 # ou a variável HOSTINGER_API_TOKEN.
+# Sem nenhum deles, o script pede o token na hora, sem mostrar o que é colado.
 #
 #   .\deploy.ps1 -Listar
 #   .\deploy.ps1
@@ -19,6 +20,37 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $raiz = $PSScriptRoot
+$temporaria = $null
+
+# Pasta dos arquivos temporários do envio, num caminho sem acento. Com acento no nome do usuário
+# (C:\Users\Fábio), o Windows dá à pasta TEMP um nome curto (C:\Users\FBIO~1) que o PowerShell não acha,
+# e o envio parava antes de começar. Tenta C:\Users\Public, depois C:\ e, por último, a TEMP.
+function Initialize-Temporaria {
+    $candidatas = @()
+    if ($env:PUBLIC) { $candidatas += Join-Path $env:PUBLIC 'operacoes-deploy' }
+    if ($env:SystemDrive) { $candidatas += Join-Path $env:SystemDrive 'operacoes-deploy' }
+    if ($env:TEMP) { $candidatas += Join-Path $env:TEMP 'operacoes-deploy' }
+    foreach ($candidata in $candidatas) {
+        try {
+            New-Item -ItemType Directory -Force -Path $candidata -ErrorAction Stop | Out-Null
+            # Confere gravando de verdade: a pasta pode existir sem deixar gravar.
+            $teste = Join-Path $candidata 'teste.tmp'
+            [System.IO.File]::WriteAllText($teste, 'ok')
+            Remove-Item -LiteralPath $teste -ErrorAction SilentlyContinue
+            return $candidata
+        } catch {
+        }
+    }
+    throw 'Não foi possível criar a pasta temporária do envio.'
+}
+
+function Remove-Temporario([string[]]$caminhos) {
+    foreach ($caminho in $caminhos) {
+        if ($caminho -and (Test-Path -LiteralPath $caminho)) {
+            Remove-Item -LiteralPath $caminho -ErrorAction SilentlyContinue
+        }
+    }
+}
 
 function Read-Token {
     if ($env:HOSTINGER_API_TOKEN -and $env:HOSTINGER_API_TOKEN.Trim() -ne '') {
@@ -34,6 +66,19 @@ function Read-Token {
             if ($texto -ne '') {
                 return $texto
             }
+        }
+    }
+    if (-not $Sim) {
+        # Pede na hora. O que é colado não aparece na tela, nem em print.
+        $seguro = Read-Host 'Cole o token da API Hostinger e aperte Enter (ele não aparece na tela)' -AsSecureString
+        $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($seguro)
+        try {
+            $texto = ([Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) + '').Trim()
+        } finally {
+            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+        }
+        if ($texto -ne '') {
+            return $texto
         }
     }
     throw "Falta o token da API Hostinger. Salve uma linha em .hostinger\token ou defina HOSTINGER_API_TOKEN."
@@ -145,9 +190,9 @@ function Invoke-Curl {
 }
 
 function Get-CredencialEnvio([string]$token, [string]$username, [string]$domain) {
-    $corpo = Join-Path $env:TEMP ("hostinger-pedido-" + [guid]::NewGuid().ToString() + '.json')
-    $cabecalho = Join-Path $env:TEMP ("hostinger-cab-" + [guid]::NewGuid().ToString() + '.txt')
-    $resposta = Join-Path $env:TEMP ("hostinger-resp-" + [guid]::NewGuid().ToString() + '.json')
+    $corpo = Join-Path $temporaria ("hostinger-pedido-" + [guid]::NewGuid().ToString() + '.json')
+    $cabecalho = Join-Path $temporaria ("hostinger-cab-" + [guid]::NewGuid().ToString() + '.txt')
+    $resposta = Join-Path $temporaria ("hostinger-resp-" + [guid]::NewGuid().ToString() + '.json')
     try {
         $json = (@{ username = $username; domain = $domain } | ConvertTo-Json -Compress)
         [System.IO.File]::WriteAllText($corpo, $json)
@@ -169,15 +214,23 @@ function Get-CredencialEnvio([string]$token, [string]$username, [string]$domain)
         }
         return $dados
     } finally {
-        Remove-Item -LiteralPath $corpo, $cabecalho, $resposta -ErrorAction SilentlyContinue
+        Remove-Temporario @($corpo, $cabecalho, $resposta)
     }
 }
 
 function Send-Arquivo($credencial, [string]$destino, [string]$arquivo) {
     $tamanho = (Get-Item -LiteralPath $arquivo).Length
     $url = (Join-TusUrl $credencial.url $destino) + '?override=true'
-    $cabecalho = Join-Path $env:TEMP ("hostinger-tus-" + [guid]::NewGuid().ToString() + '.txt')
+    $cabecalho = Join-Path $temporaria ("hostinger-tus-" + [guid]::NewGuid().ToString() + '.txt')
+    $copia = $null
     try {
+        # Projeto numa pasta com acento: o curl recebe uma cópia do arquivo num caminho sem acento.
+        $origem = $arquivo
+        if ($arquivo -match '[^\x20-\x7E]') {
+            $copia = Join-Path $temporaria ("hostinger-envio-" + [guid]::NewGuid().ToString() + '.bin')
+            Copy-Item -LiteralPath $arquivo -Destination $copia
+            $origem = $copia
+        }
         $comum = @(
             '--ipv4', '-sS', '-D', $cabecalho, '-o', 'NUL',
             '-H', "X-Auth: $($credencial.auth_key)",
@@ -194,7 +247,7 @@ function Send-Arquivo($credencial, [string]$destino, [string]$arquivo) {
                 '-X', 'PATCH', $url,
                 '-H', 'Content-Type: application/offset+octet-stream',
                 '-H', 'Upload-Offset: 0',
-                '--data-binary', "@$arquivo"
+                '--data-binary', "@$origem"
             ))
             $status = Get-StatusHttp $cabecalho
             if ($status -ne 204 -and $status -ne 200) {
@@ -202,12 +255,12 @@ function Send-Arquivo($credencial, [string]$destino, [string]$arquivo) {
             }
         }
     } finally {
-        Remove-Item -LiteralPath $cabecalho -ErrorAction SilentlyContinue
+        Remove-Temporario @($cabecalho, $copia)
     }
 }
 
 function Clear-CacheSite([string]$token, [string]$username, [string]$domain) {
-    $cabecalho = Join-Path $env:TEMP ("hostinger-cache-" + [guid]::NewGuid().ToString() + '.txt')
+    $cabecalho = Join-Path $temporaria ("hostinger-cache-" + [guid]::NewGuid().ToString() + '.txt')
     try {
         $endereco = "https://developers.hostinger.com/api/hosting/v1/accounts/$username/websites/$domain/cache/clear"
         Invoke-Curl -Argumentos @(
@@ -221,7 +274,7 @@ function Clear-CacheSite([string]$token, [string]$username, [string]$domain) {
             Write-Host "O cache de $domain não foi limpo (HTTP $status). Os arquivos já foram enviados."
         }
     } finally {
-        Remove-Item -LiteralPath $cabecalho -ErrorAction SilentlyContinue
+        Remove-Temporario @($cabecalho)
     }
 }
 
@@ -293,6 +346,7 @@ if (-not $Sim) {
 }
 
 $token = Read-Token
+$temporaria = Initialize-Temporaria
 Write-Host 'Pedindo os endereços de envio...'
 $credenciais = @{
     subdominio = Get-CredencialEnvio $token $site.username $site.domain
@@ -311,7 +365,7 @@ Clear-CacheSite $token $site.username $site.domain
 
 $saude = 0
 $hashIgual = $false
-$fluxoRemoto = Join-Path $env:TEMP 'operacoes-fluxo-remoto.js'
+$fluxoRemoto = Join-Path $temporaria 'operacoes-fluxo-remoto.js'
 $fluxoLocal = Join-Path $raiz 'public\assets\fluxo.js'
 for ($tentativa = 1; $tentativa -le 4; $tentativa++) {
     $saude = Get-CodigoHttp ("https://{0}/health" -f $site.domain)
@@ -324,7 +378,7 @@ for ($tentativa = 1; $tentativa -le 4; $tentativa++) {
     if ($saude -eq 200 -and $hashIgual) { break }
     Start-Sleep -Seconds 3
 }
-Remove-Item -LiteralPath $fluxoRemoto -ErrorAction SilentlyContinue
+Remove-Temporario @($fluxoRemoto)
 $bloqueio = 0
 for ($tentativa = 1; $tentativa -le 3; $tentativa++) {
     $bloqueio = Get-CodigoHttp ("https://{0}/{1}/.env" -f $site.parentDomain, $site.appDirectory)

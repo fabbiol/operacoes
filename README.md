@@ -58,6 +58,14 @@ A tela fica em `http://localhost:8081`. O MySQL do compose usa a porta `3308`.
 
 `.\deploy.ps1` envia os arquivos para a Hostinger numa ordem que mantém o site no ar: primeiro o schema, depois as classes novas, as telas, o código e os arquivos públicos, e por último `helpers.php` e `index.php`, um logo depois do outro. No fim, confere se o site responde, se o `fluxo.js` publicado é o deste computador e se o `.env` e a pasta `storage/sessoes` estão fechados para a web (HTTP 403). Se alguma conferência falhar, o script termina com erro.
 
+Para publicar de um computador que não tem o projeto: baixe o ZIP do GitHub (botão **Code** › **Download ZIP**), extraia em qualquer pasta e rode, no PowerShell, dentro da pasta extraída:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy.ps1
+```
+
+Sem o token guardado, o script pede o token da API Hostinger na hora; o que é colado não aparece na tela. Funciona também com acento no nome do usuário do Windows (os arquivos temporários do envio ficam em `C:\Users\Public\operacoes-deploy`).
+
 ## Mudanças no banco
 
 O banco é atualizado sozinho no primeiro acesso depois de uma publicação: o `database/schema.sql` cria as tabelas, e as funções `garantir*()` de `src/Db.php` acrescentam colunas em tabelas que já existem. Ao criar ou mudar uma função `garantir*()`, troque também o valor de `Db::MIGRACOES`; sem isso, a atualização não roda de novo nos servidores que já estão no ar.
