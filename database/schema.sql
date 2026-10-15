@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     cliente VARCHAR(160) NOT NULL,
     pedido VARCHAR(60) NOT NULL,
     nf VARCHAR(60) NOT NULL,
+    nf_emitida_em DATETIME NULL,
+    nf_chave CHAR(44) NULL,
     material_id INT UNSIGNED NOT NULL,
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     UNIQUE KEY uniq_fila_ordem (ordem),
     KEY idx_fila_status (status),
     KEY idx_fila_data (data),
+    KEY idx_fila_nf_chave (nf_chave),
     CONSTRAINT fk_fila_material FOREIGN KEY (material_id) REFERENCES materiais (id),
     CONSTRAINT fk_fila_pa FOREIGN KEY (pa_carregadeira_id) REFERENCES pas_carregadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

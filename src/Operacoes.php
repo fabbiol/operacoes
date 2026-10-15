@@ -227,6 +227,12 @@ final class Operacoes
     public static function criar(array $post, string $responsavel): int
     {
         $dados = self::lerOrdem($post);
+        if ($dados['nf_chave'] !== null) {
+            $repetida = self::ordemComNota($dados['nf_chave'], null);
+            if ($repetida !== null) {
+                throw new InvalidArgumentException('Essa nota fiscal já foi lançada no carregamento ' . $repetida['ordem'] . '.');
+            }
+        }
         $liberar = isset($post['liberar']);
         $pdo = Db::pdo();
 
@@ -239,9 +245,9 @@ final class Operacoes
                 $ordem = sprintf('CAR-%03d', ((int) $ultimo) + 1);
                 $comando = $pdo->prepare(
                     'INSERT INTO fila_carregamentos (
-                        ordem, data, cliente, pedido, nf, material_id, quantidade_autorizada, unidade,
+                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_chave, material_id, quantidade_autorizada, unidade,
                         observacoes, status, autorizado_por, autorizado_em
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 $status = $liberar ? 'liberado' : 'aguardando_autorizacao';
                 $comando->execute([
@@ -250,6 +256,8 @@ final class Operacoes
                     $dados['cliente'],
                     $dados['pedido'],
                     $dados['nf'],
+                    $dados['nf_emitida_em'],
+                    $dados['nf_chave'],
                     $dados['material_id'],
                     $dados['quantidade_autorizada'],
                     $dados['unidade'],
@@ -300,10 +308,16 @@ final class Operacoes
         }
 
         $dados = self::lerOrdem($post, $ordem);
+        if ($dados['nf_chave'] !== null) {
+            $repetida = self::ordemComNota($dados['nf_chave'], null, $id);
+            if ($repetida !== null) {
+                throw new InvalidArgumentException('Essa nota fiscal já foi lançada no carregamento ' . $repetida['ordem'] . '.');
+            }
+        }
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
-             SET data = ?, cliente = ?, pedido = ?, nf = ?, material_id = ?, quantidade_autorizada = ?,
-                 unidade = ?, observacoes = ?
+             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_chave = ?, material_id = ?,
+                 quantidade_autorizada = ?, unidade = ?, observacoes = ?
              WHERE id = ? AND status IN ('aguardando_autorizacao', 'liberado')"
         );
         $comando->execute([
@@ -311,6 +325,8 @@ final class Operacoes
             $dados['cliente'],
             $dados['pedido'],
             $dados['nf'],
+            $dados['nf_emitida_em'],
+            $dados['nf_chave'],
             $dados['material_id'],
             $dados['quantidade_autorizada'],
             $dados['unidade'],
@@ -499,11 +515,74 @@ final class Operacoes
             'cliente' => limpar_texto((string) ($post['cliente'] ?? ''), 160, true, 'o cliente'),
             'pedido' => limpar_texto((string) ($post['pedido'] ?? ''), 60, true, 'o pedido'),
             'nf' => limpar_texto((string) ($post['nf'] ?? ''), 60, true, 'a nota fiscal'),
+            'nf_emitida_em' => self::emissaoDaNota($post, $atual),
+            'nf_chave' => self::chaveDaNota($post, $atual),
             'material_id' => $materialId,
             'quantidade_autorizada' => parse_quantidade((string) ($post['quantidade_autorizada'] ?? '')),
             'unidade' => $unidade,
             'observacoes' => limpar_longo((string) ($post['observacoes'] ?? ''), 4000),
         ];
+    }
+
+    /** Hora em que a nota foi emitida (opcional). Formulário antigo, sem o campo: fica a que estava. */
+    private static function emissaoDaNota(array $post, ?array $atual): ?string
+    {
+        if (!array_key_exists('nf_emitida_em', $post)) {
+            return $atual['nf_emitida_em'] ?? null;
+        }
+        $bruto = trim((string) $post['nf_emitida_em']);
+        if ($bruto === '') {
+            return null;
+        }
+        try {
+            return parse_data_hora($bruto);
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('Informe a data e a hora em que a nota foi emitida, ou deixe em branco.');
+        }
+    }
+
+    /** Chave de acesso da nota lida (44 números). Vem escondida no formulário; sem ela, fica a que estava. */
+    private static function chaveDaNota(array $post, ?array $atual): ?string
+    {
+        if (!array_key_exists('nf_chave', $post)) {
+            return $atual['nf_chave'] ?? null;
+        }
+        $chave = (string) preg_replace('/\D+/', '', (string) $post['nf_chave']);
+
+        return strlen($chave) === 44 ? $chave : null;
+    }
+
+    /**
+     * Carregamento (não cancelado) que já usa esta nota: pela chave de acesso ou, sem ela, pelo número.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function ordemComNota(?string $chave, ?string $numero, int $exceto = 0): ?array
+    {
+        if ($chave !== null && $chave !== '') {
+            $busca = Db::pdo()->prepare(
+                "SELECT id, ordem, status FROM fila_carregamentos
+                 WHERE nf_chave = ? AND status <> 'cancelado' AND id <> ? ORDER BY id DESC LIMIT 1"
+            );
+            $busca->execute([$chave, $exceto]);
+            $linha = $busca->fetch();
+            if ($linha) {
+                return $linha;
+            }
+        }
+        $numero = ltrim((string) preg_replace('/\D+/', '', (string) $numero), '0');
+        if ($numero === '') {
+            return null;
+        }
+        $busca = Db::pdo()->prepare(
+            "SELECT id, ordem, status FROM fila_carregamentos
+             WHERE TRIM(LEADING '0' FROM REPLACE(REPLACE(REPLACE(nf, '.', ''), '-', ''), ' ', '')) = ?
+               AND status <> 'cancelado' AND id <> ? ORDER BY id DESC LIMIT 1"
+        );
+        $busca->execute([$numero, $exceto]);
+        $linha = $busca->fetch();
+
+        return $linha ?: null;
     }
 
     private static function exigirVinculo(string $tabela, int $id, string $rotulo, ?int $atual): void
