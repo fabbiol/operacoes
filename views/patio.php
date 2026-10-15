@@ -23,7 +23,10 @@
                     <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
                 </header>
                 <p class="cliente"><?= e($ordem['cliente']) ?></p>
-                <p class="carga"><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                <p class="carga"><?= (int) ($ordem['fracionado'] ?? 0) === 1 ? 'Saldo ' : '' ?><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                <?php if ((int) ($ordem['fracionado'] ?? 0) === 1): ?>
+                    <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span></p>
+                <?php endif; ?>
                 <p class="meta">Pedido <?= e($ordem['pedido']) ?> · NF <?= e($ordem['nf']) ?></p>
                 <?php
                 $desde = $ordem['status'] === 'carregando' ? ($ordem['inicio_carregamento'] ?? null) : ($ordem['autorizado_em'] ?? null);

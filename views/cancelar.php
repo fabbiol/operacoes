@@ -1,6 +1,6 @@
 <?php require __DIR__ . '/resumo_ordem.php'; ?>
 
-<?php if (!in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia'], true)): ?>
+<?php if (!in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true)): ?>
     <p class="aviso erro">Essa ordem já está encerrada.</p>
     <p><a class="btn secundario" href="<?= e(url('ordens/' . $ordem['id'])) ?>">Voltar</a></p>
 <?php else: ?>

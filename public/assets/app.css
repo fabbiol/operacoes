@@ -763,3 +763,16 @@ body.lavra .site, body.patio .site, body.trabalhos .site { position: static; }
 .ler-nota .campo { flex: 1 1 280px; margin: 0; }
 .leitura-nota ul.aviso { margin-top: -6px; padding-left: 34px; font-weight: 600; }
 .leitura-nota ul.aviso li + li { margin-top: 4px; }
+
+/* Fracionado, vendas do dia e controle de carga. */
+.status-saldo { background: #e8e1f5; color: #4b3a78; }
+.selo.fracionado { background: #e8e1f5; color: #4b3a78; margin-right: 6px; }
+.tabela-rolagem { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 8px; }
+.tabela { width: 100%; border-collapse: collapse; font-size: 15px; background: white; border-radius: 12px; overflow: hidden; }
+.tabela th, .tabela td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.tabela th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: #faf9f5; white-space: nowrap; }
+.tabela td small { display: block; color: var(--muted); font-size: 13px; }
+.tabela td.numero { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabela tr.atual td { background: #fff8de; }
+.tabela form { margin: 0; }
+.tabela .btn { min-height: 40px; padding: 6px 12px; white-space: nowrap; }

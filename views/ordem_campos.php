@@ -1,5 +1,7 @@
 <?php
 $acao = $ordem === null ? url('ordens/nova') : url('ordens/' . $ordem['id']);
+// Viagem seguinte de uma nota fracionada: o valor e a marcação ficam na primeira viagem.
+$viagemSeguinte = is_array($ordem) && (int) ($ordem['ordem_principal_id'] ?? 0) > 0;
 $valor = $valor ?? [];
 $travado = !empty($travado);
 ?>
@@ -63,6 +65,12 @@ $travado = !empty($travado);
             <span>Nota emitida em</span>
             <input type="datetime-local" name="nf_emitida_em" step="1" value="<?= e($valor['nf_emitida_em'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
         </label>
+        <?php if (!$viagemSeguinte): ?>
+            <label class="campo">
+                <span>Valor da nota (R$)</span>
+                <input type="text" name="nf_valor" inputmode="decimal" maxlength="16" value="<?= e($valor['nf_valor'] ?? '') ?>" placeholder="0,00" <?= $travado ? 'disabled' : '' ?>>
+            </label>
+        <?php endif; ?>
         <label class="campo">
             <span>Material</span>
             <select name="material_id" required <?= $travado ? 'disabled' : '' ?>>
@@ -87,6 +95,15 @@ $travado = !empty($travado);
             </select>
         </label>
     </div>
+    <?php if ($viagemSeguinte): ?>
+        <p class="nota">Viagem <?= (int) $ordem['viagem'] ?> de uma nota fracionada. A quantidade é o saldo que o cliente ainda vai buscar.</p>
+    <?php else: ?>
+        <input type="hidden" name="tem_fracionado" value="1">
+        <label class="check">
+            <input type="checkbox" name="fracionado" value="1" <?= !empty($valor['fracionado']) ? 'checked' : '' ?> <?= $travado ? 'disabled' : '' ?>>
+            <span>Carregamento fracionado: o cliente busca em várias viagens (o operador informa quanto levou em cada uma)</span>
+        </label>
+    <?php endif; ?>
     <label class="campo">
         <span>Observações</span>
         <textarea name="observacoes" rows="4" maxlength="4000"><?= e($valor['observacoes'] ?? '') ?></textarea>

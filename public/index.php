@@ -975,11 +975,12 @@ function tela_finalizar(int $id, string $method): void
     $ordem = ordem_ou_404($id);
     $erro = null;
     $nota = (string) ($_POST['nota'] ?? '');
+    $quantidade = (string) ($_POST['quantidade'] ?? '');
 
     if ($method === 'POST') {
         csrf_check();
         try {
-            Operacoes::finalizar($id, $nota, Auth::usuario());
+            Operacoes::finalizar($id, $nota, Auth::usuario(), $quantidade);
             flash_set('Carregamento enviado para conferência.');
             redirect('/patio');
         } catch (InvalidArgumentException $e) {
@@ -993,6 +994,7 @@ function tela_finalizar(int $id, string $method): void
         'corpo' => 'patio',
         'ordem' => $ordem,
         'nota' => $nota,
+        'quantidade' => $quantidade,
         'erro' => $erro,
     ]);
 }
@@ -1472,10 +1474,11 @@ function tela_ordem(int $id, string $method): void
     }
 
     $ordem = ordem_ou_404($id);
-    $editavel = in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia'], true);
+    $editavel = in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true);
     render('ordem', [
         'titulo' => $ordem['ordem'],
         'ordem' => $ordem,
+        'grupo' => (int) ($ordem['fracionado'] ?? 0) === 1 ? Operacoes::viagensDe(Operacoes::grupo($ordem)) : null,
         'editavel' => $editavel,
         'formulario' => $editavel ? dados_formulario($ordem, null, null) : null,
     ]);
@@ -1525,6 +1528,7 @@ function tela_ler_nota(string $method): void
         'unidade' => (string) ($nota['unidade'] ?? $dados['valor']['unidade']),
         'nf_emitida_em' => data_hora_para_input($nota['emitida_em']),
         'nf_chave' => (string) ($nota['chave'] ?? ''),
+        'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
     ]);
     $dados['leitura'] = leitura_da_nota($nota, $materialId);
     render('ordem_form', $dados);
@@ -1564,6 +1568,9 @@ function leitura_da_nota(array $nota, ?int $materialId): array
         $avisos[] = $nota['unidade_nota'] !== null && $nota['unidade_nota'] !== ''
             ? 'A unidade da nota ("' . $nota['unidade_nota'] . '") não é t, m³ nem un. Confira a unidade.'
             : 'Não achei a unidade na nota. Confira a unidade.';
+    }
+    if ($nota['valor'] === null) {
+        $avisos[] = 'Não achei o valor total da nota. Preencha o valor, para somar no vendido do dia.';
     }
     if ($nota['emitida_em'] === null) {
         $avisos[] = !empty($nota['data_emissao'])
@@ -1915,8 +1922,12 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     ? (string) ($post['nf_emitida_em'] ?? '')
                     : data_hora_para_input(is_array($ordem) ? ($ordem['nf_emitida_em'] ?? null) : null),
                 'nf_chave' => (string) ($fonte['nf_chave'] ?? ''),
+                'nf_valor' => $post !== null
+                    ? (string) ($post['nf_valor'] ?? '')
+                    : (is_array($ordem) && $ordem['nf_valor'] !== null ? formatar_quantidade((string) $ordem['nf_valor']) : ''),
+                'fracionado' => $post !== null ? isset($post['fracionado']) : (is_array($ordem) && (int) ($ordem['fracionado'] ?? 0) === 1),
             ],
             'materiais' => Cadastro::opcoes('materiais', $materialId > 0 ? $materialId : null),
-            'travado' => $ordem !== null && !in_array($ordem['status'], ['aguardando_autorizacao', 'liberado'], true),
+            'travado' => $ordem !== null && !in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'saldo'], true),
         ];
 }
