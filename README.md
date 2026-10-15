@@ -32,7 +32,11 @@ Cada pessoa só vê e assume as máquinas das funções marcadas. O administrati
 
 ## Tablets autorizados
 
-A entrada pela foto, sem senha, só aparece nos tablets que o administrativo autorizou. Em qualquer outro aparelho, a tela de entrada mostra só usuário e senha.
+A entrada pela foto só aparece nos tablets que o administrativo autorizou: a pessoa toca na foto dela e digita a senha dela (a mesma cadastrada em Pessoas). Em qualquer outro aparelho, a tela de entrada mostra só usuário e senha. O administrativo não aparece nas fotos e entra sempre com usuário e senha.
+
+Para ficar rápido no campo, use senhas de 4 números para a equipe. Cinco senhas erradas seguidas bloqueiam aquela pessoa por 15 minutos.
+
+Em cada tablet, desligue no Chrome a opção de salvar senhas, para o tablet não guardar a senha de ninguém: menu do Chrome (⋮) › **Configurações** › **Gerenciador de senhas** › **Configurações** › desligue **Oferecer para salvar senhas** e **Login automático**. Se o Chrome perguntar "Salvar senha?", toque em **Nunca**.
 
 Para autorizar um tablet, entre nele com o usuário e a senha do administrativo, abra Pessoas › Tablets, dê um nome ao aparelho e toque em Autorizar este aparelho. Depois toque em Sair: a entrada passa a mostrar as fotos da equipe. Na mesma tela dá para revogar um tablet perdido ou trocado.
 

@@ -264,7 +264,11 @@ final class Auth
         return false;
     }
 
-    public static function entrarPorPessoa(int $id): bool
+    /**
+     * Entrada pela foto, no tablet autorizado: a pessoa escolhe a foto e digita a senha dela.
+     * Vale o mesmo limite de tentativas erradas da entrada por usuário e senha.
+     */
+    public static function entrarPorPessoa(int $id, ?string $senha = null): bool
     {
         self::garantirUsuarios();
         self::$falhaLogin = '';
@@ -277,7 +281,15 @@ final class Auth
         if ($pessoa === null) {
             return false;
         }
-        self::abrirSessao((int) $pessoa['id'], (string) $pessoa['nome']);
+        // Sem senha não entra (inclusive o pedido de uma tela antiga, de antes da senha na foto).
+        if ($senha === null || $senha === '') {
+            self::$falhaLogin = 'Digite a senha.';
+
+            return false;
+        }
+        if (!self::tentar((string) $pessoa['nome'], $senha)) {
+            return false;
+        }
         $_SESSION['tablet_id'] = (int) (Tablets::atual()['id'] ?? 0);
         Tablets::registrarUso();
 

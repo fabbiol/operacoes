@@ -470,8 +470,7 @@ h2 { margin: 0 0 10px; font-size: 18px; }
     gap: 12px;
     margin: 20px 0 28px;
 }
-.rostos form { margin: 0; }
-button.rosto {
+.rosto {
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -486,16 +485,17 @@ button.rosto {
     font: inherit;
     font-weight: 700;
     text-align: center;
+    text-decoration: none;
 }
-button.rosto:hover { border-color: var(--ink); }
-button.rosto img,
+a.rosto:hover { border-color: var(--ink); }
+.rosto img,
 .rosto-vazio {
     width: 100%;
     aspect-ratio: 1;
     border-radius: 8px;
     background: #e7e1d6;
 }
-button.rosto img { object-fit: cover; object-position: center; }
+.rosto img { object-fit: cover; object-position: center; }
 .rosto-vazio {
     display: flex;
     align-items: center;
@@ -504,6 +504,11 @@ button.rosto img { object-fit: cover; object-position: center; }
 }
 .rosto-nome { font-size: 15px; line-height: 1.25; }
 .entrada-admin { max-width: 420px; }
+/* Depois de tocar na foto: a foto da pessoa e o pedido da senha dela. */
+.entrada-senha { display: grid; gap: 14px; max-width: 420px; margin: 20px auto 0; }
+.entrada-senha .formulario { margin: 0; }
+.rosto-escolhido { width: 168px; margin: 0 auto; }
+.rosto-escolhido .rosto-nome { font-size: 18px; }
 .entrada-admin h2 { margin-top: 4px; }
 .data { color: var(--muted); }
 

@@ -1,5 +1,19 @@
 # O que mudou
 
+## Outubro de 2026: entrada pela foto pede a senha
+
+No tablet autorizado, tocar na foto não entra mais direto. A pessoa toca na foto dela, aparece a foto com o nome e o campo **Senha de (nome)**, e ela só entra com a senha dela (a mesma cadastrada em Pessoas). Assim ninguém entra no nome de outra pessoa.
+
+- **Voltar · não sou (nome)** volta para as fotos, se tocou na foto errada.
+- Senha errada avisa e continua na mesma pessoa. Cinco senhas erradas seguidas bloqueiam aquela pessoa por 15 minutos (o mesmo limite do usuário e senha).
+- Quem entrou pela foto continua saindo sozinho se o tablet for revogado.
+- O administrativo continua entrando com usuário e senha.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco. Quem já está dentro continua.
+2. Combine a senha com cada pessoa da equipe (em Pessoas). Senhas de 4 números deixam a entrada rápida.
+3. Em cada tablet, desligue no Chrome "Oferecer para salvar senhas" (o README mostra onde), para o tablet não guardar a senha de ninguém.
+
 ## Outubro de 2026: app do tablet
 
 O sistema pode ser instalado no tablet como um app, com ícone da Próspera na tela inicial e tela cheia, sem a barra do Chrome. É o mesmo sistema: as mudanças chegam sozinhas, sem reinstalar. O passo a passo está no README, em "App do tablet".
