@@ -182,7 +182,8 @@ final class NotaFiscal
         if ($chave === null && $itens === [] && $cliente === null) {
             throw new InvalidArgumentException('Esse PDF não parece ser o DANFE de uma nota fiscal. Envie o PDF da nota ou o XML.');
         }
-        $adicionais = self::trechoDepois($texto, '/DADOS\s+ADICIONAIS|INFORMA\S+\s+COMPLEMENTARES/u');
+        $adicionais = self::dadosAdicionais($linhas);
+        [$emitida, $dataEmissao] = self::emissaoDoPdf($linhas);
 
         return self::resultado('pdf', [
             'chave' => $chave,
@@ -190,7 +191,8 @@ final class NotaFiscal
             'serie' => $serie,
             'cliente' => $cliente,
             'pedido' => self::pedidoNoTexto($adicionais !== '' ? $adicionais : $texto),
-            'emitida_em' => self::emissaoDoPdf($linhas, $texto),
+            'emitida_em' => $emitida,
+            'data_emissao' => $dataEmissao,
         ], $itens);
     }
 
@@ -288,19 +290,18 @@ final class NotaFiscal
         return (int) $chave[43] === $digito;
     }
 
+    /*
+     * Os títulos do DANFE são procurados sem espaços e sem acento: alguns PDFs saem com letras separadas
+     * ("PROT OCOLO", "DAT A DE EMISSÃO", "PRODUT O"), e assim eles continuam sendo achados.
+     */
+
     /** O nome do destinatário: o valor embaixo de "NOME / RAZÃO SOCIAL", no quadro do destinatário. */
     private static function clienteDoPdf(array $linhas, string $texto): ?string
     {
-        $quadro = null;
-        foreach ($linhas as $i => $linha) {
-            if (preg_match('/DESTINAT\S*\s*\/\s*REMETENTE/u', $linha)) {
-                $quadro = $i;
-                break;
-            }
-        }
+        $quadro = self::linhaComTitulo($linhas, ['DESTINATARIO/REMETENTE']);
         if ($quadro !== null) {
             for ($i = $quadro; $i < min(count($linhas), $quadro + 4); $i++) {
-                $posicao = self::posicao($linhas[$i], '/NOME\s*\/\s*RAZ/u');
+                $posicao = self::posicaoTitulo($linhas[$i], 'NOME/RAZAO');
                 if ($posicao === null) {
                     continue;
                 }
@@ -320,36 +321,55 @@ final class NotaFiscal
         return null;
     }
 
-    /** Data da emissão com a hora: a do protocolo de autorização, ou a data da emissão com a hora de saída. */
-    private static function emissaoDoPdf(array $linhas, string $texto): ?string
+    /**
+     * Quando a nota foi emitida: a data e hora do protocolo de autorização ou, sem ela, a data da emissão
+     * com a hora de saída. Alguns DANFEs não trazem hora nenhuma: aí volta só a data, para a tela avisar.
+     *
+     * @return array{0: ?string, 1: ?string} [data e hora, só a data (Y-m-d)]
+     */
+    private static function emissaoDoPdf(array $linhas): array
     {
-        $protocolo = self::trechoDepois($texto, '/PROTOCOLO\s+DE\s+AUTORIZA/u', 600);
-        if ($protocolo !== '' && preg_match('/\d{12,17}\s*[-–]?\s*(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?/u', $protocolo, $p)) {
-            return self::montarData($p[3], $p[2], $p[1], $p[4], $p[5], $p[6] ?? '00');
+        $protocolo = self::linhaComTitulo($linhas, ['PROTOCOLODEAUTORIZA']);
+        if ($protocolo !== null) {
+            $coluna = (int) self::posicaoTitulo($linhas[$protocolo], 'PROTOCOLODEAUTORIZA');
+            for ($i = $protocolo; $i < min(count($linhas), $protocolo + 3); $i++) {
+                $pedaco = mb_substr($linhas[$i], max(0, $coluna - 2), null, 'UTF-8');
+                if (preg_match('/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?/u', $pedaco, $p)) {
+                    $data = self::montarData($p[3], $p[2], $p[1], $p[4], $p[5], $p[6] ?? '00');
+                    if ($data !== null) {
+                        return [$data, substr($data, 0, 10)];
+                    }
+                }
+            }
         }
+
         $data = null;
         $hora = null;
         foreach ($linhas as $i => $linha) {
-            $posicao = self::posicao($linha, '/DATA\s+(?:DA|DE)\s+EMISS/u');
-            if ($data === null && $posicao !== null) {
-                $valor = self::valorNaColuna($linhas, $i, $posicao);
-                if ($valor !== null && preg_match('/(\d{2})\/(\d{2})\/(\d{4})/', $valor, $d)) {
-                    $data = [$d[3], $d[2], $d[1]];
+            $compacta = self::compacto($linha);
+            if ($data === null && (str_contains($compacta, 'DATADEEMISSAO') || str_contains($compacta, 'DATADAEMISSAO'))) {
+                $posicao = self::posicaoTitulo($linha, str_contains($compacta, 'DATADEEMISSAO') ? 'DATADEEMISSAO' : 'DATADAEMISSAO');
+                $valor = $posicao !== null ? self::valorNaColuna($linhas, $i, $posicao) : null;
+                if ($valor !== null && preg_match('/(\d{2})\/(\d{2})\/(\d{4})/', $valor, $d) && checkdate((int) $d[2], (int) $d[1], (int) $d[3])) {
+                    $data = $d[3] . '-' . $d[2] . '-' . $d[1];
                 }
             }
-            $posicao = self::posicao($linha, '/HORA\s+(?:DA|DE)\s+(?:ENTRADA\s*\/\s*)?SA/u');
-            if ($hora === null && $posicao !== null) {
-                $valor = self::valorNaColuna($linhas, $i, $posicao);
-                if ($valor !== null && preg_match('/(\d{2}):(\d{2})(?::(\d{2}))?/', $valor, $h)) {
+            $posicaoHora = strpos($compacta, 'HORA');
+            if ($hora === null && $posicaoHora !== false && str_contains(substr($compacta, $posicaoHora), 'SAIDA')) {
+                $posicao = self::posicaoTitulo($linha, 'HORA');
+                $valor = $posicao !== null ? self::valorNaColuna($linhas, $i, $posicao) : null;
+                if ($valor !== null && preg_match('/^(\d{2}):(\d{2})(?::(\d{2}))?/', $valor, $h)) {
                     $hora = [$h[1], $h[2], $h[3] ?? '00'];
                 }
             }
         }
         if ($data !== null && $hora !== null) {
-            return self::montarData($data[0], $data[1], $data[2], $hora[0], $hora[1], $hora[2]);
+            [$ano, $mes, $dia] = explode('-', $data);
+
+            return [self::montarData($ano, $mes, $dia, $hora[0], $hora[1], $hora[2]), $data];
         }
 
-        return null;
+        return [null, $data];
     }
 
     private static function montarData(string $ano, string $mes, string $dia, string $hora, string $minuto, string $segundo): ?string
@@ -371,7 +391,8 @@ final class NotaFiscal
     {
         $comeco = null;
         foreach ($linhas as $i => $linha) {
-            if (preg_match('/DESCRI\S*\s+D[OA]S?\s+PRODUTO/u', $linha)) {
+            $compacta = self::compacto($linha);
+            if (str_contains($compacta, 'DESCRICAOD') && str_contains($compacta, 'PRODUT')) {
                 $comeco = $i + 1;
                 break;
             }
@@ -382,7 +403,8 @@ final class NotaFiscal
         $itens = [];
         for ($i = $comeco; $i < count($linhas); $i++) {
             $linha = $linhas[$i];
-            if (preg_match('/DADOS\s+ADICIONAIS|C[ÁA]LCULO\s+DO\s+ISSQN/u', $linha)) {
+            $compacta = self::compacto($linha);
+            if (str_contains($compacta, 'DADOSADICIONAIS') || str_contains($compacta, 'CALCULODOISSQN')) {
                 break;
             }
             if (preg_match('/^\s*\S+\s+(.+?)\s+\d{8}\s+\d{2,4}\s+\d{4}\s+(\S{1,6})\s+([\d.]+,\d+)/u', $linha, $item)) {
@@ -404,14 +426,62 @@ final class NotaFiscal
         return $itens;
     }
 
-    /** Posição (em caracteres) onde o título começa na linha. */
-    private static function posicao(string $linha, string $padrao): ?int
+    /** O texto dos dados adicionais (informações complementares), onde costuma estar o pedido. */
+    private static function dadosAdicionais(array $linhas): string
     {
-        if (!preg_match($padrao, $linha, $achado, PREG_OFFSET_CAPTURE)) {
-            return null;
+        $comeco = self::linhaComTitulo($linhas, ['DADOSADICIONAIS', 'INFORMACOESCOMPLEMENTARES']);
+
+        return $comeco === null ? '' : implode("\n", array_slice($linhas, $comeco, 40));
+    }
+
+    /** Maiúsculas, sem acento e sem espaço: "Prot ocolo de Autorização" vira "PROTOCOLODEAUTORIZACAO". */
+    private static function compacto(string $texto): string
+    {
+        $texto = strtr(mb_strtoupper($texto, 'UTF-8'), [
+            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A',
+            'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I',
+            'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+            'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U',
+            'Ç' => 'C', 'Ñ' => 'N', 'º' => 'O', 'ª' => 'A', '°' => 'O',
+        ]);
+        $texto = (string) preg_replace('/\s+/u', '', $texto);
+
+        // Qualquer outro caractere fora do ASCII vira "?": cada caractere ocupa uma posição só.
+        return (string) preg_replace('/[^\x20-\x7E]/u', '?', $texto);
+    }
+
+    /** Primeira linha que tem um dos títulos (comparados sem espaço e sem acento). */
+    private static function linhaComTitulo(array $linhas, array $titulos): ?int
+    {
+        foreach ($linhas as $i => $linha) {
+            $compacta = self::compacto($linha);
+            foreach ($titulos as $titulo) {
+                if (str_contains($compacta, $titulo)) {
+                    return $i;
+                }
+            }
         }
 
-        return mb_strlen(substr($linha, 0, $achado[0][1]), 'UTF-8');
+        return null;
+    }
+
+    /** Posição (em caracteres) onde o título começa na linha, mesmo com letras separadas por espaço. */
+    private static function posicaoTitulo(string $linha, string $titulo): ?int
+    {
+        $compacta = '';
+        $origem = [];
+        foreach (mb_str_split($linha, 1, 'UTF-8') as $posicao => $caractere) {
+            $letra = self::compacto($caractere);
+            if ($letra === '') {
+                continue;
+            }
+            $compacta .= $letra[0];
+            $origem[] = $posicao;
+        }
+        $achou = strpos($compacta, $titulo);
+
+        return $achou === false ? null : $origem[$achou];
     }
 
     /** O valor que fica embaixo do título, na mesma coluna, até o próximo espaço largo. */
@@ -434,15 +504,6 @@ final class NotaFiscal
         }
 
         return null;
-    }
-
-    private static function trechoDepois(string $texto, string $padrao, int $tamanho = 4000): string
-    {
-        if (!preg_match($padrao, $texto, $achado, PREG_OFFSET_CAPTURE)) {
-            return '';
-        }
-
-        return substr($texto, $achado[0][1], $tamanho);
     }
 
     // ---------------------------------------------------------------- comum
@@ -503,6 +564,7 @@ final class NotaFiscal
             'unidade_nota' => $unidadeNota,
             'outros_materiais' => array_keys($outros),
             'emitida_em' => $dados['emitida_em'] ?? null,
+            'data_emissao' => $dados['data_emissao'] ?? (isset($dados['emitida_em']) ? substr((string) $dados['emitida_em'], 0, 10) : null),
         ];
     }
 
