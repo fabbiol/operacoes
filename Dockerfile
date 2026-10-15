@@ -1,8 +1,9 @@
 FROM php:8.3-apache
 
-# pdo_mysql para o banco; gd e exif para reduzir e endireitar as fotos (JPG, PNG e WebP).
+# pdo_mysql para o banco; gd e exif para reduzir e endireitar as fotos (JPG, PNG e WebP);
+# poppler-utils (pdftotext) para ler o PDF da nota fiscal no lançamento do carregamento.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libjpeg62-turbo-dev libpng-dev libwebp-dev \
+    && apt-get install -y --no-install-recommends libjpeg62-turbo-dev libpng-dev libwebp-dev poppler-utils \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install pdo_mysql gd exif \
     && rm -rf /var/lib/apt/lists/* \

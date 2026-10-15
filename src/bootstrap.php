@@ -16,6 +16,7 @@ require OPERACOES_ROOT . '/src/Horimetro.php';
 require OPERACOES_ROOT . '/src/Posse.php';
 require OPERACOES_ROOT . '/src/Fotos.php';
 require OPERACOES_ROOT . '/src/Tablets.php';
+require OPERACOES_ROOT . '/src/NotaFiscal.php';
 
 carregar_env(OPERACOES_ROOT . '/.env');
 
