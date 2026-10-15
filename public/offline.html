@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#f5f3ed">
+    <title>Sem conexão · Próspera</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            color: #191b1b;
+            background: #f5f3ed;
+            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+            font-size: 17px;
+            line-height: 1.45;
+        }
+        main { width: 100%; max-width: 460px; text-align: center; }
+        .marca { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 28px; font-weight: 800; font-size: 20px; }
+        .marca i { width: 40px; height: 40px; border-radius: 10px; background: #161717; display: inline-flex; align-items: center; justify-content: center; }
+        h1 { margin: 0 0 12px; font-size: 28px; line-height: 1.15; }
+        p { margin: 0 0 12px; }
+        .nota { color: #5e635d; }
+        .situacao { margin: 20px 0; padding: 12px 14px; border-radius: 10px; background: #ffe3c2; color: #6a3d12; font-weight: 700; }
+        button {
+            min-height: 56px;
+            width: 100%;
+            padding: 12px 16px;
+            border: 0;
+            border-radius: 12px;
+            background: #f2b705;
+            color: #191b1b;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        button:disabled { opacity: .6; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="marca">
+            <i aria-hidden="true"><svg width="26" height="26" viewBox="30 22 68 82"><path fill="#f6ba03" d="M34 70l16-10v31l-16 10zM56 53l16-10v48l-16 10zM78 35.5l16-10V91l-16 10z"/></svg></i>
+            Próspera
+        </div>
+        <h1>Sem conexão</h1>
+        <p>O tablet não está conseguindo falar com o sistema.</p>
+        <p class="nota">Confira se o Wi-Fi está ligado e se o tablet está perto do roteador.</p>
+        <p class="situacao" id="situacao" role="status" aria-live="polite">A tela volta sozinha quando o sinal voltar.</p>
+        <button type="button" id="tentar">Tentar agora</button>
+    </main>
+    <script>
+    (function () {
+        var situacao = document.getElementById('situacao');
+        var botao = document.getElementById('tentar');
+        var tentando = false;
+
+        function base() {
+            if (!navigator.serviceWorker) return Promise.resolve(location.origin + '/');
+            return navigator.serviceWorker.getRegistration().then(function (registro) {
+                return registro ? registro.scope : location.origin + '/';
+            });
+        }
+
+        // Qualquer resposta do servidor quer dizer que o sinal voltou: a tela que a pessoa abriu é carregada de novo.
+        function tentar(pelaPessoa) {
+            if (tentando) return;
+            tentando = true;
+            botao.disabled = true;
+            if (pelaPessoa) situacao.textContent = 'Tentando…';
+            var controle = window.AbortController ? new AbortController() : null;
+            var prazo = setTimeout(function () { if (controle) controle.abort(); }, 8000);
+            base()
+                .then(function (endereco) {
+                    return fetch(endereco + 'health', { cache: 'no-store', signal: controle ? controle.signal : undefined });
+                })
+                .then(function () {
+                    situacao.textContent = 'O sinal voltou. Abrindo…';
+                    location.reload();
+                }, function () {
+                    clearTimeout(prazo);
+                    tentando = false;
+                    botao.disabled = false;
+                    var agora = new Date();
+                    situacao.textContent = 'Ainda sem sinal (' + ('0' + agora.getHours()).slice(-2) + ':' + ('0' + agora.getMinutes()).slice(-2)
+                        + '). A tela volta sozinha quando o sinal voltar.';
+                });
+        }
+
+        botao.addEventListener('click', function () { tentar(true); });
+        window.addEventListener('online', function () { tentar(false); });
+        setInterval(function () { tentar(false); }, 10000);
+    })();
+    </script>
+</body>
+</html>

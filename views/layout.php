@@ -10,6 +10,8 @@
     <?php endif; ?>
     <title><?= e($titulo) ?> · Próspera</title>
     <link rel="icon" href="<?= e(url('favicon.svg')) ?>" type="image/svg+xml">
+    <link rel="manifest" href="<?= e(url('manifest.json')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(url('assets/icone-192.png')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">
     <?php if (($corpo ?? '') === 'dashboard'): ?>
         <link rel="stylesheet" href="<?= e(asset('assets/dashboard.css')) ?>">
@@ -85,6 +87,7 @@
         <?php require $viewFile; ?>
     </main>
     <script src="<?= e(asset('assets/envio.js')) ?>"></script>
+    <script src="<?= e(asset('assets/tablet.js')) ?>" data-sw="<?= e(url('sw.js')) ?>" data-escopo="<?= e(url('/')) ?>"></script>
     <?php if (!empty($fluxoUrl)): ?>
         <script src="<?= e(asset('assets/tempo.js')) ?>"></script>
         <script src="<?= e(asset('assets/fluxo.js')) ?>"></script>
