@@ -48,11 +48,42 @@ O administrativo não consegue iniciar uma carga com uma máquina que está com 
 
 ## Docker
 
+No computador, com as portas abertas:
+
 ```bash
-docker compose up --build
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 ```
 
-A tela fica em `http://localhost:8081`. O MySQL do compose usa a porta `3308`.
+A tela fica em `http://localhost:8081`. O MySQL do compose usa a porta `3308`. As variáveis vêm de um `.env` (modelo em `.env.example`).
+
+O `docker-compose.yml` sozinho é o de servidor: não abre nenhuma porta (o MySQL não fica exposto na internet), guarda banco, fotos e sessões em volumes que sobrevivem a cada nova versão, e entende o proxy do painel (HTTPS e endereço de quem acessa, usados no cookie seguro e no bloqueio de senha errada). A imagem já traz o que a redução de fotos precisa (GD e EXIF) e aceita envio de até 12 MB.
+
+## Easypanel
+
+1. Crie um serviço **Compose** e, em **Fonte › Git**, preencha:
+   - **URL do Repositório:** `https://github.com/fabbiol/operacoes.git` (repositório público: não precisa de chave SSH);
+   - **Ramo:** `main`;
+   - **Caminho de Build:** `/`;
+   - **Arquivo Docker Compose:** `docker-compose.yml`.
+2. Em **Ambiente**, defina as variáveis (troque as senhas):
+
+   ```
+   APP_USUARIOS=Fabio:SENHA-FORTE-DO-ADMIN:admin
+   APP_ADMIN=Fabio
+   APP_DEBUG=0
+   APP_TZ=America/Cuiaba
+   DB_NAME=operacoes_prospera
+   DB_USER=operacoes
+   DB_PASSWORD=SENHA-DO-BANCO
+   DB_ROOT_PASSWORD=OUTRA-SENHA-DO-BANCO
+   ```
+
+   A senha do administrativo precisa ter pelo menos 8 caracteres. As outras pessoas são cadastradas depois, em Pessoas.
+3. Clique em **Implantar**. O banco e as tabelas são criados sozinhos no primeiro acesso.
+4. Em **Domínios**, adicione o domínio apontando para o serviço `app`, porta `80`. O painel cuida do HTTPS.
+5. Para publicar a cada alteração na `main`, use o webhook de implantação do serviço no GitHub (**Settings › Webhooks**).
+
+Banco, fotos e sessões ficam nos volumes `operacoes_db` e `operacoes_storage`. Não apague esses volumes: é onde estão os dados.
 
 ## Publicação
 

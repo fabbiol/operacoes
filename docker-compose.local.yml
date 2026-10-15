@@ -1,0 +1,10 @@
+# Só para usar no computador: abre a tela na porta 8081 e o MySQL na 3308.
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+# Não use no servidor: a porta do MySQL ficaria aberta para a internet.
+services:
+  app:
+    ports:
+      - "8081:80"
+  db:
+    ports:
+      - "3308:3306"
