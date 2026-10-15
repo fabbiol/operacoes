@@ -1,5 +1,26 @@
 # O que mudou
 
+## Outubro de 2026: carregamento fracionado, controle de carga e Monitor novo
+
+**Carregamento fracionado**: para o cliente que leva a nota em várias viagens (3 viagens de 0,5 m³, por exemplo). Marque **Carregamento fracionado** ao lançar a ordem. A nota é lançada uma vez, com o total.
+
+- O operador informa, ao finalizar, quanto foi carregado naquela viagem (nunca mais que o saldo da nota).
+- O que falta vira a próxima viagem (CAR-012-2...), em **Saldo a buscar**. Quando o cliente volta, o administrativo toca em **Liberar viagem** e ela vai para a fila do pátio.
+- **Encerrar saldo** cancela só o que faltava buscar.
+
+**Controle de carga** (Fila › Controle, só administrativo): o vendido do dia em R$, o carregado do dia (t e m³), as notas com saldo a buscar e todas as notas do dia com a situação de cada uma. Dá para ver dias anteriores.
+
+- **Valor da nota**: lido sozinho do XML e do PDF, ou digitado na ordem.
+- **Vendido do dia**: soma das notas emitidas no dia, cada nota uma vez (fracionada também). Aparece também no Painel.
+
+**Monitor da TV** refeito para ler de longe: poucos números e grandes, tempo de espera de cada cliente da fila (amarelo a partir de 30 min, vermelho a partir de 1 h), relógios que contam sozinhos, aviso quando a TV fica sem internet, e o vendido do dia em R$ só se marcar a opção naquele aparelho.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho, no primeiro acesso, as colunas do fracionado e do valor da nota em `fila_carregamentos` (`nf_valor`, `fracionado`, `ordem_principal_id`, `viagem`, `quantidade_carregada`) e a situação **Saldo a buscar**. As ordens que já existem continuam iguais.
+2. No Easypanel, se a publicação não começar sozinha, toque em **Implantar**.
+3. Na TV, abra o Monitor de novo e toque em **Tela cheia**.
+4. As notas lançadas antes desta versão não têm valor: o Controle avisa quantas estão "sem valor". Se quiser, digite o valor na ordem.
+
 ## Outubro de 2026: lançar o carregamento pela nota fiscal
 
 Na **Nova ordem** tem o quadro **Ler a nota fiscal**: escolha o **XML** ou o **PDF** da nota e toque em **Ler nota**. O sistema preenche cliente, pedido, número da nota, material, quantidade, unidade e a **hora em que a nota foi emitida**. É só conferir e lançar.
