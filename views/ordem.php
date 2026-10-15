@@ -9,20 +9,33 @@
 <dl class="ficha">
     <div><dt>Cliente</dt><dd><?= e($ordem['cliente']) ?></dd></div>
     <div><dt>Pedido</dt><dd><?= e($ordem['pedido']) ?></dd></div>
-    <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?></dd></div>
+    <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php endif; ?></dd></div>
     <div><dt>Material</dt><dd><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></dd></div>
     <div><dt><?= (int) ($ordem['retroescavadeira_id'] ?? 0) > 0 ? 'Escavadeira hidráulica' : 'Pá carregadeira' ?></dt><dd><?= e($ordem['pa_nome'] ?: 'Escolhida ao iniciar') ?></dd></div>
     <div><dt>Operador</dt><dd><?= e($ordem['operador'] ?: '—') ?></dd></div>
 </dl>
 
 <ol class="linha-tempo">
+    <?php if (!empty($ordem['nf_emitida_em'])): ?>
+        <li class="feito">
+            <strong>Nota fiscal emitida</strong>
+            <span><?= e(quando((string) $ordem['nf_emitida_em'])) ?></span>
+        </li>
+    <?php endif; ?>
     <li class="<?= $ordem['autorizado_em'] ? 'feito' : '' ?>">
         <strong>Autorização</strong>
         <span><?= $ordem['autorizado_em'] ? e(quando($ordem['autorizado_em']) . ' · ' . $ordem['autorizado_por']) : 'Ainda não liberada' ?></span>
     </li>
     <li class="<?= $ordem['inicio_carregamento'] ? 'feito' : '' ?>">
         <strong>Início do carregamento</strong>
-        <span><?= $ordem['inicio_carregamento'] ? e(quando($ordem['inicio_carregamento'])) : 'Aguardando o pátio' ?></span>
+        <span><?= $ordem['inicio_carregamento'] ? e(quando($ordem['inicio_carregamento'])) : 'Aguardando o pátio' ?><?php
+            if (!empty($ordem['nf_emitida_em']) && $ordem['inicio_carregamento']) {
+                $espera = strtotime((string) $ordem['inicio_carregamento']) - strtotime((string) $ordem['nf_emitida_em']);
+                if ($espera >= 0) {
+                    echo e(' · ' . texto_duracao($espera) . ' depois da nota');
+                }
+            }
+        ?></span>
     </li>
     <li class="<?= $ordem['fim_carregamento'] ? 'feito' : '' ?>">
         <strong>Fim do carregamento</strong>
