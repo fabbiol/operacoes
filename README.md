@@ -4,6 +4,20 @@ O administrativo lança a ordem, confere cliente, pedido, nota, material e quant
 
 O ciclo de lavra conta as viagens do caminhão: fila, carga, ida até o britador e retorno vazio. Na lavra, o operador de escavadeira hidráulica assume a escavadeira e faz a carga. O motorista marca a fila, a ida e o retorno. Quem opera as duas máquinas pode estar no pátio ou na lavra, um lugar por vez. A tela fica em `/lavra`.
 
+## Lançar o carregamento pela nota fiscal
+
+Em **Fila › Carregamento › Nova ordem**, o quadro **Ler a nota fiscal** recebe o **XML** ou o **PDF (DANFE)** da nota. Toque em **Ler nota**: o sistema preenche o cliente, o pedido, o número da nota, o material, a quantidade, a unidade e a hora em que a nota foi emitida. Confira, marque **Liberar agora para o pátio** se quiser e toque em **Lançar ordem**.
+
+- **XML**: leitura exata, campo por campo. A hora é a da emissão da nota.
+- **PDF**: o sistema lê o texto do DANFE. O número e a série vêm da chave de acesso (conferida pelo dígito verificador); a hora vem do protocolo de autorização (segundos depois da emissão). PDF escaneado (foto) não tem texto: use o XML.
+- **Pedido**: o do campo de pedido da nota (xPed) ou, se não tiver, o "Pedido: ..." das informações complementares.
+- **Material**: o do cadastro com o mesmo nome do material da nota (sem diferença de acento ou maiúscula; "BRITA 1" acha "Brita 1"). Se não achar, a tela avisa e você escolhe. Se a nota tiver mais de um material, o carregamento usa o primeiro e a tela avisa.
+- **Nota repetida**: a tela avisa se a nota já está em outro carregamento, e o sistema não deixa lançar a mesma nota (mesma chave de acesso) duas vezes.
+
+A hora em que o caminhão foi carregado continua vindo do pátio (início e fim do carregamento). A ficha da ordem mostra a hora da nota e quanto tempo depois dela o carregamento começou.
+
+Ler o PDF precisa do programa `pdftotext` (pacote `poppler-utils`), que já vem no Docker. Num servidor sem ele (por exemplo a hospedagem compartilhada da Hostinger), use o XML.
+
 ## Local no Windows
 
 O MariaDB da máquina precisa estar no ar (o mesmo da porta `3307`). Crie o banco uma vez:
