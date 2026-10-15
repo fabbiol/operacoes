@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-segunda-leva';
+    private const MIGRACOES = '2026-10-escavadeira';
 
     private static ?PDO $pdo = null;
 
@@ -109,6 +109,7 @@ final class Db
             self::retirarCaminhaoDaFila($pdo);
             self::garantirPapel($pdo);
             self::garantirPessoa($pdo);
+            self::garantirEscavadeira($pdo);
             self::garantirFicha($pdo);
             self::garantirRetro($pdo);
             self::garantirEstrada($pdo);
@@ -210,6 +211,19 @@ final class Db
         $pdo->exec("UPDATE usuarios SET operador = 1 WHERE papel = 'operador' AND motorista = 0 AND operador = 0");
         $pdo->exec("UPDATE usuarios SET motorista = 1, operador = 1 WHERE papel = 'ambos' AND motorista = 0 AND operador = 0");
         $pdo->exec("UPDATE usuarios SET administrador = 1, papel = 'admin' WHERE papel = 'admin' AND administrador = 0");
+    }
+
+    /**
+     * O operador de escavadeira hidráulica (carga na lavra) passou a ser separado do operador de pá carregadeira (pátio).
+     * Quem já era operador fica com as duas funções, para ninguém perder acesso.
+     */
+    private static function garantirEscavadeira(PDO $pdo): void
+    {
+        if (in_array('escavadeira', self::colunasDe($pdo, 'usuarios'), true)) {
+            return;
+        }
+        $pdo->exec('ALTER TABLE usuarios ADD COLUMN escavadeira TINYINT(1) NOT NULL DEFAULT 0 AFTER operador');
+        $pdo->exec('UPDATE usuarios SET escavadeira = 1 WHERE operador = 1');
     }
 
     private static function separarUsuario(PDO $pdo): void

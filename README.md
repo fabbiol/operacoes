@@ -1,8 +1,8 @@
 # Pátio — fila de carregamento
 
-O administrativo lança a ordem, confere cliente, pedido, nota, material e quantidade, e libera. No tablet, o operador escolhe a pá carregadeira, inicia e finaliza para a conferência.
+O administrativo lança a ordem, confere cliente, pedido, nota, material e quantidade, e libera. No tablet, o operador de pá carregadeira assume a pá, inicia e finaliza para a conferência.
 
-O ciclo de lavra conta as viagens do caminhão: fila, carga, ida até o britador e retorno vazio. Na lavra, o operador escolhe a retroescavadeira e faz a carga. O motorista marca a fila, a ida e o retorno. O mesmo operador pode estar no pátio ou na lavra, um lugar por vez. A tela fica em `/lavra`.
+O ciclo de lavra conta as viagens do caminhão: fila, carga, ida até o britador e retorno vazio. Na lavra, o operador de escavadeira hidráulica assume a escavadeira e faz a carga. O motorista marca a fila, a ida e o retorno. Quem opera as duas máquinas pode estar no pátio ou na lavra, um lugar por vez. A tela fica em `/lavra`.
 
 ## Local no Windows
 
@@ -18,11 +18,17 @@ As tabelas são criadas na primeira abertura. Suba a tela com:
 php -S 127.0.0.1:8081 -t public public/router.php
 ```
 
-Abra `http://127.0.0.1:8081`. O primeiro acesso fica em `APP_USUARIOS`, no formato `nome:senha:funcao` (`admin`, `motorista` ou `operador`). Quem está em `APP_ADMIN` entra como administrativo. As outras pessoas são cadastradas em Pessoas, com usuário, nome completo, foto e função. O usuário é o primeiro nome.
+Abra `http://127.0.0.1:8081`. O primeiro acesso fica em `APP_USUARIOS`, no formato `nome:senha:funcao` (`admin`, `motorista`, `operador`, `escavadeira` ou `ambos`; `operador` vale para a pá e para a escavadeira). Quem está em `APP_ADMIN` entra como administrativo. As outras pessoas são cadastradas em Pessoas, com usuário, nome completo, foto e função. O usuário é o primeiro nome.
 
 O usuário pode ser trocado em Pessoas: o histórico (viagens, cargas, horímetro, turnos, manutenções) passa para o nome novo, e quem está com a sessão aberta continua trabalhando. Quem vem de `APP_USUARIOS` tem o nome trocado no servidor, não na tela.
 
-O motorista abre a lavra. O operador abre a lavra e o pátio. Quem está nas duas funções abre as duas operações. O administrativo visualiza e faz tudo, inclusive os cadastros de caminhões, pás e retroescavadeiras, a fila de carregamento, os materiais e as pessoas.
+Em Pessoas, cada pessoa tem uma ou mais funções marcadas:
+
+- **Motorista**: assume caminhão e abre a lavra (fila, ida e retorno).
+- **Operador de pá carregadeira**: assume pá e abre o pátio.
+- **Operador de escavadeira hidráulica**: assume escavadeira e abre a lavra (carga dos caminhões). Se não houver nenhuma pá cadastrada, também carrega no pátio com a escavadeira.
+
+Cada pessoa só vê e assume as máquinas das funções marcadas. O administrativo visualiza e faz tudo, inclusive os cadastros de caminhões, pás e escavadeiras hidráulicas, a fila de carregamento, os materiais e as pessoas.
 
 ## Tablets autorizados
 

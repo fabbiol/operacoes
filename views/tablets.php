@@ -17,7 +17,7 @@
             <?= csrf_field() ?>
             <label class="campo">
                 <span>Nome deste tablet</span>
-                <input type="text" name="nome" maxlength="60" required value="<?= e($nome ?? '') ?>" placeholder="Ex.: Tablet da retro 1">
+                <input type="text" name="nome" maxlength="60" required value="<?= e($nome ?? '') ?>" placeholder="Ex.: Tablet da escavadeira 1">
             </label>
             <button type="submit" class="btn primario">Autorizar este aparelho</button>
         </form>

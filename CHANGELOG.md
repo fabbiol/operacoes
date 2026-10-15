@@ -1,5 +1,19 @@
 # O que mudou
 
+## Outubro de 2026: operador de pá e operador de escavadeira separados
+
+Em Pessoas, a função deixou de ser "Motorista, Operador ou Ambos". Agora são três caixas para marcar uma ou mais: **Motorista**, **Operador de pá carregadeira** e **Operador de escavadeira hidráulica**.
+
+- O operador de pá só vê e assume pá carregadeira, e abre o pátio.
+- O operador de escavadeira só vê e assume escavadeira hidráulica, e abre a lavra para carregar os caminhões. Se não houver nenhuma pá cadastrada, ele também carrega no pátio com a escavadeira (como já era).
+- No pátio, a lista de operadores do administrativo mostra só quem opera pá (ou só quem opera escavadeira, quando não há pá).
+- "Retroescavadeira" passou a se chamar **Escavadeira hidráulica** em todas as telas, no cadastro de máquinas, no horímetro e no monitor da TV.
+
+### Ao publicar esta versão
+1. Quem hoje é "Operador" fica com as duas funções (pá e escavadeira), para ninguém perder acesso. Depois, em Pessoas, desmarque a função que a pessoa não faz.
+2. O banco é atualizado sozinho no primeiro acesso (coluna nova `escavadeira` em `usuarios`). Pode publicar com o turno rodando.
+3. Antes de tirar uma função de alguém, a pessoa precisa soltar a máquina daquela função (ou o administrativo liberar na ficha da máquina).
+
 ## Outubro de 2026: segunda leva de melhorias
 
 Os itens que tinham ficado para a próxima leva. Cada item tem um commit próprio no Git com os detalhes.

@@ -5,7 +5,7 @@
     <p><a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar ao pátio</a></p>
 <?php elseif (is_array($retroPatio ?? null)): ?>
     <?php if (!empty($erro)): ?><p class="aviso erro"><?= e($erro) ?></p><?php endif; ?>
-    <p class="nota">Nenhuma pá livre. A carga segue com a retro do menu.</p>
+    <p class="nota">Nenhuma pá livre. A carga segue com a escavadeira do menu.</p>
     <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
         <?= csrf_field() ?>
         <input type="hidden" name="retroescavadeira_id" value="<?= (int) $retroPatio['id'] ?>">
@@ -21,7 +21,7 @@
     </form>
 <?php elseif ($paFixa === false): ?>
     <p class="aviso erro"><?= !empty($semPa)
-        ? 'Nenhuma pá livre. Troque para uma retroescavadeira para carregar no pátio.'
+        ? 'Nenhuma pá livre. Troque para uma escavadeira hidráulica para carregar no pátio.'
         : 'A máquina do menu não é uma pá. Troque para uma pá carregadeira para carregar no pátio.' ?></p>
     <p><a class="btn secundario" href="<?= e(url('maquina')) ?>">Trocar</a></p>
 <?php elseif (is_array($paFixa)): ?>
@@ -43,9 +43,9 @@
     <?php if (!empty($erro)): ?><p class="aviso erro"><?= e($erro) ?></p><?php endif; ?>
     <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
         <?= csrf_field() ?>
-        <p class="nota">Nenhuma pá livre. A carga segue com a retroescavadeira.</p>
+        <p class="nota">Nenhuma pá livre. A carga segue com a escavadeira hidráulica.</p>
         <fieldset class="maquinas">
-            <legend>Retroescavadeira</legend>
+            <legend>Escavadeira hidráulica</legend>
             <?php foreach ($retros as $retro): ?>
                 <?php
                 $detalhe = [];

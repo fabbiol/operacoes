@@ -317,7 +317,7 @@ final class Horimetro
     {
         $grupos = [
             'pas' => 'Pás carregadeiras',
-            'retros' => 'Retroescavadeiras',
+            'retros' => 'Escavadeiras hidráulicas',
             'caminhoes' => 'Caminhões',
         ];
         $saida = [];

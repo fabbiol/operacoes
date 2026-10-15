@@ -1,11 +1,11 @@
 <?php if (($retros ?? []) === []): ?>
-    <p class="aviso erro">Nenhuma retroescavadeira ativa. O administrativo precisa cadastrar a máquina.</p>
+    <p class="aviso erro">Nenhuma escavadeira hidráulica ativa. O administrativo precisa cadastrar a máquina.</p>
 <?php else: ?>
-    <p class="nota">Escolha a retroescavadeira. Depois disso, a fila mostra só o caminhão.</p>
+    <p class="nota">Escolha a escavadeira hidráulica. Depois disso, a fila mostra só o caminhão.</p>
     <form method="post" action="<?= e(url('lavra/retro')) ?>" class="formulario">
         <?= csrf_field() ?>
         <fieldset class="maquinas">
-            <legend>Retroescavadeira</legend>
+            <legend>Escavadeira hidráulica</legend>
             <?php foreach ($retros as $retro): ?>
                 <?php
                 $detalhe = [];
@@ -32,6 +32,6 @@
                 </label>
             <?php endforeach; ?>
         </fieldset>
-        <button type="submit" class="btn primario">Usar esta retro</button>
+        <button type="submit" class="btn primario">Usar esta escavadeira</button>
     </form>
 <?php endif; ?>

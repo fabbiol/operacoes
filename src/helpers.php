@@ -132,10 +132,46 @@ function maquina_tipos_do_usuario(): array
     }
     if (Auth::operador()) {
         $tipos[] = 'pa';
+    }
+    if (Auth::escavadeira()) {
         $tipos[] = 'retro';
     }
 
     return $tipos;
+}
+
+/**
+ * O pátio é do operador de pá carregadeira. Sem nenhuma pá cadastrada, o pátio é carregado
+ * com a escavadeira hidráulica, e aí o operador de escavadeira também entra.
+ */
+function pode_patio(): bool
+{
+    if (!Auth::ok()) {
+        return false;
+    }
+    if (Auth::admin() || Auth::operador()) {
+        return true;
+    }
+
+    if (!Auth::escavadeira()) {
+        return false;
+    }
+
+    // Quem já começou a carregar no pátio com a escavadeira termina, mesmo que uma pá tenha sido cadastrada no meio.
+    return Cadastro::opcoes('pas') === [] || Operacoes::paEmOperacao(Auth::usuario()) !== null;
+}
+
+function exigir_patio(): void
+{
+    if (pode_patio()) {
+        return;
+    }
+    http_response_code(403);
+    render('erro', [
+        'titulo' => 'Acesso',
+        'mensagem' => 'Essa tela não faz parte do seu acesso.',
+    ]);
+    exit;
 }
 
 function maquina_item(string $tipo, string $chave, array $cadastro): array
@@ -151,7 +187,7 @@ function maquina_item(string $tipo, string $chave, array $cadastro): array
     $rotulos = [
         'caminhao' => 'Caminhão',
         'pa' => 'Pá carregadeira',
-        'retro' => 'Retroescavadeira',
+        'retro' => 'Escavadeira hidráulica',
     ];
 
     return [
@@ -343,11 +379,14 @@ function maquina_do_trabalho(): ?array
         return null;
     }
     $nome = Auth::usuario();
-    if (Auth::operador()) {
+    if (Auth::operador() || Auth::escavadeira()) {
+        // Carregamento no pátio: com a pá, ou com a escavadeira quando não há pá cadastrada.
         $pa = Operacoes::paEmOperacao($nome);
         if ($pa !== null) {
             return ['tipo' => (string) ($pa['tipo'] ?? 'pa'), 'id' => (int) $pa['id']];
         }
+    }
+    if (Auth::escavadeira()) {
         $carga = Lavra::cargaDoOperador($nome);
         $retroId = (int) ($carga['retroescavadeira_id'] ?? 0);
         if ($carga !== null && $retroId > 0) {

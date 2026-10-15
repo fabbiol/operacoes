@@ -101,42 +101,42 @@ function despachar(string $path, string $method): void
     }
 
     if ($path === 'patio') {
-        exigir_papel('operador');
+        exigir_patio();
         tela_patio();
         return;
     }
 
     if ($path === 'patio/situacao') {
-        exigir_papel('operador');
+        exigir_patio();
         fluxo_json(patio_marca());
     }
 
     if ($path === 'patio/resumo') {
-        exigir_papel('operador');
+        exigir_patio();
         tela_patio_resumo();
         return;
     }
 
     if (preg_match('#^carregamentos/(\d+)/iniciar$#', $path, $m)) {
-        exigir_papel('operador');
+        exigir_patio();
         tela_iniciar((int) $m[1], $method);
         return;
     }
 
     if (preg_match('#^carregamentos/(\d+)/finalizar$#', $path, $m)) {
-        exigir_papel('operador');
+        exigir_patio();
         tela_finalizar((int) $m[1], $method);
         return;
     }
 
     if ($path === 'lavra') {
-        exigir_papel('motorista', 'operador');
+        exigir_papel('motorista', 'escavadeira');
         tela_lavra();
         return;
     }
 
     if ($path === 'lavra/situacao') {
-        exigir_papel('motorista', 'operador');
+        exigir_papel('motorista', 'escavadeira');
         fluxo_json(lavra_marca());
     }
 
@@ -203,25 +203,25 @@ function despachar(string $path, string $method): void
     }
 
     if ($path === 'lavra/retro' && $method === 'POST') {
-        exigir_papel('operador');
+        exigir_papel('escavadeira');
         csrf_check();
         $retroId = (int) ($_POST['retroescavadeira_id'] ?? 0);
         $retro = $retroId > 0 ? Cadastro::buscar('retros', $retroId) : null;
         $ativa = $retro !== null && (int) ($retro['ativo'] ?? 0) === 1;
         if (!Auth::admin()) {
-            // O operador escolhe a retro na tela da máquina, com o horímetro.
+            // O operador escolhe a escavadeira na tela da máquina, com o horímetro.
             redirect('/maquina');
         }
         if ($ativa) {
             $_SESSION['retroescavadeira_id'] = $retroId;
         } else {
-            flash_set('Selecione a retroescavadeira.', 'erro');
+            flash_set('Selecione a escavadeira hidráulica.', 'erro');
         }
         redirect('/lavra');
     }
 
     if ($path === 'lavra/retro/trocar' && $method === 'POST') {
-        exigir_papel('operador');
+        exigir_papel('escavadeira');
         csrf_check();
         if (Auth::admin()) {
             unset($_SESSION['retroescavadeira_id']);
@@ -231,13 +231,13 @@ function despachar(string $path, string $method): void
     }
 
     if (preg_match('#^lavra/ciclos/(\d+)/carga$#', $path, $m)) {
-        exigir_papel('operador');
+        exigir_papel('escavadeira');
         tela_lavra_iniciar((int) $m[1], $method);
         return;
     }
 
     if (preg_match('#^lavra/ciclos/(\d+)/concluir-carga$#', $path, $m) && $method === 'POST') {
-        exigir_papel('operador');
+        exigir_papel('escavadeira');
         csrf_check();
         recusar_toque_apressado('/lavra');
         try {
@@ -249,7 +249,7 @@ function despachar(string $path, string $method): void
     }
 
     if (preg_match('#^lavra/ciclos/(\d+)/ciente$#', $path, $m) && $method === 'POST') {
-        exigir_papel('operador');
+        exigir_papel('escavadeira');
         csrf_check();
         recusar_toque_apressado('/lavra');
         try {
@@ -854,10 +854,10 @@ function tela_patio_resumo(): void
     $dia = trim((string) ($_GET['dia'] ?? date('Y-m-d')));
     $visao = (($_GET['visao'] ?? '') === 'operador') ? 'operador' : 'maquina';
     try {
-        $resumo = Operacoes::resumo($dia, Auth::operador() ? Auth::usuario() : null);
+        $resumo = Operacoes::resumo($dia, Auth::admin() ? null : Auth::usuario());
     } catch (InvalidArgumentException) {
         $dia = date('Y-m-d');
-        $resumo = Operacoes::resumo($dia, Auth::operador() ? Auth::usuario() : null);
+        $resumo = Operacoes::resumo($dia, Auth::admin() ? null : Auth::usuario());
     }
     $bloco = $resumo[$visao];
 
@@ -878,10 +878,11 @@ function tela_iniciar(int $id, string $method): void
     $erro = null;
     // Quem não é do administrativo carrega sempre no próprio nome, como na lavra.
     $operador = Auth::admin() ? trim((string) ($_POST['operador'] ?? '')) : Auth::usuario();
-    $operadores = Auth::admin() ? Pessoas::operadores() : [];
     $paId = (int) ($_POST['pa_carregadeira_id'] ?? 0);
     $pas = Cadastro::opcoes('pas');
     $semPa = $pas === [];
+    // Sem pá cadastrada o pátio carrega com a escavadeira: a lista é de quem opera escavadeira.
+    $operadores = Auth::admin() ? Pessoas::operadores($semPa ? 'retro' : 'pa') : [];
     $paFixa = null;
     $retroPatio = null;
     if (!Auth::admin()) {
@@ -1649,7 +1650,7 @@ function tela_pessoa_form(?int $id, string $method): void
                 'id' => $id,
                 'nome' => (string) ($_POST['nome'] ?? ($pessoa['nome'] ?? '')),
                 'nome_completo' => (string) ($_POST['nome_completo'] ?? ($pessoa['nome_completo'] ?? '')),
-                'funcao' => (string) ($_POST['funcao'] ?? ''),
+                'funcoes' => Pessoas::funcoesDoFormulario($_POST),
                 'ativo' => isset($_POST['ativo']) ? 1 : 0,
                 'foto' => is_array($pessoa) ? ($pessoa['foto'] ?? null) : null,
                 'administrador' => is_array($pessoa) ? ($pessoa['administrador'] ?? 0) : 0,

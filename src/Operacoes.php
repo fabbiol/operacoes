@@ -395,7 +395,7 @@ final class Operacoes
             throw new InvalidArgumentException('Há uma pá ativa. Use a pá carregadeira para carregar no pátio.');
         }
         if ($retroId < 1) {
-            throw new InvalidArgumentException('Selecione a retroescavadeira.');
+            throw new InvalidArgumentException('Selecione a escavadeira hidráulica.');
         }
         $operador = limpar_texto($operador, 120, true, 'o nome do operador');
         if (Lavra::operadorEmCarga($operador)) {
@@ -405,11 +405,11 @@ final class Operacoes
         $retro = Db::pdo()->prepare('SELECT id FROM retroescavadeiras WHERE id = ? AND ativo = 1');
         $retro->execute([$retroId]);
         if (!$retro->fetch()) {
-            throw new InvalidArgumentException('Essa retroescavadeira não está disponível.');
+            throw new InvalidArgumentException('Essa escavadeira hidráulica não está disponível.');
         }
         $emUso = Lavra::retrosEmUso();
         if (isset($emUso[$retroId])) {
-            throw new InvalidArgumentException('Essa retroescavadeira já está carregando o ' . $emUso[$retroId] . '.');
+            throw new InvalidArgumentException('Essa escavadeira já está carregando o ' . $emUso[$retroId] . '.');
         }
         Posse::exigirCompativel('retro', $retroId, $operador);
 

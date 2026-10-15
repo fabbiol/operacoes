@@ -217,7 +217,7 @@ final class Lavra
         self::garantirDono($ciclo, $somenteOperador);
         self::conferirEtapa($ciclo, $esperada);
         if (in_array($ciclo['status'], ['na_fila', 'carregando'], true)) {
-            throw new InvalidArgumentException('A carga começa e termina na retroescavadeira.');
+            throw new InvalidArgumentException('A carga começa e termina na escavadeira hidráulica.');
         }
         $etapa = self::etapas()[$ciclo['status']] ?? null;
         if ($etapa === null) {
@@ -675,7 +675,7 @@ final class Lavra
             throw new InvalidArgumentException('Só dá para iniciar a carga de um caminhão que está na fila.');
         }
         if ($retroId < 1) {
-            throw new InvalidArgumentException('Selecione a retroescavadeira.');
+            throw new InvalidArgumentException('Selecione a escavadeira hidráulica.');
         }
         $operador = limpar_texto($operador, 120, true, 'o nome do operador');
         if (Operacoes::operadorEmCarga($operador)) {
@@ -687,11 +687,11 @@ final class Lavra
         $retro = Db::pdo()->prepare('SELECT id FROM retroescavadeiras WHERE id = ? AND ativo = 1');
         $retro->execute([$retroId]);
         if (!$retro->fetch()) {
-            throw new InvalidArgumentException('Essa retroescavadeira não está disponível.');
+            throw new InvalidArgumentException('Essa escavadeira hidráulica não está disponível.');
         }
         $emUso = self::retrosEmUso($id);
         if (isset($emUso[$retroId])) {
-            throw new InvalidArgumentException('Essa retroescavadeira já está carregando o ' . $emUso[$retroId] . '.');
+            throw new InvalidArgumentException('Essa escavadeira já está carregando o ' . $emUso[$retroId] . '.');
         }
         Posse::exigirCompativel('retro', $retroId, $operador);
 

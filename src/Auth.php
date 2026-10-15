@@ -43,7 +43,7 @@ final class Auth
         if (self::admin()) {
             return 'admin';
         }
-        if (self::motorista() && self::operador()) {
+        if (self::motorista() && (self::operador() || self::escavadeira())) {
             return 'ambos';
         }
         if (self::motorista()) {
@@ -51,6 +51,9 @@ final class Auth
         }
         if (self::operador()) {
             return 'operador';
+        }
+        if (self::escavadeira()) {
+            return 'escavadeira';
         }
 
         return '';
@@ -61,9 +64,16 @@ final class Auth
         return (int) (self::eu()['administrador'] ?? 0) === 1;
     }
 
+    /** Operador de pá carregadeira (pátio). */
     public static function operador(): bool
     {
         return (int) (self::eu()['operador'] ?? 0) === 1;
+    }
+
+    /** Operador de escavadeira hidráulica (carga na lavra). */
+    public static function escavadeira(): bool
+    {
+        return (int) (self::eu()['escavadeira'] ?? 0) === 1;
     }
 
     public static function motorista(): bool
@@ -71,9 +81,10 @@ final class Auth
         return (int) (self::eu()['motorista'] ?? 0) === 1;
     }
 
+    /** Motorista e também operador (de pá ou de escavadeira). */
     public static function ambos(): bool
     {
-        return self::motorista() && self::operador() && !self::admin();
+        return self::motorista() && (self::operador() || self::escavadeira()) && !self::admin();
     }
 
     public static function temFoto(): bool
@@ -125,6 +136,9 @@ final class Auth
             if ($papel === 'operador' && self::operador()) {
                 return true;
             }
+            if ($papel === 'escavadeira' && self::escavadeira()) {
+                return true;
+            }
         }
 
         return false;
@@ -149,19 +163,20 @@ final class Auth
         if (self::operador()) {
             return '/patio';
         }
+        if (self::escavadeira()) {
+            return '/lavra';
+        }
 
         return '/login';
     }
 
     public static function rotuloPapel(): string
     {
-        return match (self::papel()) {
-            'admin' => 'Administrativo',
-            'ambos' => 'Motorista e operador',
-            'motorista' => 'Motorista',
-            'operador' => 'Operador',
-            default => '',
-        };
+        if (self::admin()) {
+            return 'Administrativo';
+        }
+
+        return Pessoas::rotuloFuncoes(self::motorista(), self::operador(), self::escavadeira());
     }
 
     public static function exigir(): void
@@ -358,11 +373,11 @@ final class Auth
         $pdo = Db::pdo();
         $existe = $pdo->prepare('SELECT id FROM usuarios WHERE nome = ? LIMIT 1');
         $inserir = $pdo->prepare(
-            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, ativo)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1)'
+            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, escavadeira, ativo)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)'
         );
         $fixarAdmin = $pdo->prepare(
-            "UPDATE usuarios SET administrador = 1, papel = 'admin', motorista = 0, operador = 0 WHERE nome = ?"
+            "UPDATE usuarios SET administrador = 1, papel = 'admin', motorista = 0, operador = 0, escavadeira = 0 WHERE nome = ?"
         );
         foreach (self::listaConfigurada() as $nome => $item) {
             $admin = self::administradorFixo($nome) || $item['papel'] === 'admin';
@@ -375,6 +390,8 @@ final class Auth
             }
             $motorista = !$admin && ($item['papel'] === 'motorista' || $item['papel'] === 'ambos') ? 1 : 0;
             $operador = !$admin && ($item['papel'] === 'operador' || $item['papel'] === 'ambos') ? 1 : 0;
+            // "operador" na configuração continua valendo para as duas máquinas, como antes.
+            $escavadeira = !$admin && in_array($item['papel'], ['operador', 'ambos', 'escavadeira'], true) ? 1 : 0;
             $papel = $admin ? 'admin' : $item['papel'];
             $inserir->execute([
                 $nome,
@@ -384,6 +401,7 @@ final class Auth
                 $papel,
                 $motorista,
                 $operador,
+                $escavadeira,
             ]);
         }
     }
@@ -408,7 +426,7 @@ final class Auth
         if (!self::ok()) {
             return null;
         }
-        $sql = 'SELECT id, nome, administrador, motorista, operador, foto, ativo FROM usuarios';
+        $sql = 'SELECT id, nome, administrador, motorista, operador, escavadeira, foto, ativo FROM usuarios';
         $id = (int) ($_SESSION['usuario_id'] ?? 0);
         if ($id > 0) {
             $busca = Db::pdo()->prepare($sql . ' WHERE id = ? LIMIT 1');
@@ -457,7 +475,7 @@ final class Auth
             if ($nome === null || $senha === '') {
                 continue;
             }
-            $definido = in_array($papel, ['admin', 'operador', 'motorista', 'ambos'], true);
+            $definido = in_array($papel, ['admin', 'operador', 'motorista', 'ambos', 'escavadeira'], true);
             $lista[$nome] = [
                 'senha' => $senha,
                 'papel' => $definido ? $papel : 'operador',

@@ -97,7 +97,7 @@
                 '<p>' + esc(item.motorista || 'Sem motorista') + ' · ' + cap + '</p>' +
                 '<p>' + item.viagens + ' viagens · ' + tons + ' · parado ' + esc(item.parado) + ' desde ' + esc(item.desde) + '</p>' +
                 (item.km != null ? '<p>Cerca de ' + numero(item.km, 2) + ' km ' + (item.faixa === 'volta' ? 'do britador' : 'da lavra') + '</p>' : '') +
-                (item.retro ? '<p>Retro ' + esc(item.retro) + (item.operador_carga ? ' · ' + esc(item.operador_carga) : '') + '</p>' : '') +
+                (item.retro ? '<p>Escavadeira ' + esc(item.retro) + (item.operador_carga ? ' · ' + esc(item.operador_carga) : '') + '</p>' : '') +
                 '</article>';
         }).join('');
     }
@@ -130,7 +130,7 @@
             var ordem = item.ordem;
             return '<article class="pa ' + item.tipo + (ordem ? ' ocupada' : '') + '">' +
                 '<strong>' + esc(item.nome) + '</strong>' +
-                '<small>' + (item.tipo === 'retro' ? 'Retro no pátio' : 'Pá carregadeira') + '</small>' +
+                '<small>' + (item.tipo === 'retro' ? 'Escavadeira no pátio' : 'Pá carregadeira') + '</small>' +
                 (ordem
                     ? '<p>' + esc(ordem.ordem) + ' · ' + esc(ordem.cliente) + '</p><p>' + esc(ordem.produto) + ' · ' + numero(ordem.quantidade, 2) + ' ' + esc(ordem.unidade) + '</p>'
                     : '<p>Livre</p>') +

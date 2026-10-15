@@ -4,7 +4,7 @@
         <h1>Meus trabalhos</h1>
     </div>
 </section>
-<p class="nota">Últimos 30 dias. Entram os carregamentos finalizados, as cargas da retro e as viagens da lavra concluídas em que o seu nome foi registrado.</p>
+<p class="nota">Últimos 30 dias. Entram os carregamentos finalizados, as cargas da escavadeira e as viagens da lavra concluídas em que o seu nome foi registrado.</p>
 
 <div class="tempos">
     <div>
@@ -77,7 +77,7 @@
                     </header>
                     <p class="cliente">Carga na lavra</p>
                     <p class="carga">Carga <?= e(texto_duracao($ciclo['tempos']['carga'])) ?></p>
-                    <p class="meta"><?= e((string) ($ciclo['retro_nome'] ?: 'Retroescavadeira')) ?> · <?= e(quando($ciclo['fim_carga'])) ?></p>
+                    <p class="meta"><?= e((string) ($ciclo['retro_nome'] ?: 'Escavadeira hidráulica')) ?> · <?= e(quando($ciclo['fim_carga'])) ?></p>
                 </article>
             <?php else: ?>
                 <?php $ciclo = $item['ciclo']; ?>

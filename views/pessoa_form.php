@@ -2,7 +2,7 @@
 $novo = $pessoa === null || empty($pessoa['id']);
 $fixo = !$novo && Auth::administradorFixo((string) ($pessoa['nome'] ?? ''));
 $admin = !$novo && (int) ($pessoa['administrador'] ?? 0) === 1;
-$funcao = is_array($pessoa) ? (string) ($pessoa['funcao'] ?? Pessoas::funcao($pessoa)) : '';
+$funcoes = is_array($pessoa) ? Pessoas::funcoes($pessoa) : [];
 ?>
 <section class="cabeca">
     <div>
@@ -50,17 +50,18 @@ $funcao = is_array($pessoa) ? (string) ($pessoa['funcao'] ?? Pessoas::funcao($pe
     <?php else: ?>
         <fieldset class="maquinas">
             <legend>Função</legend>
+            <small class="dica">Marque uma ou mais. Cada pessoa só vê e assume as máquinas das funções marcadas.</small>
             <label class="escolha">
-                <input type="radio" name="funcao" value="motorista" required <?= $funcao === 'motorista' ? 'checked' : '' ?>>
+                <input type="checkbox" name="funcoes[]" value="motorista" <?= in_array('motorista', $funcoes, true) ? 'checked' : '' ?>>
                 <span>Motorista<small>Caminhão</small></span>
             </label>
             <label class="escolha">
-                <input type="radio" name="funcao" value="operador" required <?= $funcao === 'operador' ? 'checked' : '' ?>>
-                <span>Operador<small>Pá carregadeira</small></span>
+                <input type="checkbox" name="funcoes[]" value="operador" <?= in_array('operador', $funcoes, true) ? 'checked' : '' ?>>
+                <span>Operador de pá carregadeira<small>Carregamento no pátio</small></span>
             </label>
             <label class="escolha">
-                <input type="radio" name="funcao" value="ambos" required <?= $funcao === 'ambos' ? 'checked' : '' ?>>
-                <span>Ambos<small>Caminhão e pá carregadeira</small></span>
+                <input type="checkbox" name="funcoes[]" value="escavadeira" <?= in_array('escavadeira', $funcoes, true) ? 'checked' : '' ?>>
+                <span>Operador de escavadeira hidráulica<small>Carga dos caminhões na lavra</small></span>
             </label>
         </fieldset>
     <?php endif; ?>

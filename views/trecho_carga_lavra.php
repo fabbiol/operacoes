@@ -10,7 +10,7 @@
             <?php endif; ?>
             <p class="meta"><?php
                 $fotos = [url_foto_retro($ciclo), url_foto_operador_carga($ciclo)];
-                $legenda = trim((string) ($ciclo['retro_nome'] ?? '')) !== '' ? (string) $ciclo['retro_nome'] : 'Retroescavadeira';
+                $legenda = trim((string) ($ciclo['retro_nome'] ?? '')) !== '' ? (string) $ciclo['retro_nome'] : 'Escavadeira hidráulica';
                 $quemCarga = trim((string) ($ciclo['operador_carga'] ?? ''));
                 if ($quemCarga !== '') {
                     $legenda .= ' · ' . $quemCarga;

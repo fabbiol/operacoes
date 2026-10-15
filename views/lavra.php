@@ -48,11 +48,11 @@
                     require __DIR__ . '/trecho_quem.php';
                 ?></p>
                 <?php if ($ciclo['status'] === 'na_fila'): ?>
-                    <p class="espera">Aguardando a retro</p>
+                    <p class="espera">Aguardando a escavadeira</p>
                 <?php elseif ($ciclo['status'] === 'carregando'): ?>
                     <p class="meta"><?php
                         $fotos = [url_foto_retro($ciclo), url_foto_operador_carga($ciclo)];
-                        $legenda = trim((string) ($ciclo['retro_nome'] ?? '')) !== '' ? (string) $ciclo['retro_nome'] : 'Retroescavadeira';
+                        $legenda = trim((string) ($ciclo['retro_nome'] ?? '')) !== '' ? (string) $ciclo['retro_nome'] : 'Escavadeira hidráulica';
                         $quemCarga = trim((string) ($ciclo['operador_carga'] ?? ''));
                         if ($quemCarga !== '') {
                             $legenda .= ' · ' . $quemCarga;
@@ -60,7 +60,7 @@
                         $destaque = false;
                         require __DIR__ . '/trecho_quem.php';
                     ?></p>
-                    <p class="nota">A retro está carregando.</p>
+                    <p class="nota">A escavadeira está carregando.</p>
                     <?php if (Auth::admin() && (string) ($ciclo['operador_carga'] ?? '') !== Auth::usuario()): ?>
                         <form method="post" action="<?= e(url('lavra/ciclos/' . $ciclo['id'] . '/concluir-carga')) ?>">
                             <?= csrf_field() ?>
