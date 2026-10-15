@@ -16,6 +16,10 @@ final class Dashboard
 
         return [
             'agora' => date('H:i'),
+            'agora_ts' => time(),
+            'fuso' => date_default_timezone_get(),
+            'dia' => data_por_extenso(),
+            'vendas' => Operacoes::vendas($dia),
             'estrada' => $estrada,
             'lavra' => [
                 'caminhoes' => array_map(static fn (array $ciclo): array => self::caminhao($ciclo, $medias, $viagensHoje, $estrada), $abertos),
@@ -100,6 +104,7 @@ final class Dashboard
             'retro' => (string) ($ciclo['retro_nome'] ?? ''),
             'operador_carga' => (string) ($ciclo['operador_carga'] ?? ''),
             'desde' => hora_curta((string) $desde),
+            'desde_ts' => (int) strtotime((string) $desde),
             'parado' => texto_duracao($decorrido),
             'viagens' => (int) $hoje['viagens'],
             'toneladas' => $hoje['toneladas'],
@@ -258,19 +263,24 @@ final class Dashboard
             'pedido' => (string) $ordem['pedido'],
             'nf' => (string) $ordem['nf'],
             'produto' => (string) ($ordem['material_nome'] ?? ''),
-            'quantidade' => (float) $ordem['quantidade_autorizada'],
+            'quantidade' => (float) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']),
             'unidade' => unidade_rotulo((string) $ordem['unidade']),
             'maquina' => (string) ($ordem['pa_nome'] ?? ''),
             'operador' => (string) ($ordem['operador'] ?? ''),
             'chegada' => hora_curta((string) ($ordem['autorizado_em'] ?? $ordem['data'])),
             'inicio' => hora_curta($ordem['inicio_carregamento'] ?? null),
+            // Para os relógios da TV contarem sozinhos entre uma atualização e outra.
+            'desde_ts' => (int) strtotime((string) ($ordem['autorizado_em'] ?? $ordem['data'])),
+            'inicio_ts' => !empty($ordem['inicio_carregamento']) ? (int) strtotime((string) $ordem['inicio_carregamento']) : null,
+            'fracionado' => (int) ($ordem['fracionado'] ?? 0) === 1,
+            'viagem' => (int) ($ordem['viagem'] ?? 1),
         ];
     }
 
     private static function expedidas(string $dia): array
     {
         $comando = Db::pdo()->prepare(
-            "SELECT unidade, SUM(quantidade_autorizada) AS total, COUNT(*) AS cargas
+            "SELECT unidade, SUM(COALESCE(quantidade_carregada, quantidade_autorizada)) AS total, COUNT(*) AS cargas
              FROM fila_carregamentos
              WHERE status IN ('aguardando_conferencia', 'concluido')
                AND fim_carregamento >= ? AND fim_carregamento <= ?
@@ -312,7 +322,7 @@ final class Dashboard
     {
         $comando = Db::pdo()->prepare(
             "SELECT HOUR(fim_carregamento) AS hora, COUNT(*) AS viagens,
-                    SUM(CASE WHEN unidade = 't' THEN quantidade_autorizada ELSE 0 END) AS toneladas
+                    SUM(CASE WHEN unidade = 't' THEN COALESCE(quantidade_carregada, quantidade_autorizada) ELSE 0 END) AS toneladas
              FROM fila_carregamentos
              WHERE status IN ('aguardando_conferencia', 'concluido')
                AND fim_carregamento >= ? AND fim_carregamento <= ?

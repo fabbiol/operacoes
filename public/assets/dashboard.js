@@ -1,8 +1,18 @@
 (function () {
+    // Monitor da TV: lido de 3 a 6 metros. Poucos números, grandes; cor só para o que pede atenção
+    // (espera longa, conexão caída). Os relógios contam sozinhos entre uma atualização e outra.
     var raiz = document.getElementById('monitor');
     var bruto = document.getElementById('monitor-dados');
     var dados = JSON.parse(bruto.textContent);
     var endereco = bruto.getAttribute('data-url');
+    var INTERVALO = 8000;
+    var ESPERA_ATENCAO = 30 * 60;
+    var ESPERA_CRITICA = 60 * 60;
+    var SEM_ATUALIZAR_AVISO = 60 * 1000;
+    var SEM_ATUALIZAR_VELHO = 3 * 60 * 1000;
+    var desvio = 0;
+    var ultimoOk = Date.now();
+    var horaUltimoOk = '';
 
     function esc(valor) {
         return String(valor == null ? '' : valor).replace(/[&<>"']/g, function (c) {
@@ -15,222 +25,337 @@
         return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
     }
 
-    function tempo(segundos) {
-        if (segundos == null) return '—';
-        segundos = Math.max(0, Math.round(segundos));
+    // Toneladas e m³: sem casas quando é um número cheio grande, uma casa quando é pequeno.
+    function quantia(valor) {
+        if (valor == null) return '—';
+        var v = Number(valor);
+        return numero(v, v >= 100 || v === Math.round(v) ? 0 : 1);
+    }
+
+    // Valor curto para caber no quadro: R$ 48 mil; o valor exato fica na tela Controle de carga.
+    function dinheiro(valor) {
+        var v = Number(valor || 0);
+        if (v >= 1000000) return '<small>R$ </small>' + numero(v / 1000000, 1) + '<small> mi</small>';
+        if (v >= 10000) return '<small>R$ </small>' + numero(Math.round(v / 1000), 0) + '<small> mil</small>';
+        return '<small>R$ </small>' + numero(v, 0);
+    }
+
+    function duracao(segundos) {
+        if (segundos == null || segundos < 0) return '—';
         var h = Math.floor(segundos / 3600);
         var m = Math.floor((segundos % 3600) / 60);
-        if (h > 0) return h + ' h ' + String(m).padStart(2, '0') + ' min';
-        if (m > 0) return m + ' min';
-        return segundos + ' s';
+        if (h > 0) return h + ' h ' + String(m).padStart(2, '0');
+        return m + ' min';
     }
 
-    function cartao(rotulo, valor, extra) {
-        return '<article class="ind"><span>' + esc(rotulo) + '</span><strong>' + valor + '</strong>' +
-            (extra ? '<small>' + extra + '</small>' : '') + '</article>';
+    function agoraServidor() {
+        return Math.floor((Date.now() + desvio) / 1000);
     }
 
+    function horaMinuto(epoch) {
+        try {
+            return new Date(epoch * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: dados.fuso || undefined });
+        } catch (e) {
+            return new Date(epoch * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+    }
+
+    // ---- números do dia
+
+    function tile(rotulo, valor, detalhe, classe) {
+        return '<article class="tv-numero' + (classe ? ' ' + classe : '') + '">' +
+            '<span class="tv-rotulo">' + esc(rotulo) + '</span>' +
+            '<strong class="tv-valor">' + valor + '</strong>' +
+            '<span class="tv-detalhe">' + (detalhe || '&nbsp;') + '</span>' +
+            '</article>';
+    }
+
+    function numeros(estado, mostrarVendas) {
+        var p = estado.patio.indicadores;
+        var l = estado.lavra.indicadores;
+        // Toneladas e m³ não se somam: a maior medida vai grande, a outra no detalhe.
+        var principal = '0<small> t</small>';
+        var outra = '';
+        if (p.toneladas != null) {
+            principal = quantia(p.toneladas) + '<small> t</small>';
+            if (p.volume != null) outra = '+ ' + quantia(p.volume) + ' m³ · ';
+        } else if (p.volume != null) {
+            principal = quantia(p.volume) + '<small> m³</small>';
+        }
+        var maior = 0;
+        estado.patio.fila.forEach(function (item) {
+            maior = Math.max(maior, agoraServidor() - item.desde_ts);
+        });
+        var espera = estado.patio.fila.length
+            ? 'maior espera <b data-desde="' + (agoraServidor() - maior) + '">' + duracao(maior) + '</b>'
+            : 'ninguém esperando';
+        var pas = estado.patio.maquinas.filter(function (m) { return m.ordem; }).map(function (m) { return esc(m.nome); });
+        var esperando = estado.lavra.caminhoes.filter(function (c) { return c.status === 'na_fila'; }).length;
+        var lista = [
+            tile('Carregado hoje', principal, outra + p.expedidas + (p.expedidas === 1 ? ' carga' : ' cargas'), 'tv-heroi'),
+            tile('Na fila do pátio', String(p.aguardando), espera, maior >= ESPERA_CRITICA ? 'critico' : (maior >= ESPERA_ATENCAO ? 'atencao' : '')),
+            tile('Carregando', String(p.carregando), pas.length ? pas.join(' · ') : 'nenhuma pá carregando'),
+            tile('Viagens da lavra', String(l.viagens), (l.toneladas != null ? quantia(l.toneladas) + ' t · ' : '') + 'ciclo ' + duracao(l.ciclo)),
+            tile('Caminhões na lavra', String(l.operacao), esperando ? esperando + ' esperando a escavadeira' : 'nenhum esperando')
+        ];
+        if (mostrarVendas && estado.vendas) {
+            lista.push(tile('Vendido hoje', dinheiro(estado.vendas.valor),
+                estado.vendas.notas + (estado.vendas.notas === 1 ? ' nota' : ' notas')));
+        }
+        return '<section class="tv-numeros n' + lista.length + '">' + lista.join('') + '</section>';
+    }
+
+    // ---- pátio
+
+    function espera(item) {
+        var segundos = agoraServidor() - item.desde_ts;
+        var classe = segundos >= ESPERA_CRITICA ? 'critico' : (segundos >= ESPERA_ATENCAO ? 'atencao' : '');
+        return '<span class="tv-tempo ' + classe + '" data-desde="' + item.desde_ts + '" data-limites="1">' +
+            '<i aria-hidden="true">!</i><b>' + duracao(segundos) + '</b></span>';
+    }
+
+    function carga(item) {
+        return esc(item.produto) + ' · ' + quantia(item.quantidade) + ' ' + esc(item.unidade) +
+            (item.fracionado ? ' · viagem ' + item.viagem : '');
+    }
+
+    function patio(estado) {
+        var dadosPatio = estado.patio;
+        var maquinas = dadosPatio.maquinas.length
+            ? dadosPatio.maquinas.map(function (m) {
+                var o = m.ordem;
+                if (!o) {
+                    return '<article class="tv-maquina livre"><strong>Livre</strong>' +
+                        '<p><span><b>' + esc(m.nome) + '</b></span></p></article>';
+                }
+                var inicio = o.inicio_ts || o.desde_ts;
+                return '<article class="tv-maquina ocupada"><strong>' + esc(o.cliente) + '</strong>' +
+                    '<p><span><b>' + esc(m.nome) + '</b> · ' + carga(o) + '</span>' +
+                    '<span class="tv-tempo" data-desde="' + inicio + '"><b>' + duracao(agoraServidor() - inicio) + '</b></span></p></article>';
+            }).join('')
+            : '<p class="tv-vazio">Nenhuma pá ativa.</p>';
+        // A lista leva a fila toda; o que não couber na tela some e vira "+ N na fila" (ver caber()).
+        var fila = dadosPatio.fila.length
+            ? '<ol class="tv-fila" data-um="na fila" data-varios="na fila">' + dadosPatio.fila.slice(0, 20).map(function (item) {
+                return '<li><strong>' + esc(item.cliente) + '</strong><span>' + carga(item) + '</span>' + espera(item) + '</li>';
+            }).join('') + '</ol><p class="tv-resto" data-total="' + dadosPatio.fila.length + '"></p>'
+            : '<p class="tv-vazio">Ninguém na fila.</p>';
+        var autorizar = dadosPatio.indicadores.sem_autorizacao;
+        return '<article class="tv-zona">' +
+            '<header><h2>Pátio</h2><span>' + (autorizar ? autorizar + ' aguardando autorização' : 'Expedição de clientes') + '</span></header>' +
+            '<div class="tv-maquinas">' + maquinas + '</div>' +
+            '<h3>Fila <span>' + dadosPatio.fila.length + '</span></h3>' + fila +
+            '</article>';
+    }
+
+    // ---- lavra: o circuito com os caminhões e a lista do que cada um está fazendo
+
+    // Circuito em coordenadas de 1000 x 240; as posições saem em % para os nomes das placas ficarem por cima.
     function geometria(estrada) {
         var ida = estrada && estrada.ida_km > 0 ? estrada.ida_km : 0;
         var retorno = estrada && estrada.retorno_km > 0 ? estrada.retorno_km : 0;
-        var x0 = 170;
-        var topo = 80;
-        var base = 280;
-        var largura = 460;
-        var idaFim = x0 + largura;
-        var retFim = idaFim;
+        var x0 = 200, topo = 45, base = 195, largura = 600;
+        var idaFim = x0 + largura, retFim = idaFim;
         if (ida > 0 && retorno > 0) {
             var escala = largura / Math.max(ida, retorno);
             idaFim = x0 + ida * escala;
             retFim = x0 + retorno * escala;
         }
-        var direita = Math.max(idaFim, retFim) + 70;
-        var esquerda = x0 - 70;
-        var caminho = 'M' + x0 + ' ' + topo + ' H' + idaFim +
-            ' C' + direita + ' ' + topo + ' ' + direita + ' ' + base + ' ' + retFim + ' ' + base +
-            ' H' + x0 +
-            ' C' + esquerda + ' ' + base + ' ' + esquerda + ' ' + topo + ' ' + x0 + ' ' + topo + ' Z';
+        var direita = Math.max(idaFim, retFim) + 90;
+        var esquerda = x0 - 90;
         return {
-            caminho: caminho,
-            ida: ida,
-            retorno: retorno,
-            lavraX: (x0 - 28) / 800 * 100,
-            britadorX: (direita - 28) / 800 * 100,
-            yIda: topo / 360 * 100,
-            yVolta: base / 360 * 100,
-            xSaida: x0 / 800 * 100,
-            xIdaFim: idaFim / 800 * 100,
-            xRetFim: retFim / 800 * 100
+            caminho: 'M' + x0 + ' ' + topo + ' H' + idaFim + ' C' + direita + ' ' + topo + ' ' + direita + ' ' + base + ' ' + retFim + ' ' + base +
+                ' H' + x0 + ' C' + esquerda + ' ' + base + ' ' + esquerda + ' ' + topo + ' ' + x0 + ' ' + topo + ' Z',
+            xLavra: (x0 - 68) / 10,
+            lavraRotulo: (x0 + 30) / 10,
+            britadorRotulo: 100 - (Math.min(idaFim, retFim) - 30) / 10,
+            yIda: topo / 2.4,
+            yVolta: base / 2.4,
+            xSaida: x0 / 10,
+            xIdaFim: idaFim / 10,
+            xRetFim: retFim / 10
         };
     }
 
-    function lugar(item, slot, total, geo) {
-        var desvio = (slot - (total - 1) / 2) * 7;
-        if (item.faixa === 'lavra') {
-            return { x: geo.lavraX, y: 50 + desvio };
-        }
-        if (item.faixa === 'ida') {
-            return { x: geo.xSaida + item.progresso * (geo.xIdaFim - geo.xSaida), y: geo.yIda };
-        }
-        return { x: geo.xRetFim - item.progresso * (geo.xRetFim - geo.xSaida), y: geo.yVolta };
+    function lugar(item, ordem, total, geo) {
+        if (item.faixa === 'ida') return { x: geo.xSaida + item.progresso * (geo.xIdaFim - geo.xSaida), y: geo.yIda };
+        if (item.faixa === 'volta') return { x: geo.xRetFim - item.progresso * (geo.xRetFim - geo.xSaida), y: geo.yVolta };
+        // Na lavra (esperando ou carregando): empilhados na curva da esquerda.
+        var passo = Math.min(22, 66 / Math.max(1, total - 1));
+        return { x: geo.xLavra, y: 50 + (ordem - (total - 1) / 2) * passo };
     }
 
-    function caminhoes(lista, geo) {
+    function lavra(estado) {
+        var geo = geometria(estado.estrada);
+        var lista = estado.lavra.caminhoes;
         var grupos = { lavra: [], ida: [], volta: [] };
-        lista.forEach(function (item) { (grupos[item.faixa] || grupos.lavra).push(item); });
-        return lista.map(function (item) {
-            var grupo = grupos[item.faixa] || [item];
-            var ponto = lugar(item, grupo.indexOf(item), grupo.length, geo);
-            var cor = item.faixa === 'volta' ? 'vazio' : (item.status === 'na_fila' ? 'espera' : 'carregado');
-            return '<button type="button" class="veiculo ' + cor + '" style="left:' + ponto.x + '%;top:' + ponto.y + '%" data-id="' + item.id + '">' +
-                '<b>' + esc(item.placa) + '</b><i></i></button>';
+        lista.forEach(function (c) { (grupos[c.faixa] || grupos.lavra).push(c); });
+        var marcas = lista.map(function (c) {
+            var grupo = grupos[c.faixa] || grupos.lavra;
+            var ponto = lugar(c, grupo.indexOf(c), grupo.length, geo);
+            var tipo = c.faixa === 'volta' ? 'volta' : (c.faixa === 'ida' ? 'carregado' : 'lavra');
+            return '<span class="tv-caminhao tv-cor-' + tipo + '" style="left:' + ponto.x + '%;top:' + ponto.y + '%">' + esc(c.placa) + '</span>';
         }).join('');
+        var linhas = lista.length
+            ? '<ul class="tv-caminhoes" data-um="caminhão" data-varios="caminhões">' + lista.map(function (c) {
+                return '<li><strong>' + esc(c.placa) + '</strong><span>' + esc(c.estado) + (c.motorista ? ' · ' + esc(c.motorista) : '') + '</span>' +
+                    '<span class="tv-tempo" data-desde="' + c.desde_ts + '"><b>' + duracao(agoraServidor() - c.desde_ts) + '</b></span></li>';
+            }).join('') + '</ul><p class="tv-resto" data-total="' + lista.length + '"></p>'
+            : '<p class="tv-vazio">Nenhum caminhão em ciclo.</p>';
+        return '<article class="tv-zona">' +
+            '<header><h2>Lavra</h2><span class="tv-legenda">' +
+                '<span><i class="tv-cor-carregado"></i>Carregado</span><span><i class="tv-cor-volta"></i>Voltando</span><span><i class="tv-cor-lavra"></i>Na lavra</span>' +
+            '</span></header>' +
+            '<div class="tv-circuito">' +
+                '<svg viewBox="0 0 1000 240" preserveAspectRatio="none" aria-hidden="true"><path d="' + geo.caminho + '"/></svg>' +
+                '<span class="tv-posto" style="left:' + geo.lavraRotulo + '%">Lavra</span>' +
+                '<span class="tv-posto direita" style="right:' + geo.britadorRotulo + '%">Britador</span>' +
+                marcas +
+            '</div>' +
+            linhas +
+            '</article>';
     }
 
-    function detalheLavra(lista, escolhido) {
-        if (!lista.length) return '<p class="vazio-monitor">Nenhum caminhão em ciclo.</p>';
-        return lista.map(function (item) {
-            var cap = item.capacidade == null ? 'Sem capacidade' : numero(item.capacidade, 2) + ' t';
-            var tons = item.toneladas == null ? '—' : numero(item.toneladas, 2) + ' t hoje';
-            return '<article class="ficha-veiculo' + (escolhido === item.id ? ' escolhido' : '') + '" data-id="' + item.id + '">' +
-                '<header><strong>' + esc(item.placa) + '</strong><span>' + esc(item.estado) + '</span></header>' +
-                '<p>' + esc(item.motorista || 'Sem motorista') + ' · ' + cap + '</p>' +
-                '<p>' + item.viagens + ' viagens · ' + tons + ' · parado ' + esc(item.parado) + ' desde ' + esc(item.desde) + '</p>' +
-                (item.km != null ? '<p>Cerca de ' + numero(item.km, 2) + ' km ' + (item.faixa === 'volta' ? 'do britador' : 'da lavra') + '</p>' : '') +
-                (item.retro ? '<p>Escavadeira ' + esc(item.retro) + (item.operador_carga ? ' · ' + esc(item.operador_carga) : '') + '</p>' : '') +
-                '</article>';
-        }).join('');
+    // Esconde as linhas que não cabem na altura da área e mostra quantas ficaram de fora.
+    function caber() {
+        raiz.querySelectorAll('[data-varios]').forEach(function (lista) {
+            var itens = lista.children;
+            var limite = lista.clientHeight;
+            var escondidos = 0;
+            for (var i = 0; i < itens.length; i++) {
+                itens[i].hidden = false;
+            }
+            for (var j = 0; j < itens.length; j++) {
+                if (itens[j].offsetTop + itens[j].offsetHeight > limite + 1) {
+                    itens[j].hidden = true;
+                    escondidos++;
+                }
+            }
+            var resto = lista.nextElementSibling;
+            if (resto && resto.hasAttribute('data-total')) {
+                var fora = Number(resto.getAttribute('data-total')) - (itens.length - escondidos);
+                resto.textContent = fora > 0 ? '+ ' + fora + ' ' + lista.getAttribute(fora === 1 ? 'data-um' : 'data-varios') : '';
+            }
+        });
     }
 
-    function barras(horas, classe) {
-        if (!horas.length) return '<p class="vazio-monitor">Sem movimento hoje.</p>';
-        var topo = Math.max.apply(null, horas.map(function (h) { return h.toneladas || h.viagens; }));
-        topo = topo > 0 ? topo : 1;
-        return '<div class="barras">' + horas.map(function (h) {
-            var altura = Math.max(8, Math.round(((h.toneladas || h.viagens) / topo) * 100));
-            var texto = h.viagens === 1 ? '1 viagem' : h.viagens + ' viagens';
-            return '<div class="coluna-hora">' +
-                '<p class="marca"><strong>' + numero(h.toneladas, 2) + ' t</strong><small>' + texto + '</small></p>' +
-                '<span class="trilho"><i style="height:' + altura + '%" class="' + classe + '"></i></span>' +
-                '<small class="hora">' + h.hora + 'h</small>' +
-                '</div>';
-        }).join('') + '</div>';
+    // ---- por hora: uma série por gráfico, colunas finas, valor só na hora atual e na maior
+
+    function porHora(titulo, horas, unidade, chave) {
+        var horaAtual = Number(horaMinuto(agoraServidor()).slice(0, 2));
+        var mapa = {};
+        horas.forEach(function (h) { mapa[h.hora] = h; });
+        var inicio = 6, fim = Math.max(18, horaAtual);
+        horas.forEach(function (h) { inicio = Math.min(inicio, h.hora); fim = Math.max(fim, h.hora); });
+        var valores = [];
+        for (var h = inicio; h <= fim; h++) valores.push({ hora: h, valor: mapa[h] ? Number(mapa[h][chave] || 0) : 0 });
+        var maior = Math.max.apply(null, valores.map(function (v) { return v.valor; }));
+        var total = valores.reduce(function (s, v) { return s + v.valor; }, 0);
+        var colunas = valores.map(function (v) {
+            var altura = maior > 0 ? Math.round(v.valor / maior * 100) : 0;
+            var rotulo = v.valor > 0 && (v.valor === maior || v.hora === horaAtual) ? '<b>' + quantia(v.valor) + '</b>' : '';
+            return '<div class="tv-coluna' + (v.hora === horaAtual ? ' agora' : '') + (v.hora > horaAtual ? ' futuro' : '') + '" title="' + v.hora + 'h: ' + quantia(v.valor) + ' ' + unidade + '">' +
+                rotulo + '<i style="height:' + altura + '%"></i><small>' + v.hora + '</small></div>';
+        }).join('');
+        return '<article class="tv-hora"><header><h3>' + esc(titulo) + '</h3><span>' + quantia(total) + ' ' + esc(unidade) + ' hoje</span></header>' +
+            '<div class="tv-colunas">' + colunas + '</div></article>';
     }
 
-    function pilhas(materiais, ativo) {
-        if (!materiais.length) return '<p class="vazio-monitor">Nenhum material ativo.</p>';
-        return materiais.map(function (item) {
-            return '<article class="pilha' + (ativo === item.nome ? ' ativa' : '') + '"><span class="monte"></span><strong>' + esc(item.nome) + '</strong></article>';
-        }).join('');
-    }
-
-    function maquinas(lista) {
-        if (!lista.length) return '<p class="vazio-monitor">Nenhuma pá ativa.</p>';
-        return lista.map(function (item) {
-            var ordem = item.ordem;
-            return '<article class="pa ' + item.tipo + (ordem ? ' ocupada' : '') + '">' +
-                '<strong>' + esc(item.nome) + '</strong>' +
-                '<small>' + (item.tipo === 'retro' ? 'Escavadeira no pátio' : 'Pá carregadeira') + '</small>' +
-                (ordem
-                    ? '<p>' + esc(ordem.ordem) + ' · ' + esc(ordem.cliente) + '</p><p>' + esc(ordem.produto) + ' · ' + numero(ordem.quantidade, 2) + ' ' + esc(ordem.unidade) + '</p>'
-                    : '<p>Livre</p>') +
-                '</article>';
-        }).join('');
-    }
-
-    function fila(lista, titulo) {
-        if (!lista.length) return '';
-        return '<h3>' + esc(titulo) + '</h3>' + lista.map(function (item) {
-            return '<article class="cliente-fila"><strong>' + esc(item.ordem) + '</strong>' +
-                '<p>' + esc(item.cliente) + '</p>' +
-                '<p>' + esc(item.produto) + ' · ' + numero(item.quantidade, 2) + ' ' + esc(item.unidade) + '</p>' +
-                '<small>Pedido ' + esc(item.pedido) + ' · NF ' + esc(item.nf) + ' · ' + esc(item.chegada) + '</small></article>';
-        }).join('');
-    }
+    // ---- montagem
 
     function desenhar(estado) {
-        var lavra = estado.lavra;
-        var patio = estado.patio;
-        var ind = lavra.indicadores;
-        var indP = patio.indicadores;
-        var produtoAtivo = '';
-        patio.maquinas.forEach(function (item) {
-            if (item.ordem) produtoAtivo = item.ordem.produto;
-        });
-        var geo = geometria(estado.estrada);
-        var medidas = (geo.ida ? 'Ida ' + numero(geo.ida, 2) + ' km' : '') +
-            (geo.ida && geo.retorno ? ' · ' : '') +
-            (geo.retorno ? 'Retorno ' + numero(geo.retorno, 2) + ' km' : '');
+        dados = estado;
+        desvio = estado.agora_ts * 1000 - Date.now();
+        var mostrarVendas = lerOpcaoVendas();
         raiz.innerHTML =
-            '<section class="inds">' +
-                cartao('Em ciclo', ind.operacao) +
-                cartao('Viagens', ind.viagens) +
-                cartao('Lavra hoje', ind.toneladas == null ? '—' : numero(ind.toneladas, 2) + ' t', ind.volume == null ? '' : numero(ind.volume, 2) + ' m³') +
-                cartao('t/h lavra', ind.por_hora == null ? '—' : numero(ind.por_hora, 1)) +
-                cartao('Ciclo médio', tempo(ind.ciclo)) +
-                cartao('Na fila', ind.parados) +
-                cartao('Aguardando', indP.aguardando) +
-                cartao('Sem autorização', indP.sem_autorizacao) +
-                cartao('Carregando', indP.carregando) +
-                cartao('Expedidas', indP.expedidas) +
-                cartao('Pátio hoje', indP.toneladas == null ? '—' : numero(indP.toneladas, 2) + ' t', indP.volume == null ? '' : numero(indP.volume, 2) + ' m³') +
-                cartao('Espera média', tempo(indP.espera)) +
-            '</section>' +
-            '<section class="cena">' +
-                '<header><h2>01 — Ciclo de lavra</h2><span>Transporte interno</span></header>' +
-                '<div class="pista">' +
-                    '<svg viewBox="0 0 800 360" preserveAspectRatio="none" aria-hidden="true"><path class="pista-corpo" d="' + geo.caminho + '"/><path class="pista-eixo" d="' + geo.caminho + '"/></svg>' +
-                    '<div class="posto lavra" style="left:' + geo.lavraX + '%">Lavra' + (lavra.retros.length ? '<small>' + lavra.retros.map(function (r) {
-                        return esc(r.nome) + ' · ' + esc(r.placa);
-                    }).join('<br>') + '</small>' : '') + '</div>' +
-                    '<div class="posto britador" style="left:' + geo.britadorX + '%;right:auto">Britador</div>' +
-                    '<p class="miolo">Ciclo de transporte<br><small>' + (medidas || 'Lavra → Britador → Retorno') + '</small></p>' +
-                    caminhoes(lavra.caminhoes, geo) +
-                '</div>' +
-                '<p class="legenda"><i class="ponto-carregado"></i> Carregado <i class="ponto-fila"></i> Na fila <i class="ponto-volta"></i> Retornando</p>' +
-                '<div class="detalhes">' + detalheLavra(lavra.caminhoes, null) + '</div>' +
-            '</section>' +
-            '<section class="cena patio">' +
-                '<header><h2>02 — Expedição no pátio</h2><span>Fila de clientes</span></header>' +
-                '<div class="expedicao">' +
-                    '<div class="coluna"><h3>Pilhas</h3>' + pilhas(patio.materiais, produtoAtivo) + '</div>' +
-                    '<div class="coluna"><h3>Máquinas</h3>' + maquinas(patio.maquinas) + '</div>' +
-                    '<div class="coluna"><h3>Fila</h3>' +
-                        (patio.fila.length ? fila(patio.fila, 'Liberados') : '<p class="vazio-monitor">Nenhum cliente na fila.</p>') +
-                        fila(patio.sem_autorizacao, 'Aguardando autorização') +
-                    '</div>' +
-                '</div>' +
-            '</section>' +
-            '<section class="horarios">' +
-                '<article><h2>Lavra por hora</h2>' + barras(lavra.horas, 'barra-lavra') + '</article>' +
-                '<article><h2>Pátio por hora</h2>' + barras(patio.horas, 'barra-patio') +
-                    (patio.pas.length ? '<ul class="ranking">' + patio.pas.map(function (pa) {
-                        return '<li><span>' + esc(pa.nome) + '</span><strong>' + pa.cargas + '</strong></li>';
-                    }).join('') + '</ul>' : '') +
-                '</article>' +
-            '</section>' +
-            '<p class="relogio">Atualizado às ' + esc(estado.agora) + ' · próxima atualização em <span class="contagem">' + segundosRestantes() + '</span> s</p>';
+            '<header class="tv-topo">' +
+                '<div class="tv-marca"><strong>Próspera</strong><span>Pátio e lavra</span></div>' +
+                '<p class="tv-situacao" role="status"><span data-situacao>Atualizado às ' + esc(horaMinuto(estado.agora_ts)) + '</span></p>' +
+                '<div class="tv-relogio"><span>' + esc(estado.dia || '') + '</span><strong data-relogio>' + esc(horaMinuto(agoraServidor())) + '</strong></div>' +
+            '</header>' +
+            numeros(estado, mostrarVendas) +
+            '<section class="tv-zonas">' + patio(estado) + lavra(estado) + '</section>' +
+            '<section class="tv-horas">' +
+                porHora('Pátio por hora', estado.patio.horas, 'cargas', 'viagens') +
+                porHora('Lavra por hora', estado.lavra.horas, 'viagens', 'viagens') +
+            '</section>';
+        caber();
+        horaUltimoOk = horaMinuto(estado.agora_ts);
+        situacao();
     }
 
-    var intervalo = 8000;
-    var proxima = Date.now() + intervalo;
-
-    function segundosRestantes() {
-        return Math.max(0, Math.ceil((proxima - Date.now()) / 1000));
+    // Relógios e tempos contam a cada segundo, sem pedir nada ao servidor.
+    function contar() {
+        var agora = agoraServidor();
+        var relogio = raiz.querySelector('[data-relogio]');
+        if (relogio) relogio.textContent = horaMinuto(agora);
+        raiz.querySelectorAll('[data-desde]').forEach(function (el) {
+            var segundos = agora - Number(el.getAttribute('data-desde'));
+            var alvo = el.querySelector('b') || el;
+            alvo.textContent = duracao(segundos);
+            if (el.hasAttribute('data-limites')) {
+                el.classList.toggle('atencao', segundos >= ESPERA_ATENCAO && segundos < ESPERA_CRITICA);
+                el.classList.toggle('critico', segundos >= ESPERA_CRITICA);
+            }
+        });
+        situacao();
     }
 
-    function atualizarContagem() {
-        var marca = raiz.querySelector('.contagem');
-        if (marca) marca.textContent = String(segundosRestantes());
+    // Sem atualizar há mais de 1 minuto: aviso. Há mais de 3: os números ficam apagados, para ninguém ler dado velho como atual.
+    function situacao() {
+        var parado = Date.now() - ultimoOk;
+        var marca = raiz.querySelector('[data-situacao]');
+        raiz.classList.toggle('sem-dados', parado > SEM_ATUALIZAR_AVISO);
+        raiz.classList.toggle('velho', parado > SEM_ATUALIZAR_VELHO);
+        if (!marca) return;
+        marca.textContent = parado > SEM_ATUALIZAR_AVISO
+            ? 'Sem atualização desde ' + horaUltimoOk + ' — confira a internet da TV'
+            : 'Atualizado às ' + horaUltimoOk;
     }
+
+    function buscar() {
+        fetch(endereco, { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+            .then(function (resposta) {
+                if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+                return resposta.json();
+            })
+            .then(function (estado) {
+                ultimoOk = Date.now();
+                desenhar(estado);
+            })
+            .catch(function () { situacao(); });
+    }
+
+    // ---- opção do vendido (fica guardada neste aparelho)
+
+    var opcaoVendas = document.getElementById('mostrar-vendas');
+    function lerOpcaoVendas() {
+        try {
+            return window.localStorage.getItem('monitor-vendas') === '1';
+        } catch (e) {
+            return opcaoVendas ? opcaoVendas.checked : false;
+        }
+    }
+    if (opcaoVendas) {
+        opcaoVendas.checked = lerOpcaoVendas();
+        opcaoVendas.addEventListener('change', function () {
+            try {
+                window.localStorage.setItem('monitor-vendas', opcaoVendas.checked ? '1' : '0');
+            } catch (e) {
+                // Sem como guardar: vale só enquanto a página estiver aberta.
+            }
+            desenhar(dados);
+        });
+    }
+
+    // ---- tela cheia
 
     var ampliar = document.getElementById('ampliar');
-
     function telaCheia(ligar) {
         document.body.classList.toggle('tela-cheia', ligar);
-        if (ampliar) ampliar.textContent = ligar ? 'Reduzir' : 'Ampliar';
+        if (ampliar) ampliar.textContent = ligar ? 'Sair da tela cheia' : 'Tela cheia';
+        window.requestAnimationFrame(caber);
     }
-
     if (ampliar) {
         ampliar.addEventListener('click', function () {
             var ligar = !document.body.classList.contains('tela-cheia');
@@ -247,14 +372,27 @@
         });
     }
 
-    desenhar(dados);
-    setInterval(atualizarContagem, 250);
+    // ---- cuidados com uma tela ligada o dia todo
+
+    // A imagem anda 2 pixels de tempos em tempos, para não marcar a tela.
+    var passos = [[0, 0], [2, 0], [2, 2], [0, 2]];
+    var passo = 0;
     setInterval(function () {
-        proxima = Date.now() + intervalo;
-        atualizarContagem();
-        fetch(endereco, { headers: { 'Accept': 'application/json' } })
-            .then(function (resposta) { return resposta.json(); })
-            .then(desenhar)
-            .catch(function () {});
-    }, intervalo);
+        passo = (passo + 1) % passos.length;
+        raiz.style.transform = 'translate(' + passos[passo][0] + 'px,' + passos[passo][1] + 'px)';
+    }, 5 * 60 * 1000);
+
+    // Recarrega a página toda madrugada (3h), para pegar versão nova e limpar a memória.
+    (function recarregarDeMadrugada() {
+        var agora = new Date();
+        var alvo = new Date(agora);
+        alvo.setHours(3, 0, 0, 0);
+        if (alvo <= agora) alvo.setDate(alvo.getDate() + 1);
+        setTimeout(function () { window.location.reload(); }, alvo - agora);
+    })();
+
+    window.addEventListener('resize', caber);
+    desenhar(dados);
+    setInterval(contar, 1000);
+    setInterval(buscar, INTERVALO);
 })();
