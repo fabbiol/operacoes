@@ -1,3 +1,15 @@
+<?php
+try {
+    $maquinasMenu = Auth::ok() ? maquinas_do_usuario() : [];
+    $oferecerApp = ($corpo ?? '') !== 'dashboard' && Tablets::autorizado();
+} catch (Throwable) {
+    // Banco fora do ar: a tela de erro aparece mesmo assim.
+    $maquinasMenu = [];
+    $oferecerApp = false;
+}
+// A tela fica acesa enquanto a pessoa está com uma máquina, e no monitor da TV.
+$telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
+?>
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -10,12 +22,14 @@
     <?php endif; ?>
     <title><?= e($titulo) ?> · Próspera</title>
     <link rel="icon" href="<?= e(url('favicon.svg')) ?>" type="image/svg+xml">
+    <link rel="manifest" href="<?= e(url('manifest.json')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(url('assets/icone-192.png')) ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">
     <?php if (($corpo ?? '') === 'dashboard'): ?>
         <link rel="stylesheet" href="<?= e(asset('assets/dashboard.css')) ?>">
     <?php endif; ?>
 </head>
-<body class="<?= e((string) $corpo) ?>" data-agora="<?= (int) ($agoraServidor ?? time()) ?>" data-hora="<?= e(date('H:i:s', (int) ($agoraServidor ?? time()))) ?>" data-calma="<?= (int) ($calmaMs ?? 0) ?>">
+<body class="<?= e((string) $corpo) ?>" data-agora="<?= (int) ($agoraServidor ?? time()) ?>" data-hora="<?= e(date('H:i:s', (int) ($agoraServidor ?? time()))) ?>" data-calma="<?= (int) ($calmaMs ?? 0) ?>"<?= $telaAcesa ? ' data-acesa="1"' : '' ?>>
     <header class="site">
         <a class="brand" href="<?= e(url('/')) ?>">
             <img class="brand-logo" src="<?= e(url('assets/logo.png')) ?>" alt="">
@@ -52,7 +66,7 @@
                         <img class="avatar" src="<?= e(url('usuarios/' . Auth::id() . '/foto')) ?>" alt="">
                     <?php endif; ?>
                     <span class="site-nome"><?= e(Auth::usuario()) ?><span class="site-papel"> · <?= e(Auth::rotuloPapel()) ?></span></span>
-                    <?php foreach (maquinas_do_usuario() as $maquina): ?>
+                    <?php foreach ($maquinasMenu as $maquina): ?>
                         <span class="site-maquina">
                             <?php if (!empty($maquina['foto'])): ?>
                                 <img src="<?= e((string) $maquina['foto']) ?>" alt="">
@@ -76,6 +90,15 @@
         <span id="conexao-leitor" class="so-leitor" role="status" aria-live="polite"></span>
     <?php endif; ?>
     <main class="folha">
+        <?php if ($oferecerApp): ?>
+            <div id="instalar" class="instalar" hidden>
+                <p><strong>Instale o app da Próspera neste tablet.</strong> Ele abre pelo ícone, em tela cheia.</p>
+                <div class="instalar-botoes">
+                    <button type="button" class="btn primario" data-instalar>Instalar</button>
+                    <button type="button" class="btn secundario" data-depois>Agora não</button>
+                </div>
+            </div>
+        <?php endif; ?>
         <?php if (!empty($flash)): ?>
             <p class="aviso <?= e($flash['tipo']) ?>"><?= e($flash['mensagem']) ?></p>
         <?php endif; ?>
@@ -85,6 +108,7 @@
         <?php require $viewFile; ?>
     </main>
     <script src="<?= e(asset('assets/envio.js')) ?>"></script>
+    <script src="<?= e(asset('assets/tablet.js')) ?>" data-sw="<?= e(url('sw.js')) ?>" data-escopo="<?= e(url('/')) ?>"></script>
     <?php if (!empty($fluxoUrl)): ?>
         <script src="<?= e(asset('assets/tempo.js')) ?>"></script>
         <script src="<?= e(asset('assets/fluxo.js')) ?>"></script>

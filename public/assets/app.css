@@ -730,3 +730,20 @@ body.lavra .site, body.patio .site, body.trabalhos .site { position: static; }
     .patio .cartao.destaque > .btn,
     .patio .cartao.destaque > .espera-patio { grid-column: 2; }
 }
+
+/* Convite para instalar o app nos tablets autorizados. */
+.instalar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: white;
+}
+.instalar[hidden] { display: none; }
+.instalar p { margin: 0; flex: 1 1 260px; }
+.instalar-botoes { display: flex; gap: 8px; }
