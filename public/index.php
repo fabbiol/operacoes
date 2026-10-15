@@ -557,16 +557,26 @@ function tela_login(string $method): void
 
     $erro = null;
     $usuario = '';
+    // Pessoa escolhida pela foto: a tela pede a senha dela.
+    $escolhida = null;
     if ($method === 'POST') {
         if (isset($_POST['pessoa'])) {
             // O toque logo depois do Sair é o segundo toque de um toque duplo, não uma escolha de rosto.
             if (toque_apressado()) {
                 redirect('/login');
             }
-            if (Auth::entrarPorPessoa((int) $_POST['pessoa'])) {
+            $escolhida = Tablets::autorizado() ? Pessoas::elegivelEntrada((int) $_POST['pessoa']) : null;
+            if ($escolhida === null) {
+                $erro = Tablets::autorizado()
+                    ? 'Não foi possível entrar com essa pessoa.'
+                    : 'Este aparelho não está autorizado para a entrada por foto.';
+            } elseif (!isset($_POST['senha'])) {
+                // Toque na foto de uma tela aberta antes desta versão: só abre o pedido de senha.
+            } elseif (Auth::entrarPorPessoa((int) $escolhida['id'], (string) $_POST['senha'])) {
                 redirect('/');
+            } else {
+                $erro = Auth::falhaLogin() !== '' ? Auth::falhaLogin() : 'A senha não confere. Tente de novo.';
             }
-            $erro = Auth::falhaLogin() !== '' ? Auth::falhaLogin() : 'Não foi possível entrar com essa pessoa.';
         } else {
             $usuario = trim((string) ($_POST['usuario'] ?? ''));
             if (str_contains($usuario, '@')) {
@@ -583,12 +593,16 @@ function tela_login(string $method): void
     }
 
     $tablet = Tablets::autorizado();
+    if ($method !== 'POST' && $tablet && isset($_GET['pessoa'])) {
+        $escolhida = Pessoas::elegivelEntrada((int) $_GET['pessoa']);
+    }
     render('login', [
         'titulo' => 'Entrar',
         'erro' => $erro,
         'usuario' => $usuario,
         'tablet' => $tablet,
-        'pessoas' => $tablet ? Pessoas::paraEntrada() : [],
+        'escolhida' => $escolhida,
+        'pessoas' => $tablet && $escolhida === null ? Pessoas::paraEntrada() : [],
     ]);
 }
 
