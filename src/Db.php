@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-escavadeira';
+    private const MIGRACOES = '2026-10-nota-fiscal';
 
     private static ?PDO $pdo = null;
 
@@ -110,6 +110,7 @@ final class Db
             self::garantirPapel($pdo);
             self::garantirPessoa($pdo);
             self::garantirEscavadeira($pdo);
+            self::garantirNotaFiscal($pdo);
             self::garantirFicha($pdo);
             self::garantirRetro($pdo);
             self::garantirEstrada($pdo);
@@ -224,6 +225,25 @@ final class Db
         }
         $pdo->exec('ALTER TABLE usuarios ADD COLUMN escavadeira TINYINT(1) NOT NULL DEFAULT 0 AFTER operador');
         $pdo->exec('UPDATE usuarios SET escavadeira = 1 WHERE operador = 1');
+    }
+
+    /** A nota fiscal lida no lançamento: a hora em que foi emitida e a chave de acesso (para não lançar a mesma nota duas vezes). */
+    private static function garantirNotaFiscal(PDO $pdo): void
+    {
+        $colunas = self::colunasDe($pdo, 'fila_carregamentos');
+        if (!in_array('nf_emitida_em', $colunas, true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_emitida_em DATETIME NULL AFTER nf');
+        }
+        if (!in_array('nf_chave', $colunas, true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_chave CHAR(44) NULL AFTER nf_emitida_em');
+        }
+        $indices = [];
+        foreach ($pdo->query('SHOW INDEX FROM fila_carregamentos') as $indice) {
+            $indices[(string) ($indice['Key_name'] ?? $indice['key_name'])] = true;
+        }
+        if (!isset($indices['idx_fila_nf_chave'])) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD KEY idx_fila_nf_chave (nf_chave)');
+        }
     }
 
     private static function separarUsuario(PDO $pdo): void

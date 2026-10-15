@@ -757,3 +757,9 @@ body.lavra .site, body.patio .site, body.trabalhos .site { position: static; }
 .passos { margin: 0 0 22px; padding-left: 22px; display: grid; gap: 10px; }
 .passos li { padding-left: 4px; }
 .folha > h2 { margin-top: 22px; }
+
+/* Nova ordem: ler a nota fiscal e o resultado da leitura. */
+.ler-nota { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; margin-bottom: 18px; padding: 14px; border: 1px dashed var(--line); border-radius: 12px; background: white; }
+.ler-nota .campo { flex: 1 1 280px; margin: 0; }
+.leitura-nota ul.aviso { margin-top: -6px; padding-left: 34px; font-weight: 600; }
+.leitura-nota ul.aviso li + li { margin-top: 4px; }

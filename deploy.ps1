@@ -309,7 +309,7 @@ $lista.Add([pscustomobject]@{
     Destino    = $destinoSchema
     Arquivo    = $schema
 })
-$classesNovas = @('Posse.php', 'Fotos.php', 'bootstrap.php')
+$classesNovas = @('Posse.php', 'Fotos.php', 'NotaFiscal.php', 'bootstrap.php')
 foreach ($nome in $classesNovas) {
     $lista.Add([pscustomobject]@{
         Credencial = 'pai'

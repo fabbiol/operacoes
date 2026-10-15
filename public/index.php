@@ -497,6 +497,11 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'ordens/nova/nota') {
+        tela_ler_nota($method);
+        return;
+    }
+
     if ($path === 'ordens/nova') {
         tela_ordem_form(null, $method);
         return;
@@ -1494,6 +1499,96 @@ function tela_ordem_form(?int $id, string $method): void
     render('ordem_form', dados_formulario(null, $post, $erro));
 }
 
+/** Lê a nota fiscal (PDF ou XML) e abre a nova ordem já preenchida, para conferir e lançar. */
+function tela_ler_nota(string $method): void
+{
+    if ($method !== 'POST') {
+        redirect('/ordens/nova');
+    }
+    csrf_check();
+    $dados = dados_formulario(null, null, null);
+    try {
+        $nota = NotaFiscal::receber();
+    } catch (InvalidArgumentException $e) {
+        $dados['erro'] = $e->getMessage();
+        render('ordem_form', $dados);
+        return;
+    }
+
+    $materialId = NotaFiscal::materialDoCadastro($nota['material'], $dados['materiais']);
+    $dados['valor'] = array_merge($dados['valor'], [
+        'cliente' => (string) ($nota['cliente'] ?? ''),
+        'pedido' => (string) ($nota['pedido'] ?? ''),
+        'nf' => (string) ($nota['nf'] ?? ''),
+        'material_id' => $materialId ?? 0,
+        'quantidade_autorizada' => $nota['quantidade'] !== null ? formatar_quantidade($nota['quantidade']) : '',
+        'unidade' => (string) ($nota['unidade'] ?? $dados['valor']['unidade']),
+        'nf_emitida_em' => data_hora_para_input($nota['emitida_em']),
+        'nf_chave' => (string) ($nota['chave'] ?? ''),
+    ]);
+    $dados['leitura'] = leitura_da_nota($nota, $materialId);
+    render('ordem_form', $dados);
+}
+
+/**
+ * O que a tela diz depois de ler a nota: o que foi lido e o que precisa de atenção.
+ *
+ * @return array{mensagem: string, avisos: list<string>}
+ */
+function leitura_da_nota(array $nota, ?int $materialId): array
+{
+    $origem = $nota['origem'] === 'xml' ? 'do XML' : 'do PDF';
+    $numero = $nota['nf'] !== null ? 'Nota ' . $nota['nf'] . ($nota['serie'] !== '' && $nota['serie'] !== '1' ? ' (série ' . $nota['serie'] . ')' : '') : 'Nota';
+    $avisos = [];
+    if ($nota['nf'] === null) {
+        $avisos[] = 'Não achei o número da nota. Preencha a nota fiscal.';
+    }
+    if ($nota['cliente'] === null) {
+        $avisos[] = 'Não achei o cliente na nota. Preencha o cliente.';
+    }
+    if ($nota['pedido'] === null) {
+        $avisos[] = 'Não achei o número do pedido na nota. Preencha o pedido.';
+    }
+    if ($nota['material'] === null) {
+        $avisos[] = 'Não achei o material na nota. Escolha o material.';
+    } elseif ($materialId === null) {
+        $avisos[] = 'O material da nota é "' . $nota['material'] . '", que não está no cadastro com esse nome. Escolha o material.';
+    }
+    if ($nota['outros_materiais'] !== []) {
+        $avisos[] = 'A nota tem outros materiais (' . implode(', ', $nota['outros_materiais']) . '). O carregamento usa só o primeiro.';
+    }
+    if ($nota['quantidade'] === null) {
+        $avisos[] = 'Não achei a quantidade na nota. Preencha a quantidade.';
+    }
+    if ($nota['unidade'] === null) {
+        $avisos[] = $nota['unidade_nota'] !== null && $nota['unidade_nota'] !== ''
+            ? 'A unidade da nota ("' . $nota['unidade_nota'] . '") não é t, m³ nem un. Confira a unidade.'
+            : 'Não achei a unidade na nota. Confira a unidade.';
+    }
+    if ($nota['emitida_em'] === null) {
+        $avisos[] = 'Não achei a hora em que a nota foi emitida. Preencha, se souber.';
+    }
+    $repetida = Operacoes::ordemComNota($nota['chave'], $nota['nf']);
+    if ($repetida !== null) {
+        $avisos[] = 'Já existe o carregamento ' . $repetida['ordem'] . ' com esta nota. Confira antes de lançar de novo.';
+    }
+
+    return [
+        'mensagem' => $numero . ' lida ' . $origem . '. Confira os campos e toque em Lançar ordem.',
+        'avisos' => $avisos,
+    ];
+}
+
+function data_hora_para_input(?string $dataHora): string
+{
+    if ($dataHora === null || $dataHora === '') {
+        return '';
+    }
+    $ts = strtotime($dataHora);
+
+    return $ts ? date('Y-m-d\TH:i:s', $ts) : '';
+}
+
 function tela_cancelar(int $id, string $method): void
 {
     $ordem = ordem_ou_404($id);
@@ -1814,6 +1909,10 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     : ($ordem === null ? '' : formatar_quantidade((string) $ordem['quantidade_autorizada'])),
                 'unidade' => (string) ($fonte['unidade'] ?? 't'),
                 'observacoes' => (string) ($fonte['observacoes'] ?? ''),
+                'nf_emitida_em' => $post !== null
+                    ? (string) ($post['nf_emitida_em'] ?? '')
+                    : data_hora_para_input(is_array($ordem) ? ($ordem['nf_emitida_em'] ?? null) : null),
+                'nf_chave' => (string) ($fonte['nf_chave'] ?? ''),
             ],
             'materiais' => Cadastro::opcoes('materiais', $materialId > 0 ? $materialId : null),
             'travado' => $ordem !== null && !in_array($ordem['status'], ['aguardando_autorizacao', 'liberado'], true),

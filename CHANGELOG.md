@@ -1,5 +1,20 @@
 # O que mudou
 
+## Outubro de 2026: lançar o carregamento pela nota fiscal
+
+Na **Nova ordem** tem o quadro **Ler a nota fiscal**: escolha o **XML** ou o **PDF** da nota e toque em **Ler nota**. O sistema preenche cliente, pedido, número da nota, material, quantidade, unidade e a **hora em que a nota foi emitida**. É só conferir e lançar.
+
+- A tela diz o que leu e avisa o que precisa de atenção: pedido que não está na nota, material que não está no cadastro, nota com mais de um material, unidade diferente de t, m³ e un.
+- A mesma nota não é lançada duas vezes: a tela avisa ao ler, e o sistema não deixa salvar.
+- O campo **Nota emitida em** também aparece para lançar ou corrigir à mão.
+- A ficha da ordem mostra a hora da nota e quanto tempo depois dela o carregamento começou. A hora do carregamento continua vindo do pátio.
+- Lançar sem nota, digitando, continua igual.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha duas colunas sozinho no primeiro acesso (`nf_emitida_em` e `nf_chave` em `fila_carregamentos`).
+2. No Easypanel, a imagem nova instala o leitor de PDF (`poppler-utils`): a publicação demora um pouco mais desta vez.
+3. Na Hostinger (hospedagem compartilhada) só o XML pode ser lido.
+
 ## Outubro de 2026: app Android do tablet
 
 Os tablets Positivo não oferecem "Instalar app" no Chrome, então o sistema ganhou um **app Android** de verdade: ícone da Próspera na tela inicial, tela cheia, sem a barra do Chrome. As telas continuam vindo do sistema, então as melhorias chegam sozinhas, sem instalar o app de novo.
