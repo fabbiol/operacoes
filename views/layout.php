@@ -1,3 +1,13 @@
+<?php
+try {
+    $maquinasMenu = Auth::ok() ? maquinas_do_usuario() : [];
+} catch (Throwable) {
+    // Banco fora do ar: a tela de erro aparece mesmo assim.
+    $maquinasMenu = [];
+}
+// A tela fica acesa enquanto a pessoa está com uma máquina, e no monitor da TV.
+$telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
+?>
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -17,7 +27,7 @@
         <link rel="stylesheet" href="<?= e(asset('assets/dashboard.css')) ?>">
     <?php endif; ?>
 </head>
-<body class="<?= e((string) $corpo) ?>" data-agora="<?= (int) ($agoraServidor ?? time()) ?>" data-hora="<?= e(date('H:i:s', (int) ($agoraServidor ?? time()))) ?>" data-calma="<?= (int) ($calmaMs ?? 0) ?>">
+<body class="<?= e((string) $corpo) ?>" data-agora="<?= (int) ($agoraServidor ?? time()) ?>" data-hora="<?= e(date('H:i:s', (int) ($agoraServidor ?? time()))) ?>" data-calma="<?= (int) ($calmaMs ?? 0) ?>"<?= $telaAcesa ? ' data-acesa="1"' : '' ?>>
     <header class="site">
         <a class="brand" href="<?= e(url('/')) ?>">
             <img class="brand-logo" src="<?= e(url('assets/logo.png')) ?>" alt="">
@@ -54,7 +64,7 @@
                         <img class="avatar" src="<?= e(url('usuarios/' . Auth::id() . '/foto')) ?>" alt="">
                     <?php endif; ?>
                     <span class="site-nome"><?= e(Auth::usuario()) ?><span class="site-papel"> · <?= e(Auth::rotuloPapel()) ?></span></span>
-                    <?php foreach (maquinas_do_usuario() as $maquina): ?>
+                    <?php foreach ($maquinasMenu as $maquina): ?>
                         <span class="site-maquina">
                             <?php if (!empty($maquina['foto'])): ?>
                                 <img src="<?= e((string) $maquina['foto']) ?>" alt="">
