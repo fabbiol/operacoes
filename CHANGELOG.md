@@ -1,5 +1,19 @@
 # O que mudou
 
+## Outubro de 2026: app do tablet
+
+O sistema pode ser instalado no tablet como um app, com ícone da Próspera na tela inicial e tela cheia, sem a barra do Chrome. É o mesmo sistema: as mudanças chegam sozinhas, sem reinstalar. O passo a passo está no README, em "App do tablet".
+
+- **Ícone e tela cheia**: nos tablets autorizados aparece a faixa "Instale o app da Próspera neste tablet", com o botão Instalar. "Agora não" esconde a faixa por 7 dias.
+- **Tela acesa**: enquanto a pessoa está com uma máquina, a tela do tablet não apaga. Ao soltar a máquina, volta ao normal. O monitor da TV também fica aceso.
+- **Tela "Sem conexão"**: se o Wi-Fi cai ou o sistema não responde, aparece um aviso da Próspera no lugar da página de erro do Chrome, e a tela volta sozinha quando o sinal volta. Nada fica guardado no tablet: as telas sempre vêm do sistema, com a situação de agora. Envio de formulário e atualização automática continuam indo direto ao sistema, como antes.
+- **Travar o tablet no app**: guia da opção "Fixar app" do Android, no README.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. O app só instala pelo endereço com https (o do Easypanel e o da Hostinger já são).
+3. Depois de publicar, instale o app em cada tablet (uma vez) e, se quiser, fixe o app.
+
 ## Outubro de 2026: operador de pá e operador de escavadeira separados
 
 Em Pessoas, a função deixou de ser "Motorista, Operador ou Ambos". Agora são três caixas para marcar uma ou mais: **Motorista**, **Operador de pá carregadeira** e **Operador de escavadeira hidráulica**.

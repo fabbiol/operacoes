@@ -40,6 +40,34 @@ A autorização fica num cookie do navegador. Se alguém limpar os dados do Chro
 
 Cinco senhas erradas seguidas para o mesmo usuário bloqueiam a entrada por 15 minutos naquele endereço. A senha do administrativo precisa ter pelo menos 8 caracteres.
 
+## App do tablet
+
+O sistema pode ser instalado no tablet como um app: fica um ícone da Próspera na tela inicial e ele abre em tela cheia, sem a barra do Chrome. É o mesmo sistema do site: o que muda no Git chega a todos os tablets sozinho, sem reinstalar.
+
+**Instalar** (uma vez por tablet, depois de autorizar o tablet):
+
+1. No tablet, abra o Chrome no endereço do sistema.
+2. Aparece a faixa "Instale o app da Próspera neste tablet". Toque em **Instalar** e confirme.
+   Se a faixa não aparecer, toque no menu do Chrome (os três pontinhos, no alto à direita) e em **Instalar app** ou **Adicionar à tela inicial**.
+3. Pronto: daqui em diante, abra pelo ícone **Próspera** na tela inicial. A autorização do tablet continua valendo.
+
+No app não tem barra de endereço nem "puxar para atualizar": as telas da lavra e do pátio já se atualizam sozinhas, e o botão Voltar do Android funciona normalmente.
+
+**O que o app faz a mais:**
+
+- **Tela acesa**: enquanto a pessoa está com uma máquina, a tela do tablet não apaga. Ao soltar a máquina, o tablet volta a apagar a tela normalmente. Deixe o tablet carregando na máquina. O monitor da TV também fica com a tela acesa.
+- **Sem conexão**: se o Wi-Fi cai ou o sistema não responde, aparece a tela "Sem conexão" da Próspera, no lugar da página de erro do Chrome. Ela tenta de novo sozinha a cada 10 segundos e volta para a tela da pessoa quando o sinal volta. Nada fica guardado no tablet: as telas sempre vêm do sistema, com a situação de agora.
+
+**Travar o tablet no app** (opcional, para o operador não sair do sistema). O Android tem a opção **Fixar app**; não precisa instalar nada:
+
+1. Abra **Configurações › Segurança e privacidade › Mais configurações de segurança › Fixar app** e ative. Ative também **Pedir PIN antes de liberar** (ou "Bloquear dispositivo ao liberar"). Os nomes podem mudar um pouco de um tablet para outro: se não achar, digite **fixar** na busca das Configurações.
+2. Abra o app da Próspera.
+3. Abra a lista de apps recentes (o botão quadrado, ou deslize de baixo para cima e segure no meio da tela).
+4. Toque no ícone da Próspera, no alto do cartão do app, e em **Fixar**.
+5. Para soltar: toque e segure **Voltar** e o **quadrado** ao mesmo tempo (ou, com gestos, deslize de baixo para cima e segure). O tablet pede o PIN.
+
+Com o app fixado, o tablet não sai do sistema, não mostra notificações por cima e o botão de início não funciona até alguém com o PIN soltar.
+
 ## Sessão
 
 As sessões ficam em `storage/sessoes` e duram o turno (14 horas). Ao publicar esta versão pela primeira vez, todos precisam entrar de novo, e quem estiver com máquina assumida perde o horímetro de entrada daquele turno. Publique entre turnos.
