@@ -46,14 +46,15 @@ Cinco senhas erradas seguidas para o mesmo usuário bloqueiam a entrada por 15 m
 
 ## App do tablet
 
-O sistema pode ser instalado no tablet como um app: fica um ícone da Próspera na tela inicial e ele abre em tela cheia, sem a barra do Chrome. É o mesmo sistema do site: o que muda no Git chega a todos os tablets sozinho, sem reinstalar.
+O sistema tem um app para Android: fica um ícone da Próspera na tela inicial e ele abre em tela cheia, sem a barra do Chrome. As telas são as do sistema: o que muda no Git chega a todos os tablets sozinho, sem instalar o app de novo.
 
-**Instalar** (uma vez por tablet, depois de autorizar o tablet):
+**Instalar** (uma vez por tablet):
 
-1. No tablet, abra o Chrome no endereço do sistema.
-2. Aparece a faixa "Instale o app da Próspera neste tablet". Toque em **Instalar** e confirme.
-   Se a faixa não aparecer, toque no menu do Chrome (os três pontinhos, no alto à direita) e em **Instalar app** ou **Adicionar à tela inicial**.
-3. Pronto: daqui em diante, abra pelo ícone **Próspera** na tela inicial. A autorização do tablet continua valendo.
+1. No tablet, abra o Chrome em `/app` no endereço do sistema (por exemplo `https://operacoes.fabbiol.tech/app`). Nos tablets autorizados, a faixa "Instale o app da Próspera neste tablet" tem o botão **Baixar o app**, que leva para lá.
+2. Toque em **Baixar o app** e siga os passos da página: abrir o arquivo, permitir a instalação desta fonte e tocar em **Instalar** (se o Play Protect avisar, **Mais detalhes › Instalar mesmo assim**).
+3. Abra o app **Próspera** pelo ícone. Na primeira vez, entre como administrativo e **autorize o tablet de novo** em Pessoas › Tablets: o app tem a memória dele, separada do Chrome.
+
+Os tablets Positivo (Android 14 Go, Chrome 155) não oferecem "Instalar app" nem "Adicionar à tela inicial" no Chrome; por isso o app Android. Onde o Chrome oferece, o sistema também pode ser instalado direto pelo menu do Chrome, com o mesmo resultado.
 
 No app não tem barra de endereço nem "puxar para atualizar": as telas da lavra e do pátio já se atualizam sozinhas, e o botão Voltar do Android funciona normalmente.
 
@@ -71,6 +72,22 @@ No app não tem barra de endereço nem "puxar para atualizar": as telas da lavra
 5. Para soltar: toque e segure **Voltar** e o **quadrado** ao mesmo tempo (ou, com gestos, deslize de baixo para cima e segure). O tablet pede o PIN.
 
 Com o app fixado, o tablet não sai do sistema, não mostra notificações por cima e o botão de início não funciona até alguém com o PIN soltar.
+
+## App Android: como montar uma versão nova
+
+O código do app fica em `android/` (uma tela só, que abre o sistema). O arquivo pronto fica em `public/app/prospera.apk` e é publicado junto com o sistema. Só precisa montar de novo se mudar o endereço do sistema ou o próprio app; mudanças nas telas do sistema não precisam.
+
+1. Aumente `android:versionCode` e `android:versionName` em `android/AndroidManifest.xml`, `VERSAO` em `android/src/.../Principal.java` e `$versaoApp` em `views/app_android.php`.
+2. Monte com a mesma chave de assinatura de sempre (o arquivo `prospera-app.jks`, guardado fora do Git):
+
+```sh
+apt-get install default-jdk android-sdk-platform-23 aapt dalvik-exchange zipalign apksigner
+CHAVE=/caminho/prospera-app.jks CHAVE_SENHA='senha da chave' ENDERECO=https://operacoes.fabbiol.tech/ sh android/construir.sh
+```
+
+O Android só atualiza o app se a versão nova vier com a mesma chave. Sem a chave, é preciso desinstalar o app antigo em cada tablet antes de instalar o novo (e autorizar o tablet de novo). Nunca coloque a chave no Git: o repositório é público.
+
+O que o app faz: abre só o endereço do sistema (outros endereços vão para o Chrome); mantém a tela acesa quando o sistema pede (com máquina assumida); mostra "Sem conexão" e tenta de novo sozinho; escolhe foto da galeria nos cadastros; o botão Voltar volta uma tela e, no começo, deixa o app em segundo plano; o Android não oferece para guardar senhas digitadas no app.
 
 ## Sessão
 
