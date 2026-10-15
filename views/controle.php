@@ -38,7 +38,7 @@ $quantidade = static fn (float $valor, string $unidade): string => formatar_quan
     <div class="venda">
         <span>Vendido no dia</span>
         <strong>R$ <?= e(formatar_quantidade($vendas['valor'])) ?></strong>
-        <small><?= (int) $vendas['notas'] ?> <?= (int) $vendas['notas'] === 1 ? 'nota emitida' : 'notas emitidas' ?><?= $vendas['sem_valor'] > 0 ? ' · ' . (int) $vendas['sem_valor'] . ' sem valor' : '' ?></small>
+        <small><?= (int) $vendas['notas'] ?> <?= (int) $vendas['notas'] === 1 ? 'nota emitida' : 'notas emitidas' ?><?= $vendas['sem_valor'] > 0 ? ' · ' . (int) $vendas['sem_valor'] . ' sem valor: preencha em Notas do dia' : '' ?></small>
     </div>
     <div class="venda">
         <span>Carregado no dia</span>
@@ -115,7 +115,21 @@ $quantidade = static fn (float $valor, string $unidade): string => formatar_quan
                             <td class="numero"><?= e($quantidade($grupo['total'], (string) $principal['unidade'])) ?></td>
                             <td class="numero"><?= e($quantidade($grupo['carregado'], (string) $principal['unidade'])) ?></td>
                             <td class="numero"><?= $grupo['saldo'] > 0 && $principal['status'] !== 'cancelado' ? e($quantidade($grupo['saldo'], (string) $principal['unidade'])) : '—' ?></td>
-                            <td class="numero"><?= $principal['nf_valor'] !== null ? 'R$ ' . e(formatar_quantidade((string) $principal['nf_valor'])) : '—' ?></td>
+                            <td class="numero">
+                                <?php if ($principal['nf_valor'] !== null): ?>
+                                    R$ <?= e(formatar_quantidade((string) $principal['nf_valor'])) ?>
+                                <?php elseif ($principal['status'] === 'cancelado'): ?>
+                                    —
+                                <?php else: ?>
+                                    <form class="valor-nota" method="post" action="<?= e(url('ordens/' . $principal['id'] . '/valor')) ?>">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="voltar" value="controle">
+                                        <input type="hidden" name="dia" value="<?= e($dia) ?>">
+                                        <input type="text" name="nf_valor" inputmode="decimal" maxlength="16" required placeholder="R$ sem valor" aria-label="Valor da NF <?= e($principal['nf']) ?>">
+                                        <button type="submit" class="btn secundario">Salvar</button>
+                                    </form>
+                                <?php endif; ?>
+                            </td>
                             <td><span class="selo status-<?= e($classe) ?>"><?= e($rotulo) ?></span></td>
                         </tr>
                     <?php endforeach; ?>

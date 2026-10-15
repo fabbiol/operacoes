@@ -362,6 +362,25 @@ final class Operacoes
         self::exigirAlteracao($comando);
     }
 
+    /**
+     * Valor da nota depois de lançada, mesmo com o carregamento concluído (nota lançada sem valor, ou valor errado).
+     * O valor é da nota toda: numa viagem do fracionado, vai para a viagem 1.
+     */
+    public static function definirValor(int $id, string $valor): void
+    {
+        $principal = self::exigir(self::grupo(self::exigir($id)));
+        if ($principal['status'] === 'cancelado') {
+            throw new InvalidArgumentException('Esta nota foi cancelada e não entra no vendido.');
+        }
+        $preco = self::valorDaNota(['nf_valor' => $valor], null);
+        if ($preco === null) {
+            throw new InvalidArgumentException('Informe o valor da nota, como 476,40.');
+        }
+
+        $comando = Db::pdo()->prepare("UPDATE fila_carregamentos SET nf_valor = ? WHERE id = ? AND status <> 'cancelado'");
+        $comando->execute([$preco, (int) $principal['id']]);
+    }
+
     public static function iniciar(int $id, int $paId, string $operador): void
     {
         Db::comTrava('inicio_carga', static fn () => self::iniciarSemCorrida($id, $paId, $operador));

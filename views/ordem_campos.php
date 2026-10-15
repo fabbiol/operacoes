@@ -65,7 +65,7 @@ $travado = !empty($travado);
             <span>Nota emitida em</span>
             <input type="datetime-local" name="nf_emitida_em" step="1" value="<?= e($valor['nf_emitida_em'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
         </label>
-        <?php if (!$viagemSeguinte): ?>
+        <?php if (!$viagemSeguinte && !$travado): ?>
             <label class="campo">
                 <span>Valor da nota (R$)</span>
                 <input type="text" name="nf_valor" inputmode="decimal" maxlength="16" value="<?= e($valor['nf_valor'] ?? '') ?>" placeholder="0,00" <?= $travado ? 'disabled' : '' ?>>

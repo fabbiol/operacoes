@@ -793,3 +793,8 @@ a.venda:hover { border-color: var(--ink); }
 .tabela form { margin: 0; }
 .tabela .btn { min-height: 40px; padding: 6px 12px; white-space: nowrap; }
 .cabeca .busca { margin: 0; flex-wrap: nowrap; }
+.tabela .valor-nota { display: flex; gap: 6px; justify-content: flex-end; }
+.tabela .valor-nota input { width: 120px; min-height: 40px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; font: inherit; text-align: right; }
+.bloco.valor-nota { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; max-width: 640px; }
+.bloco.valor-nota .campo { flex: 1 1 200px; margin: 0; }
+.bloco.valor-nota .nota { flex-basis: 100%; margin: 0; }
