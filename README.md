@@ -89,7 +89,7 @@ Com o app fixado, o tablet não sai do sistema, não mostra notificações por c
 
 ## App Android: como montar uma versão nova
 
-O código do app fica em `android/` (uma tela só, que abre o sistema). O arquivo pronto fica em `public/app/prospera.apk` e é publicado junto com o sistema. Só precisa montar de novo se mudar o endereço do sistema ou o próprio app; mudanças nas telas do sistema não precisam.
+O código do app fica em `android/` (uma tela só, que abre o sistema). O arquivo pronto fica em `public/baixar/prospera.apk` (endereço `/baixar/prospera.apk`) e é publicado junto com o sistema. Não crie uma pasta `public/app`: o servidor confundiria com a página `/app`. Só precisa montar de novo se mudar o endereço do sistema ou o próprio app; mudanças nas telas do sistema não precisam.
 
 1. Aumente `android:versionCode` e `android:versionName` em `android/AndroidManifest.xml`, `VERSAO` em `android/src/.../Principal.java` e `$versaoApp` em `views/app_android.php`.
 2. Monte com a mesma chave de assinatura de sempre (o arquivo `prospera-app.jks`, guardado fora do Git):

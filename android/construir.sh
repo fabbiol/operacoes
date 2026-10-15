@@ -18,7 +18,7 @@ AQUI=$(cd "$(dirname "$0")" && pwd)
 RAIZ=$(dirname "$AQUI")
 ENDERECO=${ENDERECO:-https://operacoes.fabbiol.tech/}
 ANDROID_JAR=${ANDROID_JAR:-/usr/lib/android-sdk/platforms/android-23/android.jar}
-SAIDA=${SAIDA:-$RAIZ/public/app/prospera.apk}
+SAIDA=${SAIDA:-$RAIZ/public/baixar/prospera.apk}
 : "${CHAVE:?Informe CHAVE, o arquivo .jks da assinatura do app}"
 : "${CHAVE_SENHA:?Informe CHAVE_SENHA, a senha do arquivo da assinatura}"
 export CHAVE_SENHA
