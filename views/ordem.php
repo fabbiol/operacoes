@@ -11,7 +11,7 @@
     <div><dt>Pedido</dt><dd><?= e($ordem['pedido']) ?></dd></div>
     <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?></dd></div>
     <div><dt>Material</dt><dd><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></dd></div>
-    <div><dt><?= (int) ($ordem['retroescavadeira_id'] ?? 0) > 0 ? 'Retroescavadeira' : 'Pá carregadeira' ?></dt><dd><?= e($ordem['pa_nome'] ?: 'Escolhida ao iniciar') ?></dd></div>
+    <div><dt><?= (int) ($ordem['retroescavadeira_id'] ?? 0) > 0 ? 'Escavadeira hidráulica' : 'Pá carregadeira' ?></dt><dd><?= e($ordem['pa_nome'] ?: 'Escolhida ao iniciar') ?></dd></div>
     <div><dt>Operador</dt><dd><?= e($ordem['operador'] ?: '—') ?></dd></div>
 </dl>
 

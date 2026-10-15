@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 final class Pessoas
 {
+    /** Funções que se marcam no cadastro. "operador" é o operador de pá carregadeira (pátio). */
+    public const FUNCOES = ['motorista', 'operador', 'escavadeira'];
+
     public static function listar(): array
     {
         return Db::pdo()->query(
-            'SELECT id, nome, nome_completo, administrador, motorista, operador, foto, ativo
+            'SELECT id, nome, nome_completo, administrador, motorista, operador, escavadeira, foto, ativo
              FROM usuarios
              ORDER BY ativo DESC, administrador DESC, nome ASC'
         )->fetchAll();
@@ -16,7 +19,7 @@ final class Pessoas
     public static function buscar(int $id): ?array
     {
         $busca = Db::pdo()->prepare(
-            'SELECT id, nome, nome_completo, administrador, motorista, operador, foto, ativo
+            'SELECT id, nome, nome_completo, administrador, motorista, operador, escavadeira, foto, ativo
              FROM usuarios WHERE id = ? LIMIT 1'
         );
         $busca->execute([$id]);
@@ -28,9 +31,9 @@ final class Pessoas
     public static function paraEntrada(): array
     {
         $linhas = Db::pdo()->query(
-            'SELECT id, nome, nome_completo, foto, motorista, operador
+            'SELECT id, nome, nome_completo, foto, motorista, operador, escavadeira
              FROM usuarios
-             WHERE ativo = 1 AND administrador = 0 AND (motorista = 1 OR operador = 1)
+             WHERE ativo = 1 AND administrador = 0 AND (motorista = 1 OR operador = 1 OR escavadeira = 1)
              ORDER BY nome ASC'
         )->fetchAll();
 
@@ -40,11 +43,16 @@ final class Pessoas
         ));
     }
 
-    /** @return list<string> nomes de quem pode carregar no pátio */
-    public static function operadores(): array
+    /**
+     * Nomes de quem pode trabalhar com a máquina: 'pa' (pá carregadeira) ou 'retro' (escavadeira hidráulica).
+     *
+     * @return list<string>
+     */
+    public static function operadores(string $maquina = 'pa'): array
     {
+        $coluna = $maquina === 'retro' ? 'escavadeira' : 'operador';
         $nomes = [];
-        foreach (Db::pdo()->query('SELECT nome FROM usuarios WHERE ativo = 1 AND administrador = 0 AND operador = 1 ORDER BY nome ASC') as $linha) {
+        foreach (Db::pdo()->query('SELECT nome FROM usuarios WHERE ativo = 1 AND administrador = 0 AND ' . $coluna . ' = 1 ORDER BY nome ASC') as $linha) {
             $nomes[] = (string) $linha['nome'];
         }
 
@@ -57,7 +65,7 @@ final class Pessoas
             return null;
         }
         $busca = Db::pdo()->prepare(
-            'SELECT id, nome, nome_completo, foto, motorista, operador, administrador, ativo
+            'SELECT id, nome, nome_completo, foto, motorista, operador, escavadeira, administrador, ativo
              FROM usuarios WHERE id = ? LIMIT 1'
         );
         $busca->execute([$id]);
@@ -65,7 +73,7 @@ final class Pessoas
         if (!$pessoa || (int) $pessoa['ativo'] !== 1 || (int) $pessoa['administrador'] === 1) {
             return null;
         }
-        if ((int) $pessoa['motorista'] !== 1 && (int) $pessoa['operador'] !== 1) {
+        if ((int) $pessoa['motorista'] !== 1 && (int) $pessoa['operador'] !== 1 && (int) $pessoa['escavadeira'] !== 1) {
             return null;
         }
         if (Auth::administradorFixo((string) $pessoa['nome'])) {
@@ -75,29 +83,49 @@ final class Pessoas
         return $pessoa;
     }
 
-    public static function funcao(array $pessoa): string
+    /** Funções marcadas da pessoa: 'motorista', 'operador' (pá carregadeira) e 'escavadeira' (escavadeira hidráulica). */
+    public static function funcoes(array $pessoa): array
     {
-        if ((int) ($pessoa['administrador'] ?? 0) === 1) {
-            return 'admin';
+        if (isset($pessoa['funcoes']) && is_array($pessoa['funcoes'])) {
+            return array_values(array_intersect(self::FUNCOES, $pessoa['funcoes']));
         }
-        if ((int) ($pessoa['motorista'] ?? 0) === 1 && (int) ($pessoa['operador'] ?? 0) === 1) {
-            return 'ambos';
-        }
-        if ((int) ($pessoa['motorista'] ?? 0) === 1) {
-            return 'motorista';
+        $lista = [];
+        foreach (self::FUNCOES as $funcao) {
+            if ((int) ($pessoa[$funcao] ?? 0) === 1) {
+                $lista[] = $funcao;
+            }
         }
 
-        return 'operador';
+        return $lista;
     }
 
     public static function rotulo(array $pessoa): string
     {
-        return match (self::funcao($pessoa)) {
-            'admin' => 'Administrativo',
-            'ambos' => 'Motorista e operador',
-            'motorista' => 'Motorista',
-            default => 'Operador',
+        if ((int) ($pessoa['administrador'] ?? 0) === 1) {
+            return 'Administrativo';
+        }
+        $funcoes = self::funcoes($pessoa);
+
+        return self::rotuloFuncoes(
+            in_array('motorista', $funcoes, true),
+            in_array('operador', $funcoes, true),
+            in_array('escavadeira', $funcoes, true)
+        );
+    }
+
+    public static function rotuloFuncoes(bool $motorista, bool $operador, bool $escavadeira): string
+    {
+        $maquinas = match (true) {
+            $operador && $escavadeira => 'pá e escavadeira',
+            $operador => $motorista ? 'pá' : 'pá carregadeira',
+            $escavadeira => $motorista ? 'escavadeira' : 'escavadeira hidráulica',
+            default => '',
         };
+        if ($motorista) {
+            return $maquinas === '' ? 'Motorista' : 'Motorista e operador de ' . $maquinas;
+        }
+
+        return $maquinas === '' ? '' : 'Operador de ' . $maquinas;
     }
 
     public static function salvar(?int $id, array $post): int
@@ -126,15 +154,17 @@ final class Pessoas
         if ($admin) {
             $motorista = 0;
             $operador = 0;
+            $escavadeira = 0;
             $papel = 'admin';
         } else {
-            $funcao = (string) ($post['funcao'] ?? '');
-            if (!in_array($funcao, ['motorista', 'operador', 'ambos'], true)) {
-                throw new InvalidArgumentException('Informe a função.');
+            $funcoes = self::funcoesDoFormulario($post);
+            if ($funcoes === []) {
+                throw new InvalidArgumentException('Marque pelo menos uma função.');
             }
-            $motorista = $funcao === 'motorista' || $funcao === 'ambos' ? 1 : 0;
-            $operador = $funcao === 'operador' || $funcao === 'ambos' ? 1 : 0;
-            $papel = $funcao;
+            $motorista = in_array('motorista', $funcoes, true) ? 1 : 0;
+            $operador = in_array('operador', $funcoes, true) ? 1 : 0;
+            $escavadeira = in_array('escavadeira', $funcoes, true) ? 1 : 0;
+            $papel = self::papel($motorista === 1, $operador === 1, $escavadeira === 1);
         }
 
         $ativo = $fixo ? 1 : (isset($post['ativo']) ? 1 : 0);
@@ -142,7 +172,7 @@ final class Pessoas
             self::exigirSemMaquina($atual);
         }
         if ($atual !== null) {
-            self::exigirFuncaoDaMaquina($atual, $motorista === 1, $operador === 1);
+            self::exigirFuncaoDaMaquina($atual, $motorista === 1, $operador === 1, $escavadeira === 1);
         }
         $senha = (string) ($post['senha'] ?? '');
         if (trim($senha) !== '') {
@@ -158,9 +188,9 @@ final class Pessoas
         $pendente = self::prepararFoto();
         try {
             if ($id === null) {
-                $idSalvo = self::inserir($nome, $completo, $senha, $papel, $motorista, $operador, $ativo);
+                $idSalvo = self::inserir($nome, $completo, $senha, $papel, $motorista, $operador, $escavadeira, $ativo);
             } else {
-                self::atualizar($id, (string) $atual['nome'], $nome, $completo, $senha, $papel, $motorista, $operador, $ativo, $admin);
+                self::atualizar($id, (string) $atual['nome'], $nome, $completo, $senha, $papel, $motorista, $operador, $escavadeira, $ativo, $admin);
                 $idSalvo = $id;
             }
 
@@ -205,6 +235,34 @@ final class Pessoas
         $comando->execute([(int) $atual['ativo'] === 1 ? 0 : 1, $id]);
     }
 
+    /** @return list<string> funções marcadas no formulário (aceita também o campo antigo "funcao", de uma tela aberta antes da atualização) */
+    public static function funcoesDoFormulario(array $post): array
+    {
+        if (isset($post['funcoes']) && is_array($post['funcoes'])) {
+            $marcadas = array_map('strval', $post['funcoes']);
+
+            return array_values(array_intersect(self::FUNCOES, $marcadas));
+        }
+
+        return match ((string) ($post['funcao'] ?? '')) {
+            'motorista' => ['motorista'],
+            'operador' => ['operador', 'escavadeira'],
+            'ambos' => ['motorista', 'operador', 'escavadeira'],
+            default => [],
+        };
+    }
+
+    /** O papel antigo continua gravado para quem lê a tabela; quem manda são as funções marcadas. */
+    private static function papel(bool $motorista, bool $operador, bool $escavadeira): string
+    {
+        return match (true) {
+            $motorista && ($operador || $escavadeira) => 'ambos',
+            $motorista => 'motorista',
+            $operador => 'operador',
+            default => 'escavadeira',
+        };
+    }
+
     /** Quem está com uma máquina não é desativado: a máquina ficaria presa a uma pessoa que não entra mais. */
     private static function exigirSemMaquina(array $pessoa): void
     {
@@ -218,13 +276,18 @@ final class Pessoas
     }
 
     /** A função nova precisa continuar permitindo a máquina que a pessoa está usando, senão o turno dela se perde. */
-    private static function exigirFuncaoDaMaquina(array $pessoa, bool $motorista, bool $operador): void
+    private static function exigirFuncaoDaMaquina(array $pessoa, bool $motorista, bool $operador, bool $escavadeira): void
     {
         $posse = Posse::doUsuario((int) $pessoa['id'], true);
         if ($posse === null) {
             return;
         }
-        $permite = (string) $posse['tipo'] === 'caminhao' ? $motorista : $operador;
+        $permite = match ((string) $posse['tipo']) {
+            'caminhao' => $motorista,
+            'pa' => $operador,
+            'retro' => $escavadeira,
+            default => true,
+        };
         if (!$permite) {
             throw new InvalidArgumentException(
                 $pessoa['nome'] . ' está com ' . Posse::nomeDaMaquina((string) $posse['tipo'], (int) $posse['maquina_id'])
@@ -266,14 +329,22 @@ final class Pessoas
         ];
     }
 
-    private static function inserir(string $nome, string $completo, string $senha, string $papel, int $motorista, int $operador, int $ativo): int
-    {
+    private static function inserir(
+        string $nome,
+        string $completo,
+        string $senha,
+        string $papel,
+        int $motorista,
+        int $operador,
+        int $escavadeira,
+        int $ativo
+    ): int {
         $comando = Db::pdo()->prepare(
-            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, ativo)
-             VALUES (?, ?, ?, 0, ?, ?, ?, ?)'
+            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, escavadeira, ativo)
+             VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)'
         );
         try {
-            $comando->execute([$nome, $completo, password_hash($senha, PASSWORD_DEFAULT), $papel, $motorista, $operador, $ativo]);
+            $comando->execute([$nome, $completo, password_hash($senha, PASSWORD_DEFAULT), $papel, $motorista, $operador, $escavadeira, $ativo]);
         } catch (PDOException $e) {
             self::traduzirDuplicado($e);
         }
@@ -290,11 +361,12 @@ final class Pessoas
         string $papel,
         int $motorista,
         int $operador,
+        int $escavadeira,
         int $ativo,
         bool $admin
     ): void {
-        $sql = 'UPDATE usuarios SET nome = ?, nome_completo = ?, papel = ?, motorista = ?, operador = ?, ativo = ?';
-        $params = [$nome, $completo, $papel, $motorista, $operador, $ativo];
+        $sql = 'UPDATE usuarios SET nome = ?, nome_completo = ?, papel = ?, motorista = ?, operador = ?, escavadeira = ?, ativo = ?';
+        $params = [$nome, $completo, $papel, $motorista, $operador, $escavadeira, $ativo];
         if ($senha !== '') {
             $sql .= ', senha_hash = ?';
             $params[] = password_hash($senha, PASSWORD_DEFAULT);

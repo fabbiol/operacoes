@@ -5,7 +5,7 @@
     </div>
 </section>
 <?php if (!empty($foraDaMaquina)): ?>
-    <p class="nota">A máquina do menu é a <?= e((string) $foraDaMaquina['nome']) ?>. Troque para uma retroescavadeira para carregar na lavra.</p>
+    <p class="nota">A máquina do menu é a <?= e((string) $foraDaMaquina['nome']) ?>. Troque para uma escavadeira hidráulica para carregar na lavra.</p>
     <p><a class="btn secundario" href="<?= e(url('maquina')) ?>">Trocar</a></p>
 <?php else: ?>
     <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">

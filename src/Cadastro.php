@@ -26,11 +26,11 @@ final class Cadastro
             'retros' => [
                 'tabela' => 'retroescavadeiras',
                 'campo' => 'maquina',
-                'titulo' => 'Retroescavadeiras',
+                'titulo' => 'Escavadeiras hidráulicas',
                 'rotulo' => 'Máquina',
-                'singular' => 'retroescavadeira',
+                'singular' => 'escavadeira hidráulica',
                 'artigo' => 'Nova',
-                'vazio' => 'Nenhuma retroescavadeira cadastrada.',
+                'vazio' => 'Nenhuma escavadeira hidráulica cadastrada.',
                 'ficha' => true,
             ],
             'caminhoes' => [

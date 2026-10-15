@@ -95,7 +95,7 @@
                         </header>
                         <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
                         <?php if ($ciclo['status'] === 'na_fila'): ?>
-                            <p class="meta">Aguardando a retro</p>
+                            <p class="meta">Aguardando a escavadeira</p>
                         <?php elseif (trim((string) ($ciclo['retro_nome'] ?? '')) !== ''): ?>
                             <p class="meta"><?php
                                 $fotos = [url_foto_retro($ciclo)];

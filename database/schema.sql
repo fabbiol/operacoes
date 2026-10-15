@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     papel VARCHAR(20) NOT NULL DEFAULT 'operador',
     motorista TINYINT(1) NOT NULL DEFAULT 0,
     operador TINYINT(1) NOT NULL DEFAULT 0,
+    escavadeira TINYINT(1) NOT NULL DEFAULT 0,
     foto VARCHAR(80) NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     PRIMARY KEY (id),
