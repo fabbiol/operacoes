@@ -50,9 +50,14 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     nf VARCHAR(60) NOT NULL,
     nf_emitida_em DATETIME NULL,
     nf_chave CHAR(44) NULL,
+    nf_valor DECIMAL(12,2) NULL,
     material_id INT UNSIGNED NOT NULL,
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,
+    fracionado TINYINT(1) NOT NULL DEFAULT 0,
+    ordem_principal_id INT UNSIGNED NULL,
+    viagem SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    quantidade_carregada DECIMAL(12,2) NULL,
     pa_carregadeira_id INT UNSIGNED NULL,
     retroescavadeira_id INT UNSIGNED NULL,
     operador VARCHAR(120) NULL,
@@ -62,7 +67,8 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
         'carregando',
         'aguardando_conferencia',
         'concluido',
-        'cancelado'
+        'cancelado',
+        'saldo'
     ) NOT NULL DEFAULT 'aguardando_autorizacao',
     autorizado_por VARCHAR(120) NULL,
     autorizado_em DATETIME NULL,
@@ -76,6 +82,7 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     KEY idx_fila_status (status),
     KEY idx_fila_data (data),
     KEY idx_fila_nf_chave (nf_chave),
+    KEY idx_fila_principal (ordem_principal_id),
     CONSTRAINT fk_fila_material FOREIGN KEY (material_id) REFERENCES materiais (id),
     CONSTRAINT fk_fila_pa FOREIGN KEY (pa_carregadeira_id) REFERENCES pas_carregadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

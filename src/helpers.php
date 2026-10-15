@@ -865,6 +865,7 @@ function status_lista(): array
         'aguardando_conferencia' => 'Aguardando conferência',
         'concluido' => 'Concluído',
         'cancelado' => 'Cancelado',
+        'saldo' => 'Saldo a buscar',
     ];
 }
 
