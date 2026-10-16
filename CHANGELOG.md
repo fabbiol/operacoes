@@ -1,5 +1,18 @@
 # O que mudou
 
+## Outubro de 2026: aviso no tablet da pá e limpeza da lavra
+
+**Aviso no tablet do pátio**: quando o administrativo libera uma carga nova, altera ou cancela uma carga, o tablet do operador toca, vibra e mostra um quadro grande com o cliente e a carga, que só some no **Ciente**. O som repete até 3 vezes enquanto ninguém confirma.
+
+- **App 1.1**: o som e a vibração passam a vir do Android, sem precisar de toque na tela. Atualize o app nos tablets do pátio: abra `/app`, **Baixar o app** e instale por cima (não precisa desinstalar nem autorizar de novo).
+
+**Limpeza da lavra**: o operador da escavadeira toca em **Iniciar limpeza da lavra** quando para de carregar para limpar. O Painel, o Monitor e a tela dos caminhões mostram a limpeza. A espera dos caminhões na fila durante a limpeza sai do tempo médio de fila e de ciclo e aparece à parte como **Limpeza**. A limpeza termina no botão, ao iniciar uma carga ou ao soltar a escavadeira.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho, no primeiro acesso, a tabela `lavra_limpezas`.
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+3. Atualize o app nos tablets do pátio para a versão 1.1 (em `/app`).
+
 ## Outubro de 2026: problemas das máquinas ao soltar
 
 Ao soltar qualquer máquina (pá carregadeira, escavadeira ou caminhão), o operador responde **Como ficou a máquina?**: **Tudo certo** ou **Teve problema**, e aí escreve qual foi (por exemplo, "quebrou o ar-condicionado").
