@@ -33,6 +33,13 @@ final class Dashboard
                 ], Lavra::limpezasAbertas()),
             ],
             'patio' => self::patio($dia, $patio),
+            // Problemas avisados pelos operadores ao soltar a máquina, até alguém marcar como resolvido.
+            'problemas' => array_map(static fn (array $problema): array => [
+                'maquina' => (string) $problema['maquina'],
+                'descricao' => (string) $problema['descricao'],
+                'usuario' => (string) $problema['usuario'],
+                'desde_ts' => (int) strtotime((string) $problema['relatado_em']),
+            ], Problemas::abertos()),
         ];
     }
 

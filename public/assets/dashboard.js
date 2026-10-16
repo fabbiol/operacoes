@@ -42,6 +42,8 @@
 
     function duracao(segundos) {
         if (segundos == null || segundos < 0) return '—';
+        // Abaixo de 1 minuto mostra os segundos: "0 min" parecia número quebrado.
+        if (segundos < 60) return Math.floor(segundos) + ' s';
         var h = Math.floor(segundos / 3600);
         var m = Math.floor((segundos % 3600) / 60);
         if (h > 0) return h + ' h ' + String(m).padStart(2, '0');
@@ -91,12 +93,17 @@
             : 'ninguém esperando';
         var pas = estado.patio.maquinas.filter(function (m) { return m.ordem; }).map(function (m) { return esc(m.nome); });
         var esperando = estado.lavra.caminhoes.filter(function (c) { return c.status === 'na_fila'; }).length;
+        var limpando = (estado.lavra.limpezas || []).map(function (l) { return l.retro; });
         var lista = [
             tile('Carregado hoje', principal, outra + p.expedidas + (p.expedidas === 1 ? ' carga' : ' cargas'), 'tv-heroi'),
             tile('Na fila do pátio', String(p.aguardando), espera, maior >= ESPERA_CRITICA ? 'critico' : (maior >= ESPERA_ATENCAO ? 'atencao' : '')),
             tile('Carregando', String(p.carregando), pas.length ? pas.join(' · ') : 'nenhuma pá carregando'),
             tile('Viagens da lavra', String(l.viagens), (l.toneladas != null ? quantia(l.toneladas) + ' t · ' : '') + 'ciclo ' + duracao(l.ciclo)),
-            tile('Caminhões na lavra', String(l.operacao), esperando ? esperando + ' esperando a escavadeira' : 'nenhum esperando')
+            tile('Caminhões na lavra', String(l.operacao),
+                limpando.length
+                    ? esc(limpando.join(' e ')) + ' em limpeza'
+                    : (esperando ? esperando + ' esperando a escavadeira' : 'nenhum esperando'),
+                limpando.length ? 'atencao' : '')
         ];
         if (mostrarVendas && estado.vendas) {
             var semValor = estado.vendas.sem_valor || 0;
@@ -105,6 +112,33 @@
                 (semValor ? ' · ' + semValor + ' sem valor' : '')));
         }
         return '<section class="tv-numeros n' + lista.length + '">' + lista.join('') + '</section>';
+    }
+
+    // ---- problemas das máquinas (avisados ao soltar a máquina): faixa vermelha enquanto houver algum aberto
+
+    function quando(epoch) {
+        var dia = function (t) {
+            try {
+                return new Date(t * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: dados.fuso || undefined });
+            } catch (e) {
+                return new Date(t * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            }
+        };
+        return dia(epoch) === dia(agoraServidor()) ? horaMinuto(epoch) : dia(epoch);
+    }
+
+    function problemas(estado) {
+        var lista = estado.problemas || [];
+        if (lista.length === 0) return '';
+        var visiveis = lista.slice(0, 4);
+        return '<section class="tv-problemas" aria-label="Problemas nas máquinas">' +
+            '<h2><i aria-hidden="true">!</i>Problemas nas máquinas<span>' + lista.length + '</span></h2>' +
+            '<ul>' + visiveis.map(function (p) {
+                return '<li><strong>' + esc(p.maquina) + '</strong> ' + esc(p.descricao) +
+                    ' <small>' + esc(p.usuario) + ' · ' + esc(quando(p.desde_ts)) + '</small></li>';
+            }).join('') + '</ul>' +
+            (lista.length > visiveis.length ? '<p class="tv-problemas-mais">+ ' + (lista.length - visiveis.length) + '</p>' : '') +
+            '</section>';
     }
 
     // ---- pátio
@@ -282,11 +316,13 @@
                 '<div class="tv-relogio"><span>' + esc(estado.dia || '') + '</span><strong data-relogio>' + esc(horaMinuto(agoraServidor())) + '</strong></div>' +
             '</header>' +
             numeros(estado, mostrarVendas) +
+            problemas(estado) +
             '<section class="tv-zonas">' + patio(estado) + lavra(estado) + '</section>' +
             '<section class="tv-horas">' +
                 porHora('Pátio por hora', estado.patio.horas, 'cargas', 'viagens') +
                 porHora('Lavra por hora', estado.lavra.horas, 'viagens', 'viagens') +
             '</section>';
+        raiz.classList.toggle('com-problemas', (estado.problemas || []).length > 0);
         caber();
         horaUltimoOk = horaMinuto(estado.agora_ts);
         situacao();
