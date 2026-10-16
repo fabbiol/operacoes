@@ -798,3 +798,73 @@ a.venda:hover { border-color: var(--ink); }
 .bloco.valor-nota { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; max-width: 640px; }
 .bloco.valor-nota .campo { flex: 1 1 200px; margin: 0; }
 .bloco.valor-nota .nota { flex-basis: 100%; margin: 0; }
+
+/* Problemas das máquinas: avisados ao soltar a máquina, abertos até alguém resolver. */
+.estado-maquina { margin-top: 4px; }
+.escolha-problema input:checked + span { border-color: var(--saida); background: #fde8e4; color: var(--saida); }
+@supports selector(:has(*)) {
+    .soltar-maquina .problema-maquina { display: none; }
+    .soltar-maquina:has(input[name="situacao"][value="problema"]:checked) .problema-maquina { display: grid; }
+}
+.problema-maquina textarea { min-height: 84px; }
+.ja-relatados { padding: 10px 14px; border-radius: 12px; background: #fff4f1; border: 1px solid #f3d2c6; }
+.ja-relatados p { margin: 0 0 4px; }
+.ja-relatados ul { margin: 0; padding-left: 18px; font-weight: 700; }
+.ja-relatados small { color: var(--muted); font-weight: 600; }
+.escolha small.problema-aberto { color: var(--saida); font-weight: 700; }
+.status-problema { background: #fde8e4; color: var(--saida); }
+.cadastro li.problema-aberto { border-left: 4px solid var(--saida); padding-left: 10px; }
+.problemas-lista { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; font-weight: 600; }
+.problemas-lista small { color: var(--muted); }
+.problemas-painel { margin: 0 0 18px; padding: 14px 16px; border: 1px solid #f3d2c6; border-left: 6px solid var(--saida); border-radius: 14px; background: #fff8f6; }
+.problemas-painel h2 { margin: 0 0 8px; font-size: 18px; }
+.problemas-painel h2 span { display: inline-grid; place-items: center; min-width: 26px; height: 26px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--saida); color: white; font-size: 14px; vertical-align: 2px; }
+.problemas-painel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.problemas-painel a { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 8px 10px; border-radius: 10px; background: white; color: var(--ink); text-decoration: none; }
+.problemas-painel a:hover { outline: 2px solid #f3d2c6; }
+.problemas-painel a span { flex: 1 1 220px; }
+.problemas-painel small { color: var(--muted); font-weight: 600; }
+.problemas-painel .nota { margin: 8px 0 0; }
+
+/* Aviso do tablet do pátio: carga nova, alterada ou cancelada. Fica na frente de tudo até o "Ciente". */
+.avisos-patio {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(25, 27, 27, 0.55);
+}
+.avisos-patio[hidden] { display: none; }
+.avisos-caixa {
+    display: grid;
+    gap: 12px;
+    width: min(560px, 100%);
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    padding: 18px;
+    border-radius: 18px;
+    background: white;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+.aviso-patio { padding: 14px 16px; border-radius: 14px; border-left: 8px solid var(--ink); background: #f5f3ed; }
+.aviso-patio strong { display: block; font-size: 24px; line-height: 1.2; }
+.aviso-patio p { margin: 4px 0 0; font-size: 18px; font-weight: 600; }
+.aviso-patio .aviso-cliente { font-size: 22px; font-weight: 800; }
+.aviso-patio.nova { border-left-color: #b88a00; background: #fff4c2; }
+.aviso-patio.alterada { border-left-color: var(--info); background: #d7e6f8; }
+.aviso-patio.cancelada { border-left-color: var(--saida); background: #fde8e4; }
+.aviso-patio.cancelada strong { color: var(--saida); }
+.aviso-resto { margin: 0; color: var(--muted); font-weight: 700; }
+.avisos-caixa .btn { min-height: 64px; font-size: 22px; }
+
+/* Limpeza da lavra (escavadeira parada para limpar): no tablet da escavadeira, dos caminhões e no Painel. */
+.limpeza-lavra { display: grid; gap: 8px; margin: 0 0 16px; }
+.limpeza-lavra .nota { margin: 0; }
+.limpeza-lavra.ativa { padding: 14px 16px; border: 2px solid #b88a00; border-radius: 16px; background: #fff4c2; }
+.limpeza-lavra.ativa > strong { font-size: 22px; }
+.limpeza-lavra.ativa .ciclo { margin: 0; }
+.limpeza-aviso { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 12px; padding: 10px 14px; border-left: 6px solid #b88a00; border-radius: 12px; background: #fff4c2; }
+.limpeza-aviso span { color: var(--muted); font-weight: 600; }

@@ -112,6 +112,9 @@ No app não tem barra de endereço nem "puxar para atualizar": as telas da lavra
 
 - **Tela acesa**: enquanto a pessoa está com uma máquina, a tela do tablet não apaga. Ao soltar a máquina, o tablet volta a apagar a tela normalmente. Deixe o tablet carregando na máquina. O monitor da TV também fica com a tela acesa.
 - **Sem conexão**: se o Wi-Fi cai ou o sistema não responde, aparece a tela "Sem conexão" da Próspera, no lugar da página de erro do Chrome. Ela tenta de novo sozinha a cada 10 segundos e volta para a tela da pessoa quando o sinal volta. Nada fica guardado no tablet: as telas sempre vêm do sistema, com a situação de agora.
+- **Som e vibração nos avisos do pátio** (versão 1.1): o app toca o som de notificação do tablet e vibra quando chega uma carga nova, alterada ou cancelada, mesmo sem ninguém ter tocado na tela. No Chrome, o som só toca depois do primeiro toque na tela.
+
+**Atualizar o app**: abra `/app` no tablet, toque em **Baixar o app** e instale por cima. Não precisa desinstalar nem autorizar o tablet de novo (a versão nova é assinada com a mesma chave).
 
 **Travar o tablet no app** (opcional, para o operador não sair do sistema). O Android tem a opção **Fixar app**; não precisa instalar nada:
 
@@ -150,6 +153,47 @@ Quem está com cada máquina fica gravado no banco (tabela `maquina_posse`), com
 Se alguém foi embora sem soltar, o administrativo abre a ficha da máquina e usa **Liberar máquina**. Com a leitura do painel, o turno da pessoa é gravado; sem leitura, a máquina só fica livre. Enquanto a máquina não for solta ou liberada, ela não pode ser desativada, e a pessoa que está com ela não pode ser desativada nem trocar para uma função que não usa essa máquina.
 
 O administrativo não consegue iniciar uma carga com uma máquina que está com outra pessoa, nem para um operador que está com outra máquina.
+
+## Aviso no tablet do pátio
+
+No pátio, o tablet do operador avisa com som, vibração e um quadro grande na frente da tela quando o administrativo:
+
+- **libera uma carga nova** (três bipes subindo);
+- **altera uma carga** que está na fila ou carregando: cliente, pedido, nota, material, quantidade, unidade ou observações (dois bipes);
+- **cancela uma carga** que estava liberada (dois bipes descendo).
+
+O quadro mostra o cliente, a carga e o número (CAR-...) e só some no **Ciente**. Enquanto ninguém tocar em Ciente, o som repete a cada 20 segundos, até 3 vezes. Se o operador estava em outra tela (iniciando ou finalizando uma carga), o aviso aparece quando ele volta ao pátio. Ao abrir o pátio pela primeira vez, as cargas que já estavam lá não avisam. O administrativo não recebe esses avisos.
+
+No app da Próspera (versão 1.1) o som e a vibração são do próprio Android. No Chrome, o navegador só deixa tocar som depois de um toque na tela; o quadro aparece de qualquer jeito.
+
+## Limpeza da lavra
+
+Quando a escavadeira para de carregar para limpar a lavra, o operador toca em **Iniciar limpeza da lavra** na tela de carga. Enquanto isso:
+
+- a tela da escavadeira mostra **Limpeza da lavra** com o tempo e o botão **Terminar limpeza**;
+- os motoristas veem "Retro 1 em limpeza da lavra" na tela dos caminhões;
+- o **Painel** mostra a limpeza em andamento, com quem e desde quando, e o **Monitor da TV** mostra uma faixa amarela na área da lavra.
+
+A limpeza termina no **Terminar limpeza**, ao **iniciar a carga** de um caminhão, ao carregar no pátio com a escavadeira ou ao **soltar** a escavadeira. Não dá para começar a limpeza no meio de uma carga.
+
+**Tempo médio**: a espera do caminhão na fila durante a limpeza da escavadeira que carregou ele sai da fila e do ciclo, e aparece à parte como **Limpeza** em cada viagem. O Painel e os Tempos do dia mostram o total de limpeza do dia. Assim a limpeza não aumenta o tempo médio.
+
+## Problemas das máquinas
+
+Ao soltar qualquer máquina (pá carregadeira, escavadeira ou caminhão), pelo **Soltar** ou pelo **Sair**, o operador informa o horímetro e responde **Como ficou a máquina?**:
+
+- **Tudo certo**: solta normalmente. O turno fica marcado como "entregou tudo certo".
+- **Teve problema**: aparece **Qual foi o problema?** (por exemplo, "quebrou o ar-condicionado"). Sem escrever o problema, a máquina não é solta. O problema fica gravado com a máquina, quem avisou, quando e o horímetro.
+
+O operador precisa responder uma das duas para soltar. Se o problema já foi avisado e ainda não foi resolvido, a tela de soltar mostra, para ninguém precisar escrever de novo.
+
+Onde aparece:
+
+- **Painel**: quadro **Problemas nas máquinas**, com os problemas abertos. Tocar num problema abre a ficha da máquina.
+- **Manutenção**: os problemas abertos de cada máquina.
+- **Ficha da máquina** (Cadastros): os problemas abertos, **Marcar resolvido** (com o que foi feito, se quiser), **Registrar problema** (quando o aviso chega por telefone) e os últimos resolvidos. Os turnos mostram se a pessoa entregou tudo certo ou avisou problema.
+- **Escolher máquina**: quem vai pegar a máquina vê o problema aberto embaixo do nome dela.
+- **Liberar máquina** (quando alguém foi embora sem soltar) também tem o campo **Problema na máquina**.
 
 ## Docker
 

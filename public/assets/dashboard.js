@@ -204,10 +204,16 @@
                     '<span class="tv-tempo" data-desde="' + c.desde_ts + '"><b>' + duracao(agoraServidor() - c.desde_ts) + '</b></span></li>';
             }).join('') + '</ul><p class="tv-resto" data-total="' + lista.length + '"></p>'
             : '<p class="tv-vazio">Nenhum caminhão em ciclo.</p>';
+        // Escavadeira parada para limpar a lavra: explica por que os caminhões esperam na fila.
+        var limpezas = (estado.lavra.limpezas || []).map(function (l) {
+            return '<p class="tv-limpeza">' + esc(l.retro) + ' em limpeza da lavra' +
+                '<span class="tv-tempo" data-desde="' + l.desde_ts + '"><b>' + duracao(agoraServidor() - l.desde_ts) + '</b></span></p>';
+        }).join('');
         return '<article class="tv-zona">' +
             '<header><h2>Lavra</h2><span class="tv-legenda">' +
                 '<span><i class="tv-cor-carregado"></i>Carregado</span><span><i class="tv-cor-volta"></i>Voltando</span><span><i class="tv-cor-lavra"></i>Na lavra</span>' +
             '</span></header>' +
+            limpezas +
             '<div class="tv-circuito">' +
                 '<svg viewBox="0 0 1000 240" preserveAspectRatio="none" aria-hidden="true"><path d="' + geo.caminho + '"/></svg>' +
                 '<span class="tv-posto" style="left:' + geo.lavraRotulo + '%">Lavra</span>' +

@@ -1,6 +1,6 @@
 <?php
 // Mude junto com android:versionName do android/AndroidManifest.xml quando montar uma versão nova do app.
-$versaoApp = '1.0';
+$versaoApp = '1.1';
 ?>
 <section class="cabeca">
     <div>
@@ -27,6 +27,9 @@ $versaoApp = '1.0';
     <li>Abra o app <strong>Próspera</strong> pelo ícone.</li>
     <li>Na primeira vez, entre com o usuário do administrativo e autorize o tablet em <strong>Pessoas › Tablets</strong>. O app tem a memória dele, separada do Chrome: mesmo que o tablet já estivesse autorizado no Chrome, autorize de novo dentro do app.</li>
 </ol>
+
+<h2>Atualizar o app</h2>
+<p>Já tem o app no tablet? Toque em <strong>Baixar o app</strong> e instale por cima, do mesmo jeito. Não precisa desinstalar nem autorizar o tablet de novo. A versão 1.1 toca o som de notificação e vibra nos avisos do pátio (carga nova, alterada ou cancelada), mesmo sem ninguém ter tocado na tela.</p>
 
 <h2>Travar o tablet no app (opcional)</h2>
 <p>Ative <strong>Configurações › Segurança e privacidade › Mais configurações de segurança › Fixar app</strong>. Depois abra o app, vá na lista de apps recentes (o botão quadrado), toque no ícone da Próspera e em <strong>Fixar</strong>.</p>

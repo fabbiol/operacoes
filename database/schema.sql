@@ -197,11 +197,43 @@ CREATE TABLE IF NOT EXISTS horimetro_turnos (
     entrada DECIMAL(10,1) NOT NULL,
     saida DECIMAL(10,1) NOT NULL,
     horas DECIMAL(10,1) NOT NULL,
+    maquina_ok TINYINT(1) NULL,
     iniciado_em DATETIME NULL,
     encerrado_em DATETIME NOT NULL,
     PRIMARY KEY (id),
     KEY idx_turno_usuario (usuario, encerrado_em),
     KEY idx_turno_maquina (tipo, maquina_id, encerrado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Limpeza da lavra: a escavadeira para de carregar para limpar a lavra. O tempo que o caminhão
+-- espera na fila por causa dela não entra nas médias de fila e de ciclo.
+CREATE TABLE IF NOT EXISTS lavra_limpezas (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    retroescavadeira_id INT UNSIGNED NOT NULL,
+    operador VARCHAR(120) NOT NULL,
+    inicio DATETIME NOT NULL,
+    fim DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_limpeza_retro (retroescavadeira_id, inicio),
+    KEY idx_limpeza_aberta (fim)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Problemas das máquinas: o operador conta ao soltar a máquina, ou o administrativo registra na ficha.
+-- Ficam abertos até alguém marcar como resolvido.
+CREATE TABLE IF NOT EXISTS maquina_problemas (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    usuario VARCHAR(40) NOT NULL,
+    descricao VARCHAR(500) NOT NULL,
+    horimetro DECIMAL(10,1) NULL,
+    relatado_em DATETIME NOT NULL,
+    resolvido_em DATETIME NULL,
+    resolvido_por VARCHAR(40) NULL,
+    resolucao VARCHAR(500) NULL,
+    PRIMARY KEY (id),
+    KEY idx_problema_maquina (tipo, maquina_id, resolvido_em),
+    KEY idx_problema_aberto (resolvido_em, relatado_em)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tablets que mostram as fotos da equipe na entrada. O aparelho guarda o código e aqui fica só o hash.

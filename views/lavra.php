@@ -13,6 +13,10 @@
 <p class="nota ajuda">Na garagem, Chegou na lavra abre a viagem. No britador, o motorista volta para a lavra ou vai para a garagem. Encerrar viagem interrompe o ciclo, e o horímetro final entra no Sair.</p>
 
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
+<?php foreach ($limpezas ?? [] as $limpeza): ?>
+    <p class="limpeza-aviso"><strong><?= e((string) ($limpeza['retro_nome'] ?? 'Escavadeira')) ?> em limpeza da lavra</strong>
+        <span>desde <?= e(hora_curta((string) $limpeza['inicio'])) ?> · <time data-desde="<?= (int) strtotime((string) $limpeza['inicio']) ?>"><?= e(texto_duracao(segundos_entre((string) $limpeza['inicio'], agora_sql()))) ?></time></span></p>
+<?php endforeach; ?>
 <?php if ($emCiclo === [] && $livres === []): ?>
     <?php if (!empty($semCadastro)): ?>
         <p class="vazio">Nenhum caminhão cadastrado.<?php if (Auth::admin()): ?>

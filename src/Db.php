@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-fracionado';
+    private const MIGRACOES = '2026-10-limpeza';
 
     private static ?PDO $pdo = null;
 
@@ -117,6 +117,7 @@ final class Db
             self::garantirEstrada($pdo);
             self::garantirHorimetro($pdo);
             self::garantirToneladasDaViagem($pdo);
+            self::garantirMaquinaOk($pdo);
 
             if (!is_dir(dirname($marca))) {
                 mkdir(dirname($marca), 0775, true);
@@ -499,6 +500,14 @@ final class Db
              SET c.capacidade_t = k.capacidade_t
              WHERE c.fim_carga IS NOT NULL AND c.capacidade_t IS NULL'
         );
+    }
+
+    /** O turno guarda como o operador entregou a máquina: 1 tudo certo, 0 relatou problema, vazio quando ninguém perguntou. */
+    private static function garantirMaquinaOk(PDO $pdo): void
+    {
+        if (!in_array('maquina_ok', self::colunasDe($pdo, 'horimetro_turnos'), true)) {
+            $pdo->exec('ALTER TABLE horimetro_turnos ADD COLUMN maquina_ok TINYINT(1) NULL AFTER horas');
+        }
     }
 
     private static function garantirEstrada(PDO $pdo): void

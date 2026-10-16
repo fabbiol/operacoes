@@ -396,7 +396,7 @@ final class Pessoas
 
     /**
      * O trabalho fica registrado com o nome de quem fez. Ao trocar o nome, o histórico vai junto:
-     * viagens, cargas, horímetro, turnos, manutenções, a máquina que a pessoa está usando agora.
+     * viagens, cargas, horímetro, turnos, manutenções, problemas das máquinas, a máquina que a pessoa está usando agora.
      * O texto livre das observações fica como foi escrito.
      */
     private static function levarHistorico(string $antigo, string $novo): void
@@ -409,6 +409,8 @@ final class Pessoas
             'manutencoes' => ['usuario'],
             'tablets' => ['autorizado_por'],
             'maquina_posse' => ['usuario'],
+            'maquina_problemas' => ['usuario', 'resolvido_por'],
+            'lavra_limpezas' => ['operador'],
         ];
         foreach ($colunas as $tabela => $lista) {
             foreach ($lista as $coluna) {

@@ -32,6 +32,9 @@
                 </header>
                 <p class="meta">Entrou com <?= e(Horimetro::texto((float) $turno['entrada'])) ?> · saiu com <?= e(Horimetro::texto((float) $turno['saida'])) ?></p>
                 <p class="meta"><?= e(quando((string) ($turno['iniciado_em'] ?: $turno['encerrado_em']))) ?> → <?= e(hora_curta((string) $turno['encerrado_em'])) ?></p>
+                <?php if (($turno['maquina_ok'] ?? null) !== null): ?>
+                    <p class="meta"><?= (int) $turno['maquina_ok'] === 1 ? 'Entregou tudo certo' : 'Avisou problema na máquina' ?></p>
+                <?php endif; ?>
             </article>
         <?php endforeach; ?>
     </div>
