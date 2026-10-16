@@ -246,10 +246,13 @@ final class Horimetro
             'historico' => self::historico($tipo, $id),
             'turnos' => self::turnosDaMaquina($tipo, $id),
             'posse' => Posse::daMaquina($tipo, $id),
+            'problemas' => Problemas::abertosDa($tipo, $id),
+            'resolvidos' => Problemas::resolvidosDa($tipo, $id),
         ];
     }
 
-    public static function registrarTurno(string $tipo, int $id, float $entrada, float $saida, ?string $iniciadoEm, string $usuario): void
+    /** @param bool|null $maquinaOk como o operador entregou a máquina; null quando ninguém perguntou */
+    public static function registrarTurno(string $tipo, int $id, float $entrada, float $saida, ?string $iniciadoEm, string $usuario, ?bool $maquinaOk = null): void
     {
         self::exigirMaquina($tipo, $id);
         $horas = round($saida - $entrada, 1);
@@ -257,8 +260,8 @@ final class Horimetro
             throw new InvalidArgumentException('A leitura de saída ficou menor que a de entrada.');
         }
         $comando = Db::pdo()->prepare(
-            'INSERT INTO horimetro_turnos (tipo, maquina_id, usuario, entrada, saida, horas, iniciado_em, encerrado_em)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO horimetro_turnos (tipo, maquina_id, usuario, entrada, saida, horas, maquina_ok, iniciado_em, encerrado_em)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $comando->execute([
             $tipo,
@@ -267,6 +270,7 @@ final class Horimetro
             self::gravar($entrada),
             self::gravar($saida),
             self::gravar($horas),
+            $maquinaOk === null ? null : ($maquinaOk ? 1 : 0),
             $iniciadoEm,
             agora_sql(),
         ]);
@@ -337,6 +341,7 @@ final class Horimetro
                     'posse' => $ficha['posse'],
                     'estado' => $ficha['estado'],
                     'rotulo' => $ficha['rotulo'],
+                    'problemas' => $ficha['problemas'],
                     'planos' => array_values(array_filter(
                         $ficha['planos'],
                         static fn (array $plano): bool => (int) $plano['ativo'] === 1

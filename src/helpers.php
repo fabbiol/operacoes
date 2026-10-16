@@ -472,8 +472,12 @@ function horimetro_precisa_soltar(): bool
     return !empty(posse_atual()['precisa_soltar']);
 }
 
-/** Solta a máquina com a leitura de saída e grava o turno. Um segundo toque não grava de novo. */
-function horimetro_soltar(string $leitura): void
+/**
+ * Solta a máquina com a leitura de saída e grava o turno. Um segundo toque não grava de novo.
+ * $situacao é a resposta de "Como ficou a máquina?": 'ok' (tudo certo) ou 'problema', com o texto em $problema.
+ * Sem $situacao (chamada antiga), não pergunta.
+ */
+function horimetro_soltar(string $leitura, ?string $situacao = null, string $problema = ''): void
 {
     if (maquina_escolhida() === null) {
         return;
@@ -481,8 +485,18 @@ function horimetro_soltar(string $leitura): void
     if (maquina_do_trabalho() !== null) {
         throw new InvalidArgumentException('Conclua o trabalho desta máquina antes de soltar.');
     }
+    $maquinaOk = null;
+    $descricao = null;
+    if ($situacao !== null) {
+        if (!in_array($situacao, ['ok', 'problema'], true)) {
+            throw new InvalidArgumentException('Responda como ficou a máquina: Tudo certo ou Teve problema.');
+        }
+        $maquinaOk = $situacao === 'ok';
+        // Com "Tudo certo", o texto que tenha ficado no campo escondido não vale.
+        $descricao = $maquinaOk ? null : Problemas::texto($problema);
+    }
     $usuarioId = Auth::id();
-    Db::comTrava(Posse::TRAVA, static function () use ($leitura, $usuarioId): void {
+    Db::comTrava(Posse::TRAVA, static function () use ($leitura, $usuarioId, $maquinaOk, $descricao): void {
         $posse = Posse::doUsuario($usuarioId, true);
         if ($posse === null) {
             return;
@@ -495,7 +509,10 @@ function horimetro_soltar(string $leitura): void
             $saida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
             $entrada = $posse['entrada'] !== null ? (float) $posse['entrada'] : null;
             if ($entrada !== null && round($saida, 1) >= round($entrada, 1)) {
-                Horimetro::registrarTurno($tipo, $id, $entrada, $saida, (string) $posse['iniciado_em'], Auth::usuario());
+                Horimetro::registrarTurno($tipo, $id, $entrada, $saida, (string) $posse['iniciado_em'], Auth::usuario(), $maquinaOk);
+            }
+            if ($descricao !== null) {
+                Problemas::relatar($tipo, $id, Auth::usuario(), $descricao, $saida);
             }
             Posse::fechar($usuarioId);
             $pdo->commit();
