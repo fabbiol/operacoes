@@ -514,6 +514,10 @@ function horimetro_soltar(string $leitura, ?string $situacao = null, string $pro
             if ($descricao !== null) {
                 Problemas::relatar($tipo, $id, Auth::usuario(), $descricao, $saida);
             }
+            if ($tipo === 'retro') {
+                // Soltou a escavadeira: a limpeza da lavra que ela fazia termina junto.
+                Lavra::terminarLimpeza($id);
+            }
             Posse::fechar($usuarioId);
             $pdo->commit();
         } catch (Throwable $e) {

@@ -359,13 +359,19 @@ final class Lavra
             ['Volta', $tempos['retorno'] ?? null],
         ];
         if ($motivo === '') {
+            $caixas = $completas;
+            if (($tempos['limpeza'] ?? 0) > 0) {
+                // A espera durante a limpeza aparece à parte, logo depois da fila.
+                array_splice($caixas, 1, 0, [['Limpeza', $tempos['limpeza']]]);
+            }
+
             return [
                 'titulo' => 'Viagem concluída',
                 'selo' => '',
                 'classe' => '',
                 'frase' => '',
                 'ciclo' => true,
-                'caixas' => self::caixasDuracao($completas),
+                'caixas' => self::caixasDuracao($caixas),
             ];
         }
         if (!self::saiuCarregado($ciclo)) {
@@ -497,6 +503,7 @@ final class Lavra
 
         return [
             'dia' => $tudo['dia'],
+            'limpeza' => self::limpezaNoDia($tudo['dia']),
             'caminhao' => [
                 'medias' => $tudo['medias'],
                 'viagens' => $tudo['viagens'],
@@ -512,15 +519,133 @@ final class Lavra
         ];
     }
 
+    /**
+     * Tempos de cada etapa. A espera na fila durante a limpeza da lavra (da escavadeira que carregou o caminhão)
+     * sai da fila e do ciclo, e fica separada em 'limpeza', para não pesar no tempo médio.
+     */
     public static function tempos(array $ciclo): array
     {
+        $limpeza = self::esperaPorLimpeza($ciclo);
+        $fila = segundos_entre($ciclo['inicio_fila'] ?? null, $ciclo['inicio_carga'] ?? null);
+        $total = segundos_entre($ciclo['inicio_fila'] ?? null, $ciclo['fim_ciclo'] ?? null);
+
         return [
-            'fila' => segundos_entre($ciclo['inicio_fila'] ?? null, $ciclo['inicio_carga'] ?? null),
+            'fila' => $fila !== null ? max(0, $fila - $limpeza) : null,
             'carga' => segundos_entre($ciclo['inicio_carga'] ?? null, $ciclo['fim_carga'] ?? null),
             'ida' => segundos_entre($ciclo['fim_carga'] ?? null, self::fimDaIda($ciclo)),
             'retorno' => segundos_entre(self::inicioDoRetorno($ciclo), $ciclo['fim_ciclo'] ?? null),
-            'ciclo' => segundos_entre($ciclo['inicio_fila'] ?? null, $ciclo['fim_ciclo'] ?? null),
+            'ciclo' => $total !== null ? max(0, $total - $limpeza) : null,
+            'limpeza' => $limpeza,
         ];
+    }
+
+    // ---- limpeza da lavra
+
+    /** @var array<int, list<array{0: int, 1: int|null}>>|null início e fim (vazio = ainda limpando) por escavadeira */
+    private static ?array $limpezas = null;
+
+    public static function iniciarLimpeza(int $retroId, string $operador): void
+    {
+        if ($retroId < 1) {
+            throw new InvalidArgumentException('Assuma a escavadeira hidráulica antes de começar a limpeza.');
+        }
+        Db::comTrava('inicio_carga', static function () use ($retroId, $operador): void {
+            if (self::limpezaAberta($retroId) !== null) {
+                return;
+            }
+            $emUso = self::retrosEmUso();
+            if (isset($emUso[$retroId]) || self::operadorEmCarga($operador)) {
+                throw new InvalidArgumentException('Conclua a carga do caminhão antes de começar a limpeza.');
+            }
+            Db::pdo()->prepare('INSERT INTO lavra_limpezas (retroescavadeira_id, operador, inicio) VALUES (?, ?, ?)')
+                ->execute([$retroId, $operador, agora_sql()]);
+            self::$limpezas = null;
+        });
+    }
+
+    /** Termina a limpeza desta escavadeira, se houver. Também roda ao iniciar uma carga e ao soltar a escavadeira. */
+    public static function terminarLimpeza(int $retroId): bool
+    {
+        $comando = Db::pdo()->prepare('UPDATE lavra_limpezas SET fim = ? WHERE retroescavadeira_id = ? AND fim IS NULL');
+        $comando->execute([agora_sql(), $retroId]);
+        self::$limpezas = null;
+
+        return $comando->rowCount() > 0;
+    }
+
+    /** @return array<string, mixed>|null */
+    public static function limpezaAberta(int $retroId): ?array
+    {
+        foreach (self::limpezasAbertas() as $limpeza) {
+            if ((int) $limpeza['retroescavadeira_id'] === $retroId) {
+                return $limpeza;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return list<array<string, mixed>> as limpezas em andamento, com o nome da escavadeira */
+    public static function limpezasAbertas(): array
+    {
+        return Db::pdo()->query(
+            'SELECT l.*, r.maquina AS retro_nome
+             FROM lavra_limpezas l
+             LEFT JOIN retroescavadeiras r ON r.id = l.retroescavadeira_id
+             WHERE l.fim IS NULL
+             ORDER BY l.inicio ASC, l.id ASC'
+        )->fetchAll();
+    }
+
+    /** Tempo de limpeza no dia (somando as escavadeiras), em segundos. */
+    public static function limpezaNoDia(string $dia): int
+    {
+        $inicioDia = (int) strtotime($dia . ' 00:00:00');
+        $fimDia = min((int) strtotime($dia . ' 23:59:59') + 1, time());
+        $total = 0;
+        foreach (self::intervalosLimpeza() as $intervalos) {
+            foreach ($intervalos as [$inicio, $fim]) {
+                $total += max(0, min($fim ?? time(), $fimDia) - max($inicio, $inicioDia));
+            }
+        }
+
+        return $total;
+    }
+
+    /** Quanto da espera na fila foi durante a limpeza da escavadeira que carregou o caminhão. */
+    private static function esperaPorLimpeza(array $ciclo): int
+    {
+        $retroId = (int) ($ciclo['retroescavadeira_id'] ?? 0);
+        $entrou = !empty($ciclo['inicio_fila']) ? (int) strtotime((string) $ciclo['inicio_fila']) : 0;
+        $saiu = !empty($ciclo['inicio_carga']) ? (int) strtotime((string) $ciclo['inicio_carga']) : 0;
+        if ($retroId < 1 || $entrou < 1 || $saiu <= $entrou) {
+            return 0;
+        }
+        $espera = 0;
+        foreach (self::intervalosLimpeza()[$retroId] ?? [] as [$inicio, $fim]) {
+            $espera += max(0, min($fim ?? time(), $saiu) - max($inicio, $entrou));
+        }
+
+        return min($espera, $saiu - $entrou);
+    }
+
+    /** @return array<int, list<array{0: int, 1: int|null}>> */
+    private static function intervalosLimpeza(): array
+    {
+        if (self::$limpezas === null) {
+            self::$limpezas = [];
+            // As limpezas são poucas por dia: carregar as dos últimos 40 dias cobre os relatórios do mês.
+            $busca = Db::pdo()->prepare('SELECT retroescavadeira_id, inicio, fim FROM lavra_limpezas WHERE inicio >= ? ORDER BY inicio');
+            $busca->execute([date('Y-m-d H:i:s', time() - 40 * 86400)]);
+            foreach ($busca->fetchAll() as $linha) {
+                self::$limpezas[(int) $linha['retroescavadeira_id']][] = [
+                    (int) strtotime((string) $linha['inicio']),
+                    $linha['fim'] !== null ? (int) strtotime((string) $linha['fim']) : null,
+                ];
+            }
+        }
+
+        return self::$limpezas;
     }
 
     public static function desde(array $ciclo): ?string
@@ -704,6 +829,8 @@ final class Lavra
         if ($comando->rowCount() < 1) {
             throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
         }
+        // Voltou a carregar: a limpeza desta escavadeira termina aqui.
+        self::terminarLimpeza($retroId);
     }
 
     public static function concluirCarga(int $id, ?string $somenteOperador, ?string $esperada = null): string

@@ -38,6 +38,26 @@
             </form>
         </div>
     <?php endif; ?>
+    <?php if (!empty($retroEscolhida)): ?>
+        <?php if (!empty($limpeza)): ?>
+            <section class="limpeza-lavra ativa">
+                <strong>Limpeza da lavra</strong>
+                <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $limpeza['inicio']) ?>"><?= e(texto_duracao(segundos_entre((string) $limpeza['inicio'], agora_sql()))) ?></time></p>
+                <p class="meta">Desde <?= e(hora_curta((string) $limpeza['inicio'])) ?>. Os caminhões que esperarem na fila agora não pesam no tempo médio.</p>
+                <form method="post" action="<?= e(url('lavra/limpeza/terminar')) ?>">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn primario">Terminar limpeza</button>
+                </form>
+                <p class="nota">Se iniciar a carga de um caminhão, a limpeza termina sozinha.</p>
+            </section>
+        <?php else: ?>
+            <form method="post" action="<?= e(url('lavra/limpeza/iniciar')) ?>" class="limpeza-lavra">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn secundario">Iniciar limpeza da lavra</button>
+                <p class="nota">Use quando parar de carregar para limpar a lavra. O Painel mostra a limpeza, e a espera dos caminhões nesse tempo não entra no tempo médio.</p>
+            </form>
+        <?php endif; ?>
+    <?php endif; ?>
     <?php if (($filaCarga ?? []) === []): ?>
         <p class="vazio">Nenhum caminhão na fila.</p>
     <?php else: ?>

@@ -859,3 +859,12 @@ a.venda:hover { border-color: var(--ink); }
 .aviso-patio.cancelada strong { color: var(--saida); }
 .aviso-resto { margin: 0; color: var(--muted); font-weight: 700; }
 .avisos-caixa .btn { min-height: 64px; font-size: 22px; }
+
+/* Limpeza da lavra (escavadeira parada para limpar): no tablet da escavadeira, dos caminhões e no Painel. */
+.limpeza-lavra { display: grid; gap: 8px; margin: 0 0 16px; }
+.limpeza-lavra .nota { margin: 0; }
+.limpeza-lavra.ativa { padding: 14px 16px; border: 2px solid #b88a00; border-radius: 16px; background: #fff4c2; }
+.limpeza-lavra.ativa > strong { font-size: 22px; }
+.limpeza-lavra.ativa .ciclo { margin: 0; }
+.limpeza-aviso { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 12px; padding: 10px 14px; border-left: 6px solid #b88a00; border-radius: 12px; background: #fff4c2; }
+.limpeza-aviso span { color: var(--muted); font-weight: 600; }

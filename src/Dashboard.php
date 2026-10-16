@@ -26,6 +26,11 @@ final class Dashboard
                 'retros' => self::retrosNaLavra($abertos),
                 'indicadores' => self::indicadoresLavra($abertos, $lavra),
                 'horas' => self::horasLavra($dia),
+                'limpezas' => array_map(static fn (array $limpeza): array => [
+                    'retro' => (string) ($limpeza['retro_nome'] ?? 'Escavadeira'),
+                    'operador' => (string) $limpeza['operador'],
+                    'desde_ts' => (int) strtotime((string) $limpeza['inicio']),
+                ], Lavra::limpezasAbertas()),
             ],
             'patio' => self::patio($dia, $patio),
         ];

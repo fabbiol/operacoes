@@ -97,6 +97,10 @@
 
     <section class="painel-bloco">
         <h2><a href="<?= e(url('lavra/fila')) ?>">Lavra</a></h2>
+        <?php foreach ($limpezas ?? [] as $limpeza): ?>
+            <p class="limpeza-aviso"><strong><?= e((string) ($limpeza['retro_nome'] ?? 'Escavadeira')) ?> em limpeza da lavra</strong>
+                <span>desde <?= e(hora_curta((string) $limpeza['inicio'])) ?> · <?= e((string) $limpeza['operador']) ?> · <time data-desde="<?= (int) strtotime((string) $limpeza['inicio']) ?>"><?= e(texto_duracao(segundos_entre((string) $limpeza['inicio'], agora_sql()))) ?></time></span></p>
+        <?php endforeach; ?>
         <div class="tempos">
             <div>
                 <span>Em ciclo</span>
@@ -233,7 +237,16 @@
                 <span>Volta</span>
                 <strong><?= e(texto_duracao($lavraDia['caminhao']['medias']['retorno'])) ?></strong>
             </div>
+            <?php if (($lavraDia['limpeza'] ?? 0) > 0): ?>
+                <div>
+                    <span>Limpeza</span>
+                    <strong><?= e(texto_duracao((int) $lavraDia['limpeza'])) ?></strong>
+                </div>
+            <?php endif; ?>
         </div>
+        <?php if (($lavraDia['limpeza'] ?? 0) > 0): ?>
+            <p class="nota">A espera dos caminhões durante a limpeza da lavra não entra na fila nem no ciclo médio.</p>
+        <?php endif; ?>
         <?php if ($lavraDia['caminhao']['grupos'] !== []): ?>
             <p class="recortes">
                 <?php foreach ($lavraDia['caminhao']['grupos'] as $grupo): ?>

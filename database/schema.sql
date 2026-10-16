@@ -205,6 +205,19 @@ CREATE TABLE IF NOT EXISTS horimetro_turnos (
     KEY idx_turno_maquina (tipo, maquina_id, encerrado_em)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Limpeza da lavra: a escavadeira para de carregar para limpar a lavra. O tempo que o caminhão
+-- espera na fila por causa dela não entra nas médias de fila e de ciclo.
+CREATE TABLE IF NOT EXISTS lavra_limpezas (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    retroescavadeira_id INT UNSIGNED NOT NULL,
+    operador VARCHAR(120) NOT NULL,
+    inicio DATETIME NOT NULL,
+    fim DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_limpeza_retro (retroescavadeira_id, inicio),
+    KEY idx_limpeza_aberta (fim)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Problemas das máquinas: o operador conta ao soltar a máquina, ou o administrativo registra na ficha.
 -- Ficam abertos até alguém marcar como resolvido.
 CREATE TABLE IF NOT EXISTS maquina_problemas (

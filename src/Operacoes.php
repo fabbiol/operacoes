@@ -472,6 +472,8 @@ final class Operacoes
         );
         $comando->execute([$retroId, $operador, agora_sql(), $id]);
         self::exigirAlteracao($comando);
+        // A escavadeira foi carregar no pátio: a limpeza da lavra dela termina aqui.
+        Lavra::terminarLimpeza($retroId);
     }
 
     /**

@@ -228,6 +228,21 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
 .tv-caminhoes strong { font-size: var(--t-item); letter-spacing: 0.02em; }
 .tv-caminhoes li > span:not(.tv-tempo) { color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* Escavadeira em limpeza da lavra: faixa em amarelo, porque explica a fila dos caminhões. */
+.tv-limpeza {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--vao);
+    padding: calc(var(--vao) * 0.5) var(--vao);
+    border-radius: clamp(8px, calc(0.7vw * var(--k)), 16px);
+    border: 2px solid var(--tv-atencao);
+    color: var(--tv-texto);
+    font-size: var(--t-item-2);
+    font-weight: 700;
+}
+.tv-limpeza .tv-tempo { font-size: var(--t-item-2); padding: 0; color: var(--tv-atencao); }
+
 /* Circuito da lavra. */
 .tv-circuito { position: relative; flex: none; height: clamp(90px, calc(9vw * var(--k)), 220px); }
 .tv-circuito svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }

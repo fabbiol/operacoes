@@ -239,6 +239,24 @@ function despachar(string $path, string $method): void
         redirect('/maquina');
     }
 
+    if (($path === 'lavra/limpeza/iniciar' || $path === 'lavra/limpeza/terminar') && $method === 'POST') {
+        exigir_papel('escavadeira');
+        csrf_check();
+        recusar_toque_apressado('/lavra');
+        $retro = retro_escolhida();
+        try {
+            if ($path === 'lavra/limpeza/iniciar') {
+                Lavra::iniciarLimpeza((int) ($retro['id'] ?? 0), Auth::usuario());
+                flash_set('Limpeza da lavra começou. A espera dos caminhões na fila agora não pesa no tempo médio.');
+            } else {
+                flash_set($retro !== null && Lavra::terminarLimpeza((int) $retro['id']) ? 'Limpeza da lavra terminada.' : 'A limpeza já estava terminada.');
+            }
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/lavra');
+    }
+
     if (preg_match('#^lavra/ciclos/(\d+)/carga$#', $path, $m)) {
         exigir_papel('escavadeira');
         tela_lavra_iniciar((int) $m[1], $method);
@@ -751,6 +769,10 @@ function lavra_marca(): string
     $mostraCiclo = Auth::admin() || ($tipo === 'caminhao');
     $mostraCarga = Auth::admin() || ($tipo === 'retro');
     $partes = ['ciclo' => $mostraCiclo, 'carga' => $mostraCarga];
+    $partes['limpezas'] = array_map(
+        static fn (array $limpeza): array => [(int) $limpeza['id'], (int) $limpeza['retroescavadeira_id']],
+        Lavra::limpezasAbertas()
+    );
     if (!$mostraCiclo && !$mostraCarga) {
         $maquina = maquina_escolhida();
         $partes['fora'] = $maquina['tipo'] ?? '';
@@ -902,6 +924,7 @@ function painel_marca(): string
         'viagens' => (int) ($lavraDia['caminhao']['viagens'] ?? 0),
         'toneladas' => $lavraDia['caminhao']['producao']['toneladas'] ?? null,
         'problemas' => array_map(static fn (array $problema): int => (int) $problema['id'], Problemas::abertos()),
+        'limpezas' => array_map(static fn (array $limpeza): int => (int) $limpeza['id'], Lavra::limpezasAbertas()),
     ]);
 }
 
@@ -1205,11 +1228,13 @@ function tela_lavra(): void
     $tipo = maquina_escolhida()['tipo'] ?? '';
     $mostraCiclo = Auth::admin() || ($tipo === 'caminhao');
     $mostraCarga = Auth::admin() || ($tipo === 'retro');
+    $retroDaTela = $mostraCarga ? retro_escolhida() : null;
     $carga = $mostraCarga ? [
         'filaCarga' => Lavra::naFila(),
         'minhaCarga' => Lavra::cargaDoOperador(Auth::usuario()),
-        'retroEscolhida' => retro_escolhida(),
+        'retroEscolhida' => $retroDaTela,
         'retros' => Cadastro::opcoes('retros'),
+        'limpeza' => $retroDaTela !== null ? Lavra::limpezaAberta((int) $retroDaTela['id']) : null,
     ] : [];
     if (!$mostraCiclo && !$mostraCarga) {
         render('lavra_carga', [
@@ -1254,6 +1279,7 @@ function tela_lavra(): void
         'livres' => $painel['livres'],
         'garagem' => $motorista && $tipo === 'caminhao' && $painel['emCiclo'] === [],
         'precisaSoltar' => horimetro_precisa_soltar(),
+        'limpezas' => Lavra::limpezasAbertas(),
         'semCadastro' => Cadastro::listar('caminhoes') === [],
         'mostraCarga' => $mostraCarga,
         'fluxoUrl' => url('lavra/situacao'),
@@ -1313,6 +1339,7 @@ function tela_lavra_resumo(): void
         'dia' => $resumo['dia'],
         'visao' => $visao,
         'medias' => $bloco['medias'],
+        'limpeza' => (int) ($resumo['limpeza'] ?? 0),
         'viagens' => $bloco['viagens'],
         'producao' => $bloco['producao'],
         'grupos' => $bloco['grupos'],
@@ -1504,6 +1531,7 @@ function tela_painel(): void
         'autorizar' => (int) ($contagens['aguardando_autorizacao'] ?? 0),
         'saldos' => (int) ($contagens['saldo'] ?? 0),
         'problemas' => Problemas::abertos(),
+        'limpezas' => Lavra::limpezasAbertas(),
         'vendas' => Operacoes::vendas($dia),
         'conferir' => (int) ($contagens['aguardando_conferencia'] ?? 0),
         'liberadas' => (int) ($contagens['liberado'] ?? 0),
@@ -1785,6 +1813,9 @@ function liberar_maquina(string $chave, int $id, string $leitura, string $proble
             }
             if ($descricao !== null) {
                 Problemas::relatar($tipo, $id, Auth::usuario(), $descricao, $saida ?? Horimetro::atual($tipo, $id));
+            }
+            if ($tipo === 'retro') {
+                Lavra::terminarLimpeza($id);
             }
             Posse::liberar($tipo, $id);
             $pdo->commit();

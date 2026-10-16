@@ -410,6 +410,7 @@ final class Pessoas
             'tablets' => ['autorizado_por'],
             'maquina_posse' => ['usuario'],
             'maquina_problemas' => ['usuario', 'resolvido_por'],
+            'lavra_limpezas' => ['operador'],
         ];
         foreach ($colunas as $tabela => $lista) {
             foreach ($lista as $coluna) {

@@ -49,7 +49,16 @@
         <span>Volta</span>
         <strong><?= e(texto_duracao($medias['retorno'])) ?></strong>
     </div>
+    <?php if (($limpeza ?? 0) > 0): ?>
+        <div>
+            <span>Limpeza</span>
+            <strong><?= e(texto_duracao((int) $limpeza)) ?></strong>
+        </div>
+    <?php endif; ?>
 </div>
+<?php if (($limpeza ?? 0) > 0): ?>
+    <p class="nota">Neste dia a escavadeira fez limpeza da lavra. A espera dos caminhões durante a limpeza aparece à parte em cada viagem e não entra na fila nem no ciclo médio.</p>
+<?php endif; ?>
 <?php $faltando = $producao['faltando'] ?? []; require __DIR__ . '/trecho_sem_capacidade.php'; ?>
 
 <?php if ($grupos === []): ?>
