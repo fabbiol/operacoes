@@ -2,12 +2,16 @@ package br.com.prospera.operacoes;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Vibrator;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -41,7 +45,7 @@ import java.util.Locale;
 public class Principal extends Activity {
     // Endereço do sistema. O android/construir.sh troca este valor pelo da variável ENDERECO.
     static final String ENDERECO = "https://operacoes.fabbiol.tech/";
-    static final String VERSAO = "1.0";
+    static final String VERSAO = "1.1";
 
     private static final int ESCOLHER_FOTO = 1;
     private static final int ESPERA_MS = 10000;
@@ -123,6 +127,38 @@ public class Principal extends Activity {
         @JavascriptInterface
         public String versao() {
             return VERSAO;
+        }
+
+        /**
+         * Aviso do pátio (carga nova, alterada ou cancelada): o som de notificação do tablet e a vibração.
+         * Pelo app toca mesmo sem a pessoa ter tocado na tela antes, o que o navegador não deixa.
+         */
+        @JavascriptInterface
+        @SuppressWarnings("deprecation")
+        public void avisar(final String tipo) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Uri som = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                        Ringtone toque = som != null ? RingtoneManager.getRingtone(getApplicationContext(), som) : null;
+                        if (toque != null) {
+                            toque.play();
+                        }
+                    } catch (RuntimeException e) {
+                        // Sem som de notificação configurado: fica a vibração e o aviso na tela.
+                    }
+                    Vibrator vibrador = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                    if (vibrador == null || !vibrador.hasVibrator()) {
+                        return;
+                    }
+                    long[] padrao = "cancelada".equals(tipo)
+                        ? new long[] {0, 700, 250, 700}
+                        : new long[] {0, 400, 200, 400};
+                    // O app é montado contra o Android 6; esta forma ainda vale no Android 14.
+                    vibrador.vibrate(padrao, -1);
+                }
+            });
         }
     }
 
