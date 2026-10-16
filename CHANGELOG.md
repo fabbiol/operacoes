@@ -1,5 +1,15 @@
 # O que mudou
 
+## Outubro de 2026: problemas e limpeza no Monitor da TV
+
+- **Problemas nas máquinas no Monitor**: faixa vermelha com a máquina, o problema, quem avisou e quando (ex.: "ABC1D23 Pneu furou"). Some sozinha quando o problema é resolvido na ficha da máquina.
+- **Limpeza no Monitor**: o quadro "Caminhões na lavra" fica amarelo com "Retro 1 em limpeza", além da faixa na área da lavra.
+- Tempos abaixo de 1 minuto aparecem em segundos (antes aparecia "0 min").
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar** se não começar sozinho. A TV pega a versão nova sozinha às 3h, ou na hora se recarregar o Monitor.
+
 ## Outubro de 2026: aviso no tablet da pá e limpeza da lavra
 
 **Aviso no tablet do pátio**: quando o administrativo libera uma carga nova, altera ou cancela uma carga, o tablet do operador toca, vibra e mostra um quadro grande com o cliente e a carga, que só some no **Ciente**. O som repete até 3 vezes enquanto ninguém confirma.

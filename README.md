@@ -48,6 +48,8 @@ A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. T
 - **No alto**: o carregado hoje (o número maior), a fila do pátio com a maior espera, quantas pás estão carregando, as viagens da lavra e os caminhões em ciclo.
 - **Pátio**: cada pá com o cliente e há quanto tempo está carregando; a fila com o tempo de espera de cada cliente. Espera de 30 minutos ou mais fica **amarela**, de 1 hora ou mais fica **vermelha**. O que não cabe na tela aparece como "+ N na fila".
 - **Lavra**: o circuito com os caminhões (azul = carregado indo para o britador, cinza = voltando vazio, contorno = na lavra) e a lista do que cada caminhão está fazendo.
+- **Problemas nas máquinas**: faixa vermelha entre os números e as áreas, com a máquina, o problema, quem avisou e quando (até 4; o resto aparece como "+ N"). Some sozinha quando o problema é marcado como resolvido na ficha da máquina.
+- **Limpeza da lavra**: o quadro "Caminhões na lavra" fica amarelo com "Retro 1 em limpeza", e a área da lavra mostra a faixa com o tempo.
 - **Por hora**: cargas do pátio e viagens da lavra em cada hora do dia; a hora atual em azul.
 - Os relógios contam sozinhos e os números se atualizam a cada 8 segundos. Se a internet da TV cair, aparece **"Sem atualização desde ..."** em amarelo; depois de 3 minutos os números ficam apagados, para ninguém ler número velho como se fosse de agora.
 - **Vendido do dia (R$)**: fica escondido na TV, porque os motoristas também veem a tela. Para mostrar, marque **Mostrar o vendido do dia (R$) nesta tela** (vale só para aquele aparelho).
@@ -190,6 +192,7 @@ O operador precisa responder uma das duas para soltar. Se o problema já foi avi
 Onde aparece:
 
 - **Painel**: quadro **Problemas nas máquinas**, com os problemas abertos. Tocar num problema abre a ficha da máquina.
+- **Monitor da TV**: faixa vermelha **Problemas nas máquinas**, enquanto houver algum aberto.
 - **Manutenção**: os problemas abertos de cada máquina.
 - **Ficha da máquina** (Cadastros): os problemas abertos, **Marcar resolvido** (com o que foi feito, se quiser), **Registrar problema** (quando o aviso chega por telefone) e os últimos resolvidos. Os turnos mostram se a pessoa entregou tudo certo ou avisou problema.
 - **Escolher máquina**: quem vai pegar a máquina vê o problema aberto embaixo do nome dela.
