@@ -51,6 +51,18 @@ final class Operacoes
         return Db::pdo()->query($sql)->fetchAll();
     }
 
+    /** Cargas que estavam liberadas e foram canceladas nas últimas 12 horas (para avisar o tablet do pátio). */
+    public static function canceladasRecentes(): array
+    {
+        $sql = self::sqlBase() . " WHERE f.status = 'cancelado' AND f.autorizado_em IS NOT NULL AND f.atualizado_em >= ?
+            ORDER BY f.atualizado_em DESC, f.id DESC
+            LIMIT 30";
+        $comando = Db::pdo()->prepare($sql);
+        $comando->execute([date('Y-m-d H:i:s', time() - 12 * 3600)]);
+
+        return $comando->fetchAll();
+    }
+
     public static function enviadasHoje(): array
     {
         $sql = self::sqlBase() . " WHERE f.status IN ('aguardando_conferencia', 'concluido')

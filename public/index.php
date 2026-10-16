@@ -817,6 +817,42 @@ function lavra_marca(): string
     return marca_de($partes);
 }
 
+/** O que o operador precisa saber de uma carga. Se mudar, o tablet do pátio avisa "Carga alterada". */
+function patio_assinatura(array $ordem): string
+{
+    return substr(md5(json_encode([
+        (string) $ordem['cliente'],
+        (string) $ordem['pedido'],
+        (string) $ordem['nf'],
+        (int) $ordem['material_id'],
+        (string) $ordem['quantidade_autorizada'],
+        (string) $ordem['unidade'],
+        (int) ($ordem['fracionado'] ?? 0),
+        trim((string) ($ordem['observacoes'] ?? '')),
+    ])), 0, 12);
+}
+
+/**
+ * Para o tablet do pátio avisar (som, vibração e aviso na tela): as cargas na fila, com a assinatura,
+ * e as que foram canceladas depois de liberadas. O tablet compara com o que já tinha visto.
+ */
+function patio_avisos(): array
+{
+    $resumo = static fn (array $ordem): array => [
+        'id' => (int) $ordem['id'],
+        'ordem' => (string) $ordem['ordem'],
+        'cliente' => (string) $ordem['cliente'],
+        'carga' => formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . unidade_rotulo((string) $ordem['unidade'])
+            . ' · ' . (string) ($ordem['material_nome'] ?? ''),
+        'assinatura' => patio_assinatura($ordem),
+    ];
+
+    return [
+        'fila' => array_map($resumo, Operacoes::patio()),
+        'canceladas' => array_map($resumo, Operacoes::canceladasRecentes()),
+    ];
+}
+
 function patio_marca(): string
 {
     return marca_de([
@@ -827,6 +863,7 @@ function patio_marca(): string
             $ordem['operador'] ?? null,
             (int) ($ordem['pa_carregadeira_id'] ?? 0),
             (int) ($ordem['retroescavadeira_id'] ?? 0),
+            patio_assinatura($ordem),
         ], Operacoes::patio()),
         'enviadas' => array_map(static fn (array $ordem): array => [
             (int) $ordem['id'],
@@ -922,6 +959,8 @@ function tela_patio(): void
         'enviadas' => Operacoes::enviadasHoje(),
         'fluxoUrl' => url('patio/situacao'),
         'fluxoMarca' => patio_marca(),
+        // Só o tablet do operador avisa; o administrativo não precisa do som.
+        'avisosPatio' => Auth::admin() ? null : patio_avisos(),
     ]);
 }
 

@@ -116,5 +116,8 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
         <script src="<?= e(asset('assets/tempo.js')) ?>"></script>
         <script src="<?= e(asset('assets/fluxo.js')) ?>"></script>
     <?php endif; ?>
+    <?php if (!empty($avisosPatio)): ?>
+        <script src="<?= e(asset('assets/avisos.js')) ?>"></script>
+    <?php endif; ?>
 </body>
 </html>
