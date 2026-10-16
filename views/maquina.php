@@ -24,16 +24,45 @@
         <p class="meta"><?= e((string) $atual['rotulo']) ?></p>
     </article>
 <?php elseif (!empty($soltar) && !empty($atual)): ?>
-    <?php $entrada = horimetro_entrada(); ?>
-    <p class="nota">Informe o horímetro do painel para soltar <?= e((string) $atual['nome']) ?>.</p>
-    <form method="post" action="<?= e(url(($destino ?? 'maquina') === 'sair' ? 'sair' : 'maquina')) ?>" class="formulario">
+    <?php
+    $entrada = horimetro_entrada();
+    $jaRelatados = Problemas::abertosDa((string) $atual['tipo'], (int) $atual['id']);
+    $situacao = (string) ($situacao ?? '');
+    ?>
+    <p class="nota">Informe o horímetro do painel e como ficou <?= e((string) $atual['nome']) ?>.</p>
+    <form method="post" action="<?= e(url(($destino ?? 'maquina') === 'sair' ? 'sair' : 'maquina')) ?>" class="formulario soltar-maquina">
         <?= csrf_field() ?>
         <input type="hidden" name="acao" value="soltar">
         <p class="meta">Horímetro atual <?= e(Horimetro::texto(Horimetro::atual($atual['tipo'], (int) $atual['id']))) ?><?php if ($entrada !== null): ?> · entrou com <?= e(Horimetro::texto($entrada)) ?><?php endif; ?></p>
         <label class="campo">
             <span>Horímetro ao soltar</span>
-            <input type="text" name="leitura" inputmode="decimal" maxlength="10" required placeholder="h" autofocus>
+            <input type="text" name="leitura" inputmode="decimal" maxlength="10" required placeholder="h" autofocus value="<?= e((string) ($_POST['leitura'] ?? '')) ?>">
         </label>
+        <fieldset class="maquinas maquinas-duas estado-maquina">
+            <legend>Como ficou a máquina?</legend>
+            <label class="escolha">
+                <input type="radio" name="situacao" value="ok" required <?= $situacao === 'ok' ? 'checked' : '' ?>>
+                <span>Tudo certo</span>
+            </label>
+            <label class="escolha escolha-problema">
+                <input type="radio" name="situacao" value="problema" required <?= $situacao === 'problema' ? 'checked' : '' ?>>
+                <span>Teve problema</span>
+            </label>
+        </fieldset>
+        <label class="campo problema-maquina">
+            <span>Qual foi o problema?</span>
+            <textarea name="problema" rows="3" maxlength="<?= Problemas::TAMANHO ?>" placeholder="Ex.: quebrou o ar-condicionado"><?= e((string) ($problema ?? '')) ?></textarea>
+        </label>
+        <?php if ($jaRelatados !== []): ?>
+            <div class="ja-relatados">
+                <p class="meta">Já avisado e ainda não resolvido (não precisa escrever de novo):</p>
+                <ul>
+                    <?php foreach ($jaRelatados as $relatado): ?>
+                        <li><?= e((string) $relatado['descricao']) ?> <small><?= e((string) $relatado['usuario']) ?>, <?= e(quando((string) $relatado['relatado_em'])) ?></small></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
         <button type="submit" class="btn primario"><?= ($destino ?? '') === 'sair' ? 'Soltar e sair' : 'Soltar' ?></button>
     </form>
 <?php elseif ($maquinas === []): ?>
@@ -64,6 +93,9 @@
                         <span class="escolha-texto">
                             <?= e((string) $maquina['nome']) ?>
                             <small><?= e((string) $maquina['rotulo']) ?><?php if (($maquina['detalhe'] ?? '') !== ''): ?> · <?= e((string) $maquina['detalhe']) ?><?php endif; ?> · <?= e(Horimetro::texto(Horimetro::atual($maquina['tipo'], (int) $maquina['id']))) ?></small>
+                            <?php foreach (Problemas::abertosDa((string) $maquina['tipo'], (int) $maquina['id']) as $relatado): ?>
+                                <small class="problema-aberto">Problema: <?= e((string) $relatado['descricao']) ?></small>
+                            <?php endforeach; ?>
                         </span>
                     </span>
                 </label>

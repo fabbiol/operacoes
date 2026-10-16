@@ -79,7 +79,7 @@ function despachar(string $path, string $method): void
                 return;
             }
             try {
-                horimetro_soltar($leitura);
+                horimetro_soltar($leitura, (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''));
             } catch (InvalidArgumentException $e) {
                 tela_soltar($maquina, $e->getMessage(), 'sair');
                 return;
@@ -298,11 +298,39 @@ function despachar(string $path, string $method): void
         exigir_cadastro($m[1]);
         csrf_check();
         try {
-            flash_set(liberar_maquina($m[1], (int) $m[2], (string) ($_POST['leitura'] ?? '')));
+            flash_set(liberar_maquina($m[1], (int) $m[2], (string) ($_POST['leitura'] ?? ''), (string) ($_POST['problema'] ?? '')));
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
         redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/problemas$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        try {
+            $tipo = Horimetro::tipoDaChave($m[1]);
+            if (Cadastro::buscar($m[1], (int) $m[2]) === null) {
+                throw new InvalidArgumentException('Máquina não encontrada.');
+            }
+            Problemas::relatar($tipo, (int) $m[2], Auth::usuario(), (string) ($_POST['problema'] ?? ''), Horimetro::atual($tipo, (int) $m[2]));
+            flash_set('Problema registrado.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2]);
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/problemas/(\d+)/resolver$#', $path, $m) && $method === 'POST') {
+        exigir_cadastro($m[1]);
+        csrf_check();
+        try {
+            Problemas::resolver((int) $m[3], Horimetro::tipoDaChave($m[1]), (int) $m[2], Auth::usuario(), (string) ($_POST['resolucao'] ?? ''));
+            flash_set('Problema marcado como resolvido.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2] . '#problemas');
     }
 
     if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/horimetro/(\d+)/anular$#', $path, $m) && $method === 'POST') {
@@ -836,6 +864,7 @@ function painel_marca(): string
         'patio' => (int) ($cargaDia['maquina']['total'] ?? 0),
         'viagens' => (int) ($lavraDia['caminhao']['viagens'] ?? 0),
         'toneladas' => $lavraDia['caminhao']['producao']['toneladas'] ?? null,
+        'problemas' => array_map(static fn (array $problema): int => (int) $problema['id'], Problemas::abertos()),
     ]);
 }
 
@@ -1091,7 +1120,7 @@ function tela_maquina(string $method): void
         }
         if ($soltar) {
             try {
-                horimetro_soltar((string) ($_POST['leitura'] ?? ''));
+                horimetro_soltar((string) ($_POST['leitura'] ?? ''), (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''));
                 redirect('/maquina');
             } catch (InvalidArgumentException $e) {
                 $erro = $e->getMessage();
@@ -1127,6 +1156,8 @@ function tela_maquina(string $method): void
         'soltar' => $soltar,
         'destino' => 'maquina',
         'erro' => $erro,
+        'situacao' => $erro !== null ? (string) ($_POST['situacao'] ?? '') : '',
+        'problema' => $erro !== null ? (string) ($_POST['problema'] ?? '') : '',
     ]);
 }
 
@@ -1433,6 +1464,7 @@ function tela_painel(): void
         'fluxoMarca' => painel_marca(),
         'autorizar' => (int) ($contagens['aguardando_autorizacao'] ?? 0),
         'saldos' => (int) ($contagens['saldo'] ?? 0),
+        'problemas' => Problemas::abertos(),
         'vendas' => Operacoes::vendas($dia),
         'conferir' => (int) ($contagens['aguardando_conferencia'] ?? 0),
         'liberadas' => (int) ($contagens['liberado'] ?? 0),
@@ -1686,11 +1718,12 @@ function tela_sair_no_trabalho(array $trabalho): void
  * O administrativo libera uma máquina que ficou com alguém (esqueceu de soltar, faltou, sessão caiu).
  * Com a leitura do painel, o turno de quem estava com ela é gravado; sem leitura, o turno fica sem as horas.
  */
-function liberar_maquina(string $chave, int $id, string $leitura): string
+function liberar_maquina(string $chave, int $id, string $leitura, string $problema = ''): string
 {
     $tipo = Horimetro::tipoDaChave($chave);
+    $descricao = trim($problema) !== '' ? Problemas::texto($problema) : null;
 
-    return (string) Db::comTrava(Posse::TRAVA, static function () use ($chave, $tipo, $id, $leitura): string {
+    return (string) Db::comTrava(Posse::TRAVA, static function () use ($chave, $tipo, $id, $leitura, $descricao): string {
         $posse = Posse::daMaquina($tipo, $id);
         if ($posse === null) {
             return 'Essa máquina já estava livre.';
@@ -1702,13 +1735,17 @@ function liberar_maquina(string $chave, int $id, string $leitura): string
         $pdo->beginTransaction();
         try {
             $turno = false;
+            $saida = null;
             if (trim($leitura) !== '') {
                 $saida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
                 $entrada = $posse['entrada'] !== null ? (float) $posse['entrada'] : null;
                 if ($entrada !== null && round($saida, 1) >= round($entrada, 1)) {
-                    Horimetro::registrarTurno($tipo, $id, $entrada, $saida, (string) $posse['iniciado_em'], (string) $posse['usuario']);
+                    Horimetro::registrarTurno($tipo, $id, $entrada, $saida, (string) $posse['iniciado_em'], (string) $posse['usuario'], $descricao !== null ? false : null);
                     $turno = true;
                 }
+            }
+            if ($descricao !== null) {
+                Problemas::relatar($tipo, $id, Auth::usuario(), $descricao, $saida ?? Horimetro::atual($tipo, $id));
             }
             Posse::liberar($tipo, $id);
             $pdo->commit();
@@ -1717,7 +1754,15 @@ function liberar_maquina(string $chave, int $id, string $leitura): string
             throw $e;
         }
 
-        return 'Máquina liberada. Estava com ' . $posse['usuario'] . ($turno ? '; o turno foi gravado.' : '.');
+        $texto = 'Máquina liberada. Estava com ' . $posse['usuario'];
+        if ($turno) {
+            $texto .= '; o turno foi gravado';
+        }
+        if ($descricao !== null) {
+            $texto .= $turno ? ' e o problema também' : '; o problema foi registrado';
+        }
+
+        return $texto . '.';
     });
 }
 
@@ -1732,6 +1777,8 @@ function tela_soltar(array $maquina, ?string $erro, string $destino): void
         'soltar' => true,
         'destino' => $destino,
         'erro' => $erro,
+        'situacao' => $erro !== null ? (string) ($_POST['situacao'] ?? '') : '',
+        'problema' => $erro !== null ? (string) ($_POST['problema'] ?? '') : '',
     ]);
 }
 

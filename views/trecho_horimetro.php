@@ -1,3 +1,57 @@
+<section class="bloco horimetro problemas" id="problemas">
+    <h2>Problemas</h2>
+    <?php $abertos = $horimetro['problemas'] ?? []; ?>
+    <?php if ($abertos === []): ?>
+        <p class="vazio">Nenhum problema aberto nesta máquina.</p>
+    <?php else: ?>
+        <ul class="cadastro">
+            <?php foreach ($abertos as $problema): ?>
+                <li class="problema-aberto">
+                    <span class="cadastro-texto">
+                        <strong><?= e((string) $problema['descricao']) ?></strong>
+                        <small><?= e((string) $problema['usuario']) ?> · <?= e(quando((string) $problema['relatado_em'])) ?><?php if ($problema['horimetro'] !== null): ?> · horímetro <?= e(Horimetro::texto((float) $problema['horimetro'])) ?><?php endif; ?></small>
+                    </span>
+                    <details class="anular">
+                        <summary>Marcar resolvido</summary>
+                        <form method="post" action="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/problemas/' . (int) $problema['id'] . '/resolver')) ?>" class="formulario">
+                            <?= csrf_field() ?>
+                            <label class="campo">
+                                <span>O que foi feito (opcional)</span>
+                                <input type="text" name="resolucao" maxlength="<?= Problemas::TAMANHO ?>" placeholder="Ex.: trocado o compressor do ar">
+                            </label>
+                            <button type="submit" class="btn primario">Marcar como resolvido</button>
+                        </form>
+                    </details>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+    <details class="anular">
+        <summary>Registrar problema</summary>
+        <form method="post" action="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/problemas')) ?>" class="formulario">
+            <?= csrf_field() ?>
+            <label class="campo">
+                <span>Qual é o problema?</span>
+                <textarea name="problema" rows="3" maxlength="<?= Problemas::TAMANHO ?>" required placeholder="Ex.: quebrou o ar-condicionado"></textarea>
+            </label>
+            <button type="submit" class="btn primario">Registrar problema</button>
+        </form>
+    </details>
+    <?php if (($horimetro['resolvidos'] ?? []) !== []): ?>
+        <h3>Resolvidos</h3>
+        <ul class="cadastro">
+            <?php foreach ($horimetro['resolvidos'] as $problema): ?>
+                <li class="inativo">
+                    <span class="cadastro-texto">
+                        <strong><?= e((string) $problema['descricao']) ?></strong>
+                        <small><?= e((string) $problema['usuario']) ?> · <?= e(quando((string) $problema['relatado_em'])) ?> · resolvido por <?= e((string) $problema['resolvido_por']) ?> em <?= e(quando((string) $problema['resolvido_em'])) ?><?php if (($problema['resolucao'] ?? '') !== ''): ?>: <?= e((string) $problema['resolucao']) ?><?php endif; ?></small>
+                    </span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</section>
+
 <section class="bloco horimetro">
     <h2>Horímetro</h2>
     <p class="meta">Atual: <?= e(Horimetro::texto($horimetro['atual'])) ?></p>
@@ -13,6 +67,10 @@
                     <label class="campo">
                         <span>Horímetro agora (opcional)</span>
                         <input type="text" name="leitura" inputmode="decimal" maxlength="10" placeholder="h">
+                    </label>
+                    <label class="campo">
+                        <span>Problema na máquina (opcional)</span>
+                        <textarea name="problema" rows="2" maxlength="<?= Problemas::TAMANHO ?>" placeholder="Ex.: quebrou o ar-condicionado"></textarea>
                     </label>
                     <button type="submit" class="btn perigo">Liberar a máquina</button>
                 </form>
@@ -69,7 +127,7 @@
                 <li>
                     <span class="cadastro-texto">
                         <strong><?= e(Horimetro::texto((float) $turno['horas'])) ?></strong>
-                        <small><?= e((string) $turno['usuario']) ?> · entrou <?= e(Horimetro::texto((float) $turno['entrada'])) ?> · saiu <?= e(Horimetro::texto((float) $turno['saida'])) ?> · <?= e(quando((string) $turno['encerrado_em'])) ?></small>
+                        <small><?= e((string) $turno['usuario']) ?> · entrou <?= e(Horimetro::texto((float) $turno['entrada'])) ?> · saiu <?= e(Horimetro::texto((float) $turno['saida'])) ?> · <?= e(quando((string) $turno['encerrado_em'])) ?><?php if (($turno['maquina_ok'] ?? null) !== null): ?> · <?= (int) $turno['maquina_ok'] === 1 ? 'entregou tudo certo' : 'avisou problema' ?><?php endif; ?></small>
                     </span>
                 </li>
             <?php endforeach; ?>

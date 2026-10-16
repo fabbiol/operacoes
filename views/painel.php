@@ -20,6 +20,26 @@
     </a>
 </section>
 
+<?php if (($problemas ?? []) !== []): ?>
+    <section class="problemas-painel" aria-label="Problemas nas máquinas">
+        <h2>Problemas nas máquinas <span><?= count($problemas) ?></span></h2>
+        <ul>
+            <?php foreach (array_slice($problemas, 0, 5) as $problema): ?>
+                <li>
+                    <a href="<?= e(url('cadastros/' . $problema['chave'] . '/' . (int) $problema['maquina_id'] . '#problemas')) ?>">
+                        <strong><?= e((string) $problema['maquina']) ?></strong>
+                        <span><?= e((string) $problema['descricao']) ?></span>
+                        <small><?= e((string) $problema['usuario']) ?> · <?= e(quando((string) $problema['relatado_em'])) ?></small>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php if (count($problemas) > 5): ?>
+            <p class="nota"><a href="<?= e(url('manutencao')) ?>">Ver todos na Manutenção (+<?= count($problemas) - 5 ?>)</a></p>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>
+
 <?php if ($autorizar > 0 || $conferir > 0): ?>
     <nav class="parado" aria-label="Esperando o administrativo">
         <?php if ($autorizar > 0): ?>
