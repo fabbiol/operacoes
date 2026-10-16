@@ -151,6 +151,23 @@ Se alguém foi embora sem soltar, o administrativo abre a ficha da máquina e us
 
 O administrativo não consegue iniciar uma carga com uma máquina que está com outra pessoa, nem para um operador que está com outra máquina.
 
+## Problemas das máquinas
+
+Ao soltar qualquer máquina (pá carregadeira, escavadeira ou caminhão), pelo **Soltar** ou pelo **Sair**, o operador informa o horímetro e responde **Como ficou a máquina?**:
+
+- **Tudo certo**: solta normalmente. O turno fica marcado como "entregou tudo certo".
+- **Teve problema**: aparece **Qual foi o problema?** (por exemplo, "quebrou o ar-condicionado"). Sem escrever o problema, a máquina não é solta. O problema fica gravado com a máquina, quem avisou, quando e o horímetro.
+
+O operador precisa responder uma das duas para soltar. Se o problema já foi avisado e ainda não foi resolvido, a tela de soltar mostra, para ninguém precisar escrever de novo.
+
+Onde aparece:
+
+- **Painel**: quadro **Problemas nas máquinas**, com os problemas abertos. Tocar num problema abre a ficha da máquina.
+- **Manutenção**: os problemas abertos de cada máquina.
+- **Ficha da máquina** (Cadastros): os problemas abertos, **Marcar resolvido** (com o que foi feito, se quiser), **Registrar problema** (quando o aviso chega por telefone) e os últimos resolvidos. Os turnos mostram se a pessoa entregou tudo certo ou avisou problema.
+- **Escolher máquina**: quem vai pegar a máquina vê o problema aberto embaixo do nome dela.
+- **Liberar máquina** (quando alguém foi embora sem soltar) também tem o campo **Problema na máquina**.
+
 ## Docker
 
 No computador, com as portas abertas:

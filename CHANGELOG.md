@@ -1,5 +1,19 @@
 # O que mudou
 
+## Outubro de 2026: problemas das máquinas ao soltar
+
+Ao soltar qualquer máquina (pá carregadeira, escavadeira ou caminhão), o operador responde **Como ficou a máquina?**: **Tudo certo** ou **Teve problema**, e aí escreve qual foi (por exemplo, "quebrou o ar-condicionado").
+
+- O administrativo vê os problemas abertos no **Painel** (quadro **Problemas nas máquinas**), na **Manutenção** e na **ficha da máquina**, onde marca como resolvido ou registra um problema avisado por telefone.
+- Quem vai pegar a máquina vê o problema aberto na hora de escolher. Quem vai soltar vê o que já foi avisado.
+- Os turnos mostram se a pessoa entregou a máquina tudo certo ou avisou problema.
+- **Liberar máquina** também aceita o problema.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho, no primeiro acesso, a tabela `maquina_problemas` e a coluna `maquina_ok` em `horimetro_turnos`. Os turnos antigos ficam sem essa marca.
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+3. Quem estiver com uma máquina na hora da publicação vai responder a pergunta nova ao soltar.
+
 ## Outubro de 2026: valor da nota já concluída e Monitor menor
 
 - **Nota sem valor**: no **Controle de carga**, a nota sem valor tem o campo para digitar o valor e **Salvar**, mesmo com o carregamento concluído. Na ficha da ordem também (**Salvar valor**, e **Corrigir valor** se estiver errado). O valor entra no vendido do dia na hora.
