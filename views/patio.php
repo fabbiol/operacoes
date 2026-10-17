@@ -28,7 +28,8 @@
                     <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span></p>
                 <?php endif; ?>
                 <p class="meta">Pedido <?= e($ordem['pedido']) ?> · NF <?= e($ordem['nf']) ?></p>
-                <?php $recado = observacao_recente($ordem['observacoes'] ?? null); ?>
+                <?php // Na publicação pela Hostinger as telas sobem antes do index.php, onde está a função.
+                $recado = function_exists('observacao_recente') ? observacao_recente($ordem['observacoes'] ?? null) : ''; ?>
                 <?php if ($recado !== ''): ?>
                     <p class="obs-patio"><strong>Obs.:</strong> <?= e($recado) ?></p>
                 <?php endif; ?>

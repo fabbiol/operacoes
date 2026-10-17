@@ -19,6 +19,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.MimeTypeMap;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
@@ -45,7 +47,7 @@ import java.util.Locale;
 public class Principal extends Activity {
     // Endereço do sistema. O android/construir.sh troca este valor pelo da variável ENDERECO.
     static final String ENDERECO = "https://operacoes.fabbiol.tech/";
-    static final String VERSAO = "1.1";
+    static final String VERSAO = "1.2";
 
     private static final int ESCOLHER_FOTO = 1;
     private static final int ESPERA_MS = 10000;
@@ -200,17 +202,51 @@ public class Principal extends Activity {
                 fotoPendente.onReceiveValue(null);
             }
             fotoPendente = retorno;
+            // O tipo vem do campo da tela: foto nos cadastros, PDF ou XML na nota fiscal.
+            ArrayList<String> tipos = tiposAceitos(pedido.getAcceptTypes());
             Intent escolher = new Intent(Intent.ACTION_GET_CONTENT);
             escolher.addCategory(Intent.CATEGORY_OPENABLE);
-            escolher.setType("image/*");
+            boolean soFoto = !tipos.isEmpty();
+            for (String tipo : tipos) {
+                soFoto = soFoto && tipo.startsWith("image/");
+            }
+            if (tipos.size() == 1) {
+                escolher.setType(tipos.get(0));
+            } else {
+                // Só fotos (JPG, PNG, WebP): abre a galeria, como antes. Outros tipos juntos: abre os arquivos.
+                escolher.setType(soFoto ? "image/*" : "*/*");
+                if (!tipos.isEmpty()) {
+                    escolher.putExtra(Intent.EXTRA_MIME_TYPES, tipos.toArray(new String[0]));
+                }
+            }
             try {
-                startActivityForResult(Intent.createChooser(escolher, "Escolher foto"), ESCOLHER_FOTO);
+                startActivityForResult(Intent.createChooser(escolher, soFoto ? "Escolher foto" : "Escolher arquivo"), ESCOLHER_FOTO);
             } catch (ActivityNotFoundException e) {
                 fotoPendente = null;
                 retorno.onReceiveValue(null);
             }
             return true;
         }
+    }
+
+    /** Os tipos do campo de arquivo ("image/*", ".pdf", "application/xml"...) como tipos do Android, sem repetir. */
+    private static ArrayList<String> tiposAceitos(String[] aceitos) {
+        ArrayList<String> tipos = new ArrayList<>();
+        if (aceitos == null) {
+            return tipos;
+        }
+        for (String bruto : aceitos) {
+            for (String parte : bruto.split(",")) {
+                String tipo = parte.trim().toLowerCase(Locale.ROOT);
+                if (tipo.startsWith(".")) {
+                    tipo = MimeTypeMap.getSingleton().getMimeTypeFromExtension(tipo.substring(1));
+                }
+                if (tipo != null && tipo.contains("/") && !tipos.contains(tipo)) {
+                    tipos.add(tipo);
+                }
+            }
+        }
+        return tipos;
     }
 
     /** Só o sistema abre dentro do app. Qualquer outro endereço vai para o navegador. */

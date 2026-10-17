@@ -46,7 +46,8 @@
 
     // ---- som e vibração
 
-    // O navegador só deixa tocar som depois de um toque na tela: o primeiro toque destrava.
+    // O navegador só deixa tocar som depois de um toque na tela. Tenta já ao abrir (o Chrome libera quando a
+    // pessoa tocou na tela anterior do sistema, por exemplo no "Finalizar") e de novo no primeiro toque.
     function destravarSom() {
         var Contexto = window.AudioContext || window.webkitAudioContext;
         if (!Contexto) return;
@@ -61,11 +62,58 @@
         if (audio.state === 'suspended') audio.resume().catch(function () {});
     }
     document.addEventListener('pointerdown', destravarSom, true);
+    destravarSom();
+
+    // Nova: três bipes subindo. Alterada: dois iguais. Cancelada: dois descendo.
+    function notasDe(tipo) {
+        return tipo === 'nova' ? [660, 880, 1100] : (tipo === 'cancelada' ? [880, 520] : [880, 880]);
+    }
+
+    // Os mesmos bipes num arquivo de som (WAV) montado aqui: segundo caminho quando o navegador não liberou o
+    // som da página, mas deixa tocar um áudio comum.
+    var arquivos = {};
+    function arquivoDe(tipo) {
+        if (arquivos[tipo]) return arquivos[tipo];
+        var taxa = 8000;
+        var notas = notasDe(tipo);
+        var porNota = Math.round(taxa * 0.32);
+        var total = porNota * notas.length;
+        var bytes = new Uint8Array(44 + total);
+        var visao = new DataView(bytes.buffer);
+        var texto = function (pos, valor) { for (var i = 0; i < valor.length; i++) bytes[pos + i] = valor.charCodeAt(i); };
+        texto(0, 'RIFF'); visao.setUint32(4, 36 + total, true); texto(8, 'WAVE');
+        texto(12, 'fmt '); visao.setUint32(16, 16, true); visao.setUint16(20, 1, true); visao.setUint16(22, 1, true);
+        visao.setUint32(24, taxa, true); visao.setUint32(28, taxa, true); visao.setUint16(32, 1, true); visao.setUint16(34, 8, true);
+        texto(36, 'data'); visao.setUint32(40, total, true);
+        notas.forEach(function (frequencia, n) {
+            for (var i = 0; i < porNota; i++) {
+                var tocando = i < taxa * 0.26;
+                var onda = Math.sin(2 * Math.PI * frequencia * i / taxa) >= 0 ? 1 : -1;
+                bytes[44 + n * porNota + i] = tocando ? 128 + onda * 70 : 128;
+            }
+        });
+        var binario = '';
+        for (var j = 0; j < bytes.length; j++) binario += String.fromCharCode(bytes[j]);
+        arquivos[tipo] = 'data:audio/wav;base64,' + window.btoa(binario);
+        return arquivos[tipo];
+    }
+
+    function somComum(tipo) {
+        try {
+            var som = new Audio(arquivoDe(tipo));
+            var tocando = som.play();
+            if (tocando && tocando.catch) tocando.catch(function () {});
+        } catch (e) {
+            // Sem som neste aparelho: fica o quadro na tela.
+        }
+    }
 
     function bipes(tipo) {
-        if (!audio || audio.state !== 'running') return;
-        // Nova: três bipes subindo. Alterada: dois iguais. Cancelada: dois descendo.
-        var notas = tipo === 'nova' ? [660, 880, 1100] : (tipo === 'cancelada' ? [880, 520] : [880, 880]);
+        if (!audio || audio.state !== 'running') {
+            somComum(tipo);
+            return;
+        }
+        var notas = notasDe(tipo);
         var inicio = audio.currentTime + 0.05;
         notas.forEach(function (frequencia, i) {
             var osc = audio.createOscillator();

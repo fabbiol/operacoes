@@ -2,8 +2,8 @@
 <!-- App do tablet: abre o sistema em tela cheia. As telas continuam vindo do sistema, então não precisa atualizar o app a cada mudança. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="br.com.prospera.operacoes"
-    android:versionCode="2"
-    android:versionName="1.1">
+    android:versionCode="3"
+    android:versionName="1.2">
 
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
 

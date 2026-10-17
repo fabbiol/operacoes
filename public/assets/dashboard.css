@@ -216,7 +216,7 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 .tv-zona h3 span { color: var(--tv-texto); margin-left: 0.3em; }
 .tv-vazio { color: var(--tv-apagado); font-size: var(--t-item-2); font-weight: 600; }
 
-.tv-maquinas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: calc(var(--vao) * 0.7); }
+.tv-maquinas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: calc(var(--vao) * 0.7); }
 .tv-maquina {
     min-width: 0;
     padding: clamp(8px, calc(0.7vw * var(--k)), 16px) clamp(10px, calc(1vw * var(--k)), 22px);

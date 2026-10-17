@@ -280,3 +280,11 @@ CREATE TABLE IF NOT EXISTS maquina_posse (
     UNIQUE KEY uniq_posse_usuario (usuario_id),
     KEY idx_posse_nome (usuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Versão do banco: a marca da última atualização (src/Db.php). Banco sem ela é atualizado no próximo acesso.
+CREATE TABLE IF NOT EXISTS schema_versao (
+    id TINYINT UNSIGNED NOT NULL,
+    hash CHAR(64) NOT NULL,
+    atualizado_em DATETIME NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

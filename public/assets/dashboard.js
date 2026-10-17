@@ -130,7 +130,8 @@
     function problemas(estado) {
         var lista = estado.problemas || [];
         if (lista.length === 0) return '';
-        var visiveis = lista.slice(0, 4);
+        // TV pequena ou baixa: uma linha só (dois avisos lado a lado), para sobrar altura para a fila e a lavra.
+        var visiveis = lista.slice(0, window.innerHeight < 720 ? 2 : 4);
         return '<section class="tv-problemas" aria-label="Problemas nas máquinas">' +
             '<h2><i aria-hidden="true">!</i>Problemas nas máquinas<span>' + lista.length + '</span></h2>' +
             '<ul>' + visiveis.map(function (p) {
@@ -252,10 +253,14 @@
             }).join('') + '</ul><p class="tv-resto" data-total="' + lista.length + '"></p>'
             : '<p class="tv-vazio">Nenhum caminhão em ciclo.</p>';
         // Escavadeira parada para limpar a lavra: explica por que os caminhões esperam na fila.
-        var limpezas = (estado.lavra.limpezas || []).map(function (l) {
-            return '<p class="tv-limpeza">' + esc(l.retro) + ' em limpeza da lavra' +
-                '<span class="tv-tempo" data-desde="' + l.desde_ts + '"><b>' + duracao(agoraServidor() - l.desde_ts) + '</b></span></p>';
-        }).join('');
+        // Uma linha só, mesmo com duas escavadeiras limpando; o tempo é o da limpeza mais antiga.
+        var emLimpeza = estado.lavra.limpezas || [];
+        var limpezas = '';
+        if (emLimpeza.length) {
+            var desde = Math.min.apply(null, emLimpeza.map(function (l) { return l.desde_ts; }));
+            limpezas = '<p class="tv-limpeza">' + esc(emLimpeza.map(function (l) { return l.retro; }).join(' e ')) + ' em limpeza da lavra' +
+                '<span class="tv-tempo" data-desde="' + desde + '"><b>' + duracao(agoraServidor() - desde) + '</b></span></p>';
+        }
         return '<article class="tv-zona">' +
             '<header><h2>Lavra</h2><span class="tv-legenda">' +
                 '<span><i class="tv-cor-carregado"></i>Carregado</span><span><i class="tv-cor-volta"></i>Voltando</span><span><i class="tv-cor-lavra"></i>Na lavra</span>' +
@@ -275,6 +280,10 @@
     function caber() {
         raiz.querySelectorAll('[data-varios]').forEach(function (lista) {
             var itens = lista.children;
+            var resto = lista.nextElementSibling;
+            var temResto = resto && resto.hasAttribute('data-total');
+            // O "+ N" ocupa uma linha embaixo da lista: escreve antes de medir, para a lista medir já sem essa altura.
+            if (temResto) resto.textContent = '+ ' + resto.getAttribute('data-total') + ' ' + lista.getAttribute('data-varios');
             var limite = lista.clientHeight;
             var escondidos = 0;
             for (var i = 0; i < itens.length; i++) {
@@ -286,8 +295,7 @@
                     escondidos++;
                 }
             }
-            var resto = lista.nextElementSibling;
-            if (resto && resto.hasAttribute('data-total')) {
+            if (temResto) {
                 var fora = Number(resto.getAttribute('data-total')) - (itens.length - escondidos);
                 resto.textContent = fora > 0 ? '+ ' + fora + ' ' + lista.getAttribute(fora === 1 ? 'data-um' : 'data-varios') : '';
             }
@@ -407,7 +415,34 @@
 
     // ---- tela cheia
 
+    // A escolha fica guardada no aparelho: a página recarrega sozinha às 3h e volta em tela cheia. O navegador só
+    // deixa ocupar a tela toda depois de um toque; até lá, a página já fica sem o menu, do tamanho da janela.
     var ampliar = document.getElementById('ampliar');
+    function guardarTelaCheia(ligar) {
+        try {
+            window.localStorage.setItem('monitor-tela-cheia', ligar ? '1' : '0');
+        } catch (e) {
+            // Sem como guardar: vale só enquanto a página estiver aberta.
+        }
+    }
+    function telaCheiaGuardada() {
+        try {
+            return window.localStorage.getItem('monitor-tela-cheia') === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+    function pedirTelaToda() {
+        var pedido = document.documentElement.requestFullscreen;
+        if (pedido && !document.fullscreenElement) {
+            try {
+                var promessa = pedido.call(document.documentElement);
+                if (promessa && promessa.catch) promessa.catch(function () {});
+            } catch (e) {
+                // Sem permissão agora: fica do tamanho da janela.
+            }
+        }
+    }
     function telaCheia(ligar) {
         document.body.classList.toggle('tela-cheia', ligar);
         if (ampliar) ampliar.textContent = ligar ? 'Sair da tela cheia' : 'Tela cheia';
@@ -417,16 +452,33 @@
         ampliar.addEventListener('click', function () {
             var ligar = !document.body.classList.contains('tela-cheia');
             telaCheia(ligar);
+            guardarTelaCheia(ligar);
             if (!ligar) {
                 if (document.fullscreenElement) document.exitFullscreen();
                 return;
             }
-            var pedido = document.documentElement.requestFullscreen;
-            if (pedido) pedido.call(document.documentElement).catch(function () {});
+            pedirTelaToda();
         });
         document.addEventListener('fullscreenchange', function () {
-            if (!document.fullscreenElement) telaCheia(false);
+            // Saiu da tela toda pelo Esc ou pelo botão do controle: volta ao normal e esquece a escolha.
+            if (!document.fullscreenElement && document.body.classList.contains('tela-cheia')) {
+                telaCheia(false);
+                guardarTelaCheia(false);
+            }
         });
+        if (telaCheiaGuardada()) {
+            telaCheia(true);
+            pedirTelaToda();
+            // Primeiro toque ou tecla do controle na TV: aí o navegador deixa ocupar a tela toda.
+            var aoTocar = function (evento) {
+                if (evento.target === ampliar) return;
+                document.removeEventListener('pointerdown', aoTocar, true);
+                document.removeEventListener('keydown', aoTocar, true);
+                if (document.body.classList.contains('tela-cheia')) pedirTelaToda();
+            };
+            document.addEventListener('pointerdown', aoTocar, true);
+            document.addEventListener('keydown', aoTocar, true);
+        }
     }
 
     // ---- cuidados com uma tela ligada o dia todo

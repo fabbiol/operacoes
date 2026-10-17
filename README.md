@@ -145,7 +145,7 @@ CHAVE=/caminho/prospera-app.jks CHAVE_SENHA='senha da chave' ENDERECO=https://op
 
 O Android só atualiza o app se a versão nova vier com a mesma chave. Sem a chave, é preciso desinstalar o app antigo em cada tablet antes de instalar o novo (e autorizar o tablet de novo). Nunca coloque a chave no Git: o repositório é público.
 
-O que o app faz: abre só o endereço do sistema (outros endereços vão para o Chrome); mantém a tela acesa quando o sistema pede (com máquina assumida); mostra "Sem conexão" e tenta de novo sozinho; escolhe foto da galeria nos cadastros; o botão Voltar volta uma tela e, no começo, deixa o app em segundo plano; o Android não oferece para guardar senhas digitadas no app.
+O que o app faz: abre só o endereço do sistema (outros endereços vão para o Chrome); mantém a tela acesa quando o sistema pede (com máquina assumida); mostra "Sem conexão" e tenta de novo sozinho; escolhe foto da galeria nos cadastros e o PDF ou XML da nota fiscal (versão 1.2); o botão Voltar volta uma tela e, no começo, deixa o app em segundo plano; o Android não oferece para guardar senhas digitadas no app.
 
 ## Sessão
 
@@ -171,7 +171,7 @@ O quadro mostra o cliente, a carga e o número (CAR-...) e só some no **Ciente*
 
 O cartão da carga no pátio e as telas de iniciar e finalizar mostram a observação do administrativo. Com duas pás, só quem iniciou a carga (ou o administrativo) finaliza: no tablet do outro operador aparece "Carregando com ...". Se o administrativo corrigir a carga no mesmo momento em que a pá começa a carregar, a tela dele avisa que nada foi alterado.
 
-No app da Próspera (versão 1.1) o som e a vibração são do próprio Android. No Chrome, o navegador só deixa tocar som depois de um toque na tela; o quadro aparece de qualquer jeito.
+No app da Próspera (versão 1.1) o som e a vibração são do próprio Android. No Chrome, sem o app, quem decide é o navegador: o som toca se o operador tocou em alguma tela do sistema antes de voltar ao pátio (por exemplo, no **Finalizar**) ou já tocou no pátio. Logo depois de abrir o navegador ou recarregar a página, só toca a partir do primeiro toque. O quadro aparece sempre. Para o som tocar sempre, use o app.
 
 ## Limpeza da lavra
 
@@ -268,4 +268,4 @@ Sem o token guardado, o script pede o token da API Hostinger na hora; o que é c
 
 ## Mudanças no banco
 
-O banco é atualizado sozinho no primeiro acesso depois de uma publicação: o `database/schema.sql` cria as tabelas, e as funções `garantir*()` de `src/Db.php` acrescentam colunas em tabelas que já existem. Ao criar ou mudar uma função `garantir*()`, troque também o valor de `Db::MIGRACOES`; sem isso, a atualização não roda de novo nos servidores que já estão no ar.
+O banco é atualizado sozinho no primeiro acesso depois de uma publicação (a marca da versão fica no próprio banco, na tabela `schema_versao`: banco novo ou zerado é montado de novo, mesmo que a pasta `storage` tenha sobrado): o `database/schema.sql` cria as tabelas, e as funções `garantir*()` de `src/Db.php` acrescentam colunas em tabelas que já existem. Ao criar ou mudar uma função `garantir*()`, troque também o valor de `Db::MIGRACOES`; sem isso, a atualização não roda de novo nos servidores que já estão no ar.

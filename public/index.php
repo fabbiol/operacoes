@@ -34,7 +34,8 @@ function despachar(string $path, string $method): void
     if ($path === 'health') {
         header('Content-Type: application/json; charset=utf-8');
         try {
-            Db::pdo()->query('SELECT 1');
+            // Confere uma tabela do sistema, não só a conexão: banco sem as tabelas não está pronto.
+            Db::pdo()->query('SELECT 1 FROM usuarios LIMIT 1');
             echo '{"ok":true}';
         } catch (Throwable $e) {
             http_response_code(503);

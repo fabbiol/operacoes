@@ -1,6 +1,6 @@
 <?php
 // Mude junto com android:versionName do android/AndroidManifest.xml quando montar uma versão nova do app.
-$versaoApp = '1.1';
+$versaoApp = '1.2';
 ?>
 <section class="cabeca">
     <div>
@@ -29,7 +29,7 @@ $versaoApp = '1.1';
 </ol>
 
 <h2>Atualizar o app</h2>
-<p>Já tem o app no tablet? Toque em <strong>Baixar o app</strong> e instale por cima, do mesmo jeito. Não precisa desinstalar nem autorizar o tablet de novo. A versão 1.1 toca o som de notificação e vibra nos avisos do pátio (carga nova, alterada ou cancelada), mesmo sem ninguém ter tocado na tela.</p>
+<p>Já tem o app no tablet? Toque em <strong>Baixar o app</strong> e instale por cima, do mesmo jeito. Não precisa desinstalar nem autorizar o tablet de novo. A versão 1.1 toca o som de notificação e vibra nos avisos do pátio (carga nova, alterada ou cancelada), mesmo sem ninguém ter tocado na tela. A versão 1.2 deixa escolher o PDF ou o XML da nota fiscal no app (antes só aparecia foto).</p>
 
 <h2>Travar o tablet no app (opcional)</h2>
 <p>Ative <strong>Configurações › Segurança e privacidade › Mais configurações de segurança › Fixar app</strong>. Depois abra o app, vá na lista de apps recentes (o botão quadrado), toque no ícone da Próspera e em <strong>Fixar</strong>.</p>

@@ -1,5 +1,18 @@
 # O que mudou
 
+## Outubro de 2026: Monitor, banco e app 1.2
+
+- **Monitor da TV**: a tela cheia fica guardada no aparelho e volta sozinha depois da recarga das 3h (antes a TV voltava com o menu). Numa TV pequena, os problemas ocupam uma linha só, as limpezas das duas escavadeiras viram uma linha, as pás ficam lado a lado e a fila do pátio aparece. O "+ N na fila" não corta mais a última linha.
+- **Som no tablet sem o app**: tenta tocar logo ao abrir o pátio (o Chrome deixa quando a pessoa tocou na tela anterior) e tem um segundo jeito de tocar.
+- **Banco**: a marca da versão do banco fica no próprio banco (tabela `schema_versao`), não num arquivo do servidor. Banco novo ou zerado é montado de novo sozinho. O `/health` confere uma tabela do sistema, não só a conexão.
+- **App 1.2**: no app, o campo **Ler a nota fiscal** abre os arquivos (PDF ou XML); antes só mostrava fotos.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a tabela `schema_versao`.
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+3. Atualize o app nos tablets onde o administrativo lê nota fiscal: abra `/app`, **Baixar o app** e instale por cima. Nos outros tablets a 1.1 continua funcionando.
+4. Na TV: abra o Monitor e toque em **Tela cheia** uma vez; daí em diante ela volta sozinha.
+
 ## Outubro de 2026: revisão do pátio e do fracionado
 
 - **Corrigir a quantidade carregada** na ficha de uma viagem finalizada (operador digitou errado ou esqueceram de marcar fracionado). O saldo da nota é refeito sozinho.
