@@ -123,6 +123,9 @@
         quadro.textContent = '';
         var caixa = document.createElement('div');
         caixa.className = 'avisos-caixa';
+        // Os cartões rolam; o "Ciente" fica sempre à vista embaixo, mesmo com muitos avisos numa tela baixa.
+        var lista = document.createElement('div');
+        lista.className = 'avisos-lista';
         pendentes.slice(-4).reverse().forEach(function (aviso) {
             var item = document.createElement('article');
             item.className = 'aviso-patio ' + aviso.tipo;
@@ -136,14 +139,21 @@
             item.appendChild(titulo);
             item.appendChild(cliente);
             item.appendChild(carga);
-            caixa.appendChild(item);
+            (aviso.detalhes || []).forEach(function (texto) {
+                var detalhe = document.createElement('p');
+                detalhe.className = 'aviso-detalhe';
+                detalhe.textContent = texto;
+                item.appendChild(detalhe);
+            });
+            lista.appendChild(item);
         });
         if (pendentes.length > 4) {
             var resto = document.createElement('p');
             resto.className = 'aviso-resto';
             resto.textContent = '+ ' + (pendentes.length - 4) + ' avisos';
-            caixa.appendChild(resto);
+            lista.appendChild(resto);
         }
+        caixa.appendChild(lista);
         var botao = document.createElement('button');
         botao.type = 'button';
         botao.className = 'btn primario';
@@ -186,7 +196,10 @@
         var dado = dadosDaTela();
         if (!dado) return;
         var agora = { fila: {}, canceladas: {} };
-        dado.fila.forEach(function (ordem) { agora.fila[ordem.id] = ordem.assinatura; });
+        // Guarda também a carga e a observação, para o aviso de "alterada" dizer o que mudou.
+        dado.fila.forEach(function (ordem) {
+            agora.fila[ordem.id] = { a: ordem.assinatura, cliente: ordem.cliente, carga: ordem.carga, obs: ordem.obs || '' };
+        });
         dado.canceladas.forEach(function (ordem) { agora.canceladas[ordem.id] = 1; });
         var antes = visto || lerGuardado(CHAVE_VISTO);
         var novos = [];
@@ -194,13 +207,13 @@
         if (antes && antes.fila && antes.canceladas) {
             dado.fila.forEach(function (ordem) {
                 if (!(ordem.id in antes.fila)) {
-                    if (!(ordem.id in antes.canceladas)) novos.push(aviso('nova', ordem));
-                } else if (antes.fila[ordem.id] !== ordem.assinatura) {
-                    novos.push(aviso('alterada', ordem));
+                    if (!(ordem.id in antes.canceladas)) novos.push(aviso('nova', ordem, null));
+                } else if (assinaturaDe(antes.fila[ordem.id]) !== ordem.assinatura) {
+                    novos.push(aviso('alterada', ordem, antes.fila[ordem.id]));
                 }
             });
             dado.canceladas.forEach(function (ordem) {
-                if (ordem.id in antes.fila && !(ordem.id in antes.canceladas)) novos.push(aviso('cancelada', ordem));
+                if (ordem.id in antes.fila && !(ordem.id in antes.canceladas)) novos.push(aviso('cancelada', ordem, null));
             });
         }
         visto = agora;
@@ -217,8 +230,22 @@
         repetir();
     }
 
-    function aviso(tipo, ordem) {
-        return { tipo: tipo, id: ordem.id, ordem: ordem.ordem, cliente: ordem.cliente, carga: ordem.carga };
+    // Versão antiga da tela guardava só a assinatura (texto); a nova guarda um objeto.
+    function assinaturaDe(guardado) {
+        return guardado && typeof guardado === 'object' ? guardado.a : guardado;
+    }
+
+    function aviso(tipo, ordem, antes) {
+        var detalhes = [];
+        var obs = ordem.obs || '';
+        if (tipo === 'alterada' && antes && typeof antes === 'object') {
+            if (antes.cliente !== ordem.cliente) detalhes.push('Antes: ' + antes.cliente);
+            if (antes.carga !== ordem.carga) detalhes.push('Antes: ' + antes.carga);
+            if ((antes.obs || '') !== obs && obs !== '') detalhes.push('Observação: ' + obs);
+        } else if (tipo !== 'cancelada' && obs !== '') {
+            detalhes.push('Observação: ' + obs);
+        }
+        return { tipo: tipo, id: ordem.id, ordem: ordem.ordem, cliente: ordem.cliente, carga: ordem.carga, detalhes: detalhes };
     }
 
     // Avisos que ficaram sem "Ciente" (a pessoa abriu outra tela) voltam ao abrir o pátio de novo.

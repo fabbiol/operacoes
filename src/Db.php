@@ -514,11 +514,17 @@ final class Db
     /**
      * Colunas da revisão de outubro de 2026:
      * - ciclos_lavra.garagem: a viagem terminou no britador indo para a garagem (fora da média de volta e de ciclo).
+     * - fila_carregamentos.nf_emitida_data: o dia em que a nota foi emitida, também quando o PDF não traz a hora
+     *   (é o dia em que a nota conta no vendido).
      */
     private static function garantirRevisao(PDO $pdo): void
     {
         if (!in_array('garagem', self::colunasDe($pdo, 'ciclos_lavra'), true)) {
             $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN garagem TINYINT(1) NOT NULL DEFAULT 0 AFTER encerramento_ciente_por');
+        }
+        if (!in_array('nf_emitida_data', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_emitida_data DATE NULL AFTER nf_emitida_em');
+            $pdo->exec('UPDATE fila_carregamentos SET nf_emitida_data = DATE(nf_emitida_em) WHERE nf_emitida_em IS NOT NULL');
         }
     }
 

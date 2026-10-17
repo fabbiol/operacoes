@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     pedido VARCHAR(60) NOT NULL,
     nf VARCHAR(60) NOT NULL,
     nf_emitida_em DATETIME NULL,
+    nf_emitida_data DATE NULL,
     nf_chave CHAR(44) NULL,
     nf_valor DECIMAL(12,2) NULL,
     material_id INT UNSIGNED NOT NULL,

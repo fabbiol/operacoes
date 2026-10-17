@@ -73,7 +73,7 @@ $quantidade = static fn (float $valor, string $unidade): string => formatar_quan
                     <?php foreach ($saldos as $grupo): ?>
                         <?php $principal = $grupo['principal']; $pendente = $grupo['pendente']; ?>
                         <tr>
-                            <td><a href="<?= e(url('ordens/' . $principal['id'])) ?>"><?= e($principal['cliente']) ?></a><small><?= e($principal['ordem']) ?> · <?= e(quando((string) ($principal['nf_emitida_em'] ?? $principal['data']))) ?></small></td>
+                            <td><a href="<?= e(url('ordens/' . $principal['id'])) ?>"><?= e($principal['cliente']) ?></a><small><?= e($principal['ordem']) ?> · <?= e(!empty($principal['nf_emitida_em']) || empty($principal['nf_emitida_data']) ? quando((string) ($principal['nf_emitida_em'] ?? $principal['data'])) : date('d/m/Y', (int) strtotime((string) $principal['nf_emitida_data']))) ?></small></td>
                             <td><?= e($principal['nf']) ?></td>
                             <td><?= e($principal['material_nome']) ?></td>
                             <td class="numero"><?= e($quantidade($grupo['total'], (string) $principal['unidade'])) ?></td>
@@ -87,6 +87,9 @@ $quantidade = static fn (float $valor, string $unidade): string => formatar_quan
                                         <input type="hidden" name="voltar" value="controle">
                                         <button type="submit" class="btn primario">Liberar viagem</button>
                                     </form>
+                                <?php endif; ?>
+                                <?php if ($pendente !== null && $pendente['status'] !== 'carregando'): ?>
+                                    <a class="btn perigo" href="<?= e(url('ordens/' . $pendente['id'] . '/cancelar')) ?>">Encerrar saldo</a>
                                 <?php endif; ?>
                             </td>
                         </tr>

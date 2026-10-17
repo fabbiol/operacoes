@@ -28,6 +28,10 @@
                     <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span></p>
                 <?php endif; ?>
                 <p class="meta">Pedido <?= e($ordem['pedido']) ?> · NF <?= e($ordem['nf']) ?></p>
+                <?php $recado = observacao_recente($ordem['observacoes'] ?? null); ?>
+                <?php if ($recado !== ''): ?>
+                    <p class="obs-patio"><strong>Obs.:</strong> <?= e($recado) ?></p>
+                <?php endif; ?>
                 <?php
                 $desde = $ordem['status'] === 'carregando' ? ($ordem['inicio_carregamento'] ?? null) : ($ordem['autorizado_em'] ?? null);
                 $etapa = $ordem['status'] === 'carregando' ? 'Carga' : 'Na fila';
@@ -61,8 +65,10 @@
                         require __DIR__ . '/trecho_quem.php';
                     ?></p>
                 <?php endif; ?>
-                <?php if ($ordem['status'] === 'carregando'): ?>
+                <?php if ($ordem['status'] === 'carregando' && (Auth::admin() || trim((string) $ordem['operador']) === '' || $ordem['operador'] === Auth::usuario())): ?>
                     <a class="btn concluir" href="<?= e(url('carregamentos/' . $ordem['id'] . '/finalizar')) ?>">Finalizar carregamento</a>
+                <?php elseif ($ordem['status'] === 'carregando'): ?>
+                    <p class="espera-patio">Carregando com <?= e((string) $ordem['operador']) ?>: só quem iniciou finaliza.</p>
                 <?php elseif (!empty($ocupado)): ?>
                     <p class="espera-patio"><?= e($ocupado) ?></p>
                 <?php else: ?>
@@ -102,7 +108,7 @@
                             <span><?= e($ordem['cliente']) ?></span>
                             <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
                         </div>
-                        <p><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                        <p><?= e(formatar_quantidade((string) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']))) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
                         <?php if ($saida !== []): ?>
                             <p class="meta"><?= e(implode(' · ', $saida)) ?></p>
                         <?php endif; ?>

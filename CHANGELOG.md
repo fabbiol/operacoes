@@ -1,5 +1,20 @@
 # O que mudou
 
+## Outubro de 2026: revisão do pátio e do fracionado
+
+- **Corrigir a quantidade carregada** na ficha de uma viagem finalizada (operador digitou errado ou esqueceram de marcar fracionado). O saldo da nota é refeito sozinho.
+- **Encerrar saldo** também na viagem 1 e no Controle de carga. A viagem 1 não se cancela mais com saldo aberto (a nota sumia do vendido e o saldo ficava solto).
+- **Cliente não veio**: a viagem liberada volta para Saldo a buscar sem ser cancelada.
+- **Nota do PDF sem hora**: conta no vendido do dia da emissão (antes contava no dia do lançamento).
+- **Tablet do pátio**: o cartão mostra a observação do administrativo; o aviso de carga alterada diz o que era antes; o **Ciente** fica sempre à vista; só quem iniciou a carga finaliza; **Enviadas hoje** e **Meus trabalhos** mostram o que saiu de verdade.
+- **Correção perdida**: se a pá começa a carregar com o formulário de correção aberto, a tela avisa que nada foi alterado (antes dizia "Ordem atualizada").
+- **Leitura da nota**: linhas do mesmo material em unidades diferentes não se somam; unidade desconhecida fica em branco para escolher.
+- A viagem do fracionado liberada entra no fim da fila do pátio, não no começo.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a coluna `nf_emitida_data` em `fila_carregamentos` (preenchida nas notas que já têm a hora).
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+
 ## Outubro de 2026: revisão das máquinas
 
 - **Encerrar viagem vira aviso**: o motivo Oficina já registra o problema do caminhão; nos outros motivos, a opção **É problema no caminhão** registra o que foi escrito (ex.: pneu furou). Aparece na hora no Painel, na Manutenção e na TV.

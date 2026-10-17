@@ -594,6 +594,27 @@ function despachar(string $path, string $method): void
             : '/ordens/' . $m[1]);
     }
 
+    if (preg_match('#^ordens/(\d+)/carregado$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            flash_set(Operacoes::corrigirCarregado((int) $m[1], (string) ($_POST['quantidade'] ?? ''), Auth::usuario()));
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/ordens/' . $m[1]);
+    }
+
+    if (preg_match('#^ordens/(\d+)/saldo$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            Operacoes::voltarParaSaldo((int) $m[1]);
+            flash_set('A viagem voltou para Saldo a buscar.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/ordens/' . $m[1]);
+    }
+
     if (preg_match('#^ordens/(\d+)/concluir$#', $path, $m) && $method === 'POST') {
         csrf_check();
         try {
@@ -872,6 +893,7 @@ function patio_avisos(): array
         'cliente' => (string) $ordem['cliente'],
         'carga' => formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . unidade_rotulo((string) $ordem['unidade'])
             . ' · ' . (string) ($ordem['material_nome'] ?? ''),
+        'obs' => observacao_recente($ordem['observacoes'] ?? null),
         'assinatura' => patio_assinatura($ordem),
     ];
 
@@ -879,6 +901,22 @@ function patio_avisos(): array
         'fila' => array_map($resumo, Operacoes::patio()),
         'canceladas' => array_map($resumo, Operacoes::canceladasRecentes()),
     ];
+}
+
+/**
+ * O recado mais recente das observações (o último parágrafo escrito por alguém), curto, para o tablet do pátio.
+ * As linhas que o sistema acrescenta ("[17/10/2026 09:19] Viagem 2 do CAR-006...") ficam de fora.
+ */
+function observacao_recente(?string $observacoes): string
+{
+    $partes = preg_split('/\n\s*\n/', trim((string) $observacoes)) ?: [];
+    $partes = array_values(array_filter(
+        $partes,
+        static fn (string $parte): bool => preg_match('/^\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}[^\]]*\]/', trim($parte)) !== 1
+    ));
+    $ultima = trim((string) end($partes));
+
+    return mb_strlen($ultima, 'UTF-8') > 200 ? mb_substr($ultima, 0, 199, 'UTF-8') . '…' : $ultima;
 }
 
 function patio_marca(): string
@@ -930,6 +968,7 @@ function painel_marca(): string
         'viagens' => (int) ($lavraDia['caminhao']['viagens'] ?? 0),
         'toneladas' => $lavraDia['caminhao']['producao']['toneladas'] ?? null,
         'problemas' => array_map(static fn (array $problema): int => (int) $problema['id'], Problemas::abertos()),
+        'vendas' => Operacoes::vendas($dia),
         'limpezas' => array_map(static fn (array $limpeza): int => (int) $limpeza['id'], Lavra::limpezasAbertas()),
     ]);
 }
@@ -1089,6 +1128,13 @@ function tela_iniciar(int $id, string $method): void
 function tela_finalizar(int $id, string $method): void
 {
     $ordem = ordem_ou_404($id);
+    // Com duas pás, a carga em andamento de um operador aparece no tablet do outro: só quem iniciou finaliza
+    // (o administrativo também pode, para resolver uma carga esquecida).
+    $dono = trim((string) ($ordem['operador'] ?? ''));
+    if (!Auth::admin() && $ordem['status'] === 'carregando' && $dono !== '' && $dono !== Auth::usuario()) {
+        flash_set('Esta carga está com ' . $dono . '. Só quem iniciou finaliza (ou o administrativo).', 'erro');
+        redirect('/patio');
+    }
     $erro = null;
     $nota = (string) ($_POST['nota'] ?? '');
     $quantidade = (string) ($_POST['quantidade'] ?? '');
@@ -1671,8 +1717,10 @@ function tela_ler_nota(string $method): void
         'nf' => (string) ($nota['nf'] ?? ''),
         'material_id' => $materialId ?? 0,
         'quantidade_autorizada' => $nota['quantidade'] !== null ? formatar_quantidade($nota['quantidade']) : '',
-        'unidade' => (string) ($nota['unidade'] ?? $dados['valor']['unidade']),
+        // Unidade que a nota traz e o sistema não conhece: fica em branco, para a pessoa escolher (não vira tonelada sozinha).
+        'unidade' => (string) ($nota['unidade'] ?? (($nota['unidade_nota'] ?? '') !== '' ? '' : $dados['valor']['unidade'])),
         'nf_emitida_em' => data_hora_para_input($nota['emitida_em']),
+        'nf_emitida_data' => (string) ($nota['data_emissao'] ?? ''),
         'nf_chave' => (string) ($nota['chave'] ?? ''),
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
     ]);
@@ -1710,6 +1758,10 @@ function leitura_da_nota(array $nota, ?int $materialId): array
     if ($nota['quantidade'] === null) {
         $avisos[] = 'Não achei a quantidade na nota. Preencha a quantidade.';
     }
+    if (($nota['outras_unidades'] ?? []) !== []) {
+        $avisos[] = 'A nota tem o mesmo material em outra unidade (' . implode(', ', $nota['outras_unidades']) . '). Somei só os itens em "'
+            . $nota['unidade_nota'] . '". Confira a quantidade.';
+    }
     if ($nota['unidade'] === null) {
         $avisos[] = $nota['unidade_nota'] !== null && $nota['unidade_nota'] !== ''
             ? 'A unidade da nota ("' . $nota['unidade_nota'] . '") não é t, m³ nem un. Confira a unidade.'
@@ -1720,7 +1772,7 @@ function leitura_da_nota(array $nota, ?int $materialId): array
     }
     if ($nota['emitida_em'] === null) {
         $avisos[] = !empty($nota['data_emissao'])
-            ? 'O PDF desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
+            ? 'O ' . ($nota['origem'] === 'xml' ? 'XML' : 'PDF') . ' desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. A nota conta no vendido desse dia. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
             : 'Não achei a hora em que a nota foi emitida. Preencha "Nota emitida em", se souber.';
     }
     $repetida = Operacoes::ordemComNota($nota['chave'], $nota['nf']);
@@ -1776,7 +1828,7 @@ function tela_cancelar(int $id, string $method): void
         csrf_check();
         try {
             Operacoes::cancelar($id, (string) ($_POST['motivo'] ?? ''), Auth::usuario());
-            flash_set('Ordem cancelada.');
+            flash_set($ordem['status'] === 'saldo' ? 'Saldo encerrado.' : 'Ordem cancelada.');
             redirect('/ordens/' . $id);
         } catch (InvalidArgumentException $e) {
             $erro = $e->getMessage();
@@ -2109,6 +2161,7 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                 'nf_emitida_em' => $post !== null
                     ? (string) ($post['nf_emitida_em'] ?? '')
                     : data_hora_para_input(is_array($ordem) ? ($ordem['nf_emitida_em'] ?? null) : null),
+                'nf_emitida_data' => (string) ($fonte['nf_emitida_data'] ?? ''),
                 'nf_chave' => (string) ($fonte['nf_chave'] ?? ''),
                 'nf_valor' => $post !== null
                     ? (string) ($post['nf_valor'] ?? '')

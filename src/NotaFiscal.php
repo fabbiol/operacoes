@@ -109,9 +109,11 @@ final class NotaFiscal
         }
 
         $emissao = self::texto($nota, './*[local-name()="ide"]/*[local-name()="dhEmi"]');
+        $soData = null;
         if ($emissao === '') {
             // Leiaute antigo (2.00): só a data, e a hora de saída à parte.
             $data = self::texto($nota, './*[local-name()="ide"]/*[local-name()="dEmi"]');
+            $soData = preg_match('/^\d{4}-\d{2}-\d{2}$/', $data) === 1 ? $data : null;
             $hora = self::texto($nota, './*[local-name()="ide"]/*[local-name()="hSaiEnt"]');
             $emissao = $data !== '' && $hora !== '' ? $data . 'T' . $hora : '';
         }
@@ -125,6 +127,7 @@ final class NotaFiscal
             'cliente' => self::texto($nota, './*[local-name()="dest"]/*[local-name()="xNome"]'),
             'pedido' => $pedido,
             'emitida_em' => self::horaLocal($emissao),
+            'data_emissao' => $soData,
             'valor' => self::texto($nota, './*[local-name()="total"]/*[local-name()="ICMSTot"]/*[local-name()="vNF"]'),
         ], $itens);
     }
@@ -544,7 +547,8 @@ final class NotaFiscal
     }
 
     /**
-     * Junta o que foi lido. Itens com o mesmo material têm a quantidade somada; o carregamento usa o primeiro material.
+     * Junta o que foi lido. Itens com o mesmo material e a mesma unidade têm a quantidade somada (toneladas não se
+     * somam com metros cúbicos); o carregamento usa o primeiro material.
      *
      * @param array<string, mixed> $dados
      * @param list<array{material: string, quantidade: string, unidade: string, pedido: string}> $itens
@@ -556,6 +560,8 @@ final class NotaFiscal
         $quantidade = null;
         $unidadeNota = null;
         $outros = [];
+        $outrasUnidades = [];
+        $mesmaUnidade = static fn (string $unidade): string => self::unidade($unidade) ?? self::normalizar($unidade);
         foreach ($itens as $item) {
             if ($item['material'] === '') {
                 continue;
@@ -565,10 +571,12 @@ final class NotaFiscal
                 $unidadeNota = $item['unidade'];
                 $quantidade = 0.0;
             }
-            if (self::normalizar($item['material']) === self::normalizar($material)) {
+            if (self::normalizar($item['material']) !== self::normalizar($material)) {
+                $outros[$item['material']] = true;
+            } elseif ($mesmaUnidade($item['unidade']) === $mesmaUnidade((string) $unidadeNota)) {
                 $quantidade += (float) $item['quantidade'];
             } else {
-                $outros[$item['material']] = true;
+                $outrasUnidades[$item['unidade']] = true;
             }
         }
 
@@ -587,6 +595,7 @@ final class NotaFiscal
             'unidade' => $unidadeNota !== null ? self::unidade($unidadeNota) : null,
             'unidade_nota' => $unidadeNota,
             'outros_materiais' => array_keys($outros),
+            'outras_unidades' => array_map('strval', array_keys($outrasUnidades)),
             'emitida_em' => $dados['emitida_em'] ?? null,
             'valor' => isset($dados['valor']) && is_numeric($dados['valor']) && (float) $dados['valor'] > 0 ? round((float) $dados['valor'], 2) : null,
             'data_emissao' => $dados['data_emissao'] ?? (isset($dados['emitida_em']) ? substr((string) $dados['emitida_em'], 0, 10) : null),

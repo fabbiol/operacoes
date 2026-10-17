@@ -9,9 +9,10 @@ O ciclo de lavra conta as viagens do caminhão: fila, carga, ida até o britador
 Em **Fila › Carregamento › Nova ordem**, o quadro **Ler a nota fiscal** recebe o **XML** ou o **PDF (DANFE)** da nota. Toque em **Ler nota**: o sistema preenche o cliente, o pedido, o número da nota, o material, a quantidade, a unidade e a hora em que a nota foi emitida. Confira, marque **Liberar agora para o pátio** se quiser e toque em **Lançar ordem**.
 
 - **XML**: leitura exata, campo por campo. A hora é a da emissão da nota.
-- **PDF**: o sistema lê o texto do DANFE. O número e a série vêm da chave de acesso (conferida pelo dígito verificador); a hora vem do protocolo de autorização (segundos depois da emissão) ou da hora de saída. Alguns DANFEs, como o da Próspera, só mostram a data da emissão, sem a hora: a tela avisa, e para gravar a hora use o XML. PDF escaneado (foto) não tem texto: use o XML.
+- **PDF**: o sistema lê o texto do DANFE. O número e a série vêm da chave de acesso (conferida pelo dígito verificador); a hora vem do protocolo de autorização (segundos depois da emissão) ou da hora de saída. Alguns DANFEs, como o da Próspera, só mostram a data da emissão, sem a hora: a tela avisa, o sistema guarda a data (a nota conta no vendido desse dia) e, para gravar a hora, use o XML. PDF escaneado (foto) não tem texto: use o XML.
 - **Pedido**: o do campo de pedido da nota (xPed) ou, se não tiver, o "Pedido: ..." das informações complementares.
-- **Material**: o do cadastro com o mesmo nome do material da nota (sem diferença de acento ou maiúscula; "BRITA 1" acha "Brita 1"). Se não achar, a tela avisa e você escolhe. Se a nota tiver mais de um material, o carregamento usa o primeiro e a tela avisa.
+- **Material**: o do cadastro com o mesmo nome do material da nota (sem diferença de acento ou maiúscula; "BRITA 1" acha "Brita 1"). Se não achar, a tela avisa e você escolhe. Se a nota tiver mais de um material, o carregamento usa o primeiro e a tela avisa. Linhas do mesmo material em unidades diferentes (t e m³) não se somam: a tela avisa para conferir a quantidade.
+- **Unidade**: t, m³ ou un. Se a nota trouxer outra unidade (por exemplo SC), o campo fica em **Escolha** e a tela avisa.
 - **Nota repetida**: a tela avisa se a nota já está em outro carregamento, e o sistema não deixa lançar a mesma nota (mesma chave de acesso) duas vezes.
 
 A hora em que o caminhão foi carregado continua vindo do pátio (início e fim do carregamento). A ficha da ordem mostra a hora da nota e quanto tempo depois dela o carregamento começou.
@@ -25,14 +26,16 @@ Quando o cliente leva o material da nota em várias viagens (por exemplo, uma no
 - **No pátio**: ao finalizar, o operador informa **quanto foi carregado nesta viagem**. O sistema não aceita mais do que o saldo da nota.
 - **O que sobra**: vira a próxima viagem (CAR-012-2, CAR-012-3...), com a situação **Saldo a buscar**. Ela não entra na fila do pátio sozinha.
 - **Quando o cliente volta**: toque em **O cliente voltou: liberar viagem** na ficha da ordem, ou em **Liberar viagem** no **Controle de carga**. A viagem vai para a fila do pátio com o saldo que falta.
-- **Cliente não vai buscar o resto**: na viagem com saldo, **Encerrar saldo** (cancela só o que faltava; o que já foi carregado continua).
+- **Cliente não vai buscar o resto**: **Encerrar saldo**, na viagem com saldo, na viagem 1 ou no **Controle de carga** (cancela só o que faltava; o que já foi carregado continua). A viagem 1 não se cancela enquanto há saldo aberto: primeiro encerre o saldo.
+- **Viagem liberada e o cliente não veio**: na ficha da viagem, **O cliente não veio: voltar para Saldo a buscar** (sai da fila do pátio sem cancelar).
+- **Quantidade errada ou fracionado esquecido**: na ficha de uma viagem finalizada, **Corrigir a quantidade carregada**. O saldo da nota é refeito: se faltar material, a próxima viagem fica em **Saldo a buscar** (a ordem vira fracionada); se a nota ficar toda carregada, a viagem que esperava é encerrada. Saldo encerrado pelo administrativo continua encerrado.
 - A ficha da ordem mostra todas as viagens da nota, com quanto cada uma levou e o saldo.
 
 ## Controle de carga e vendido do dia
 
 **Fila › Controle** (só administrativo) mostra, para o dia escolhido:
 
-- **Vendido no dia**: a soma do valor das notas emitidas no dia (a data e hora da nota; sem ela, o dia do lançamento). Cada nota conta uma vez, mesmo fracionada. Notas canceladas não contam. Se alguma nota estiver sem valor, a tela avisa quantas.
+- **Vendido no dia**: a soma do valor das notas emitidas no dia (o dia da emissão da nota, também quando o PDF só traz a data; sem nenhuma, o dia do lançamento). Cada nota conta uma vez, mesmo fracionada. Notas canceladas não contam. Se alguma nota estiver sem valor, a tela avisa quantas.
 - **Carregado no dia**: o que saiu do pátio, em t e m³, contando cada viagem do fracionado pelo que foi carregado de verdade.
 - **Saldo a buscar**: as notas fracionadas esperando o cliente voltar, com o botão **Liberar viagem**.
 - **Notas do dia**: cada nota com o vendido, o carregado, o saldo, o valor e a situação.
@@ -164,7 +167,9 @@ No pátio, o tablet do operador avisa com som, vibração e um quadro grande na 
 - **altera uma carga** que está na fila ou carregando: cliente, pedido, nota, material, quantidade, unidade ou observações (dois bipes);
 - **cancela uma carga** que estava liberada (dois bipes descendo).
 
-O quadro mostra o cliente, a carga e o número (CAR-...) e só some no **Ciente**. Enquanto ninguém tocar em Ciente, o som repete a cada 20 segundos, até 3 vezes. Se o operador estava em outra tela (iniciando ou finalizando uma carga), o aviso aparece quando ele volta ao pátio. Ao abrir o pátio pela primeira vez, as cargas que já estavam lá não avisam. O administrativo não recebe esses avisos.
+O quadro mostra o cliente, a carga e o número (CAR-...) e só some no **Ciente**. Na carga alterada, mostra também o que era antes ("Antes: 4,00 t · Brita 1") e a observação nova. Com muitos avisos, os quadros rolam e o **Ciente** fica sempre à vista. Enquanto ninguém tocar em Ciente, o som repete a cada 20 segundos, até 3 vezes. Se o operador estava em outra tela (iniciando ou finalizando uma carga), o aviso aparece quando ele volta ao pátio. Ao abrir o pátio pela primeira vez, as cargas que já estavam lá não avisam. O administrativo não recebe esses avisos.
+
+O cartão da carga no pátio e as telas de iniciar e finalizar mostram a observação do administrativo. Com duas pás, só quem iniciou a carga (ou o administrativo) finaliza: no tablet do outro operador aparece "Carregando com ...". Se o administrativo corrigir a carga no mesmo momento em que a pá começa a carregar, a tela dele avisa que nada foi alterado.
 
 No app da Próspera (versão 1.1) o som e a vibração são do próprio Android. No Chrome, o navegador só deixa tocar som depois de um toque na tela; o quadro aparece de qualquer jeito.
 
