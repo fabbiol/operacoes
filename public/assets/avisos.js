@@ -9,7 +9,8 @@
     var TITULOS = {
         nova: 'Nova carga liberada',
         alterada: 'Carga alterada',
-        cancelada: 'Carga cancelada'
+        cancelada: 'Carga cancelada',
+        retirada: 'Carga tirada da fila'
     };
     var visto = null;
     var pendentes = [];
@@ -66,7 +67,7 @@
 
     // Nova: três bipes subindo. Alterada: dois iguais. Cancelada: dois descendo.
     function notasDe(tipo) {
-        return tipo === 'nova' ? [660, 880, 1100] : (tipo === 'cancelada' ? [880, 520] : [880, 880]);
+        return tipo === 'nova' ? [660, 880, 1100] : (tipo === 'cancelada' || tipo === 'retirada' ? [880, 520] : [880, 880]);
     }
 
     // Os mesmos bipes num arquivo de som (WAV) montado aqui: segundo caminho quando o navegador não liberou o
@@ -249,6 +250,7 @@
             agora.fila[ordem.id] = { a: ordem.assinatura, cliente: ordem.cliente, carga: ordem.carga, obs: ordem.obs || '' };
         });
         dado.canceladas.forEach(function (ordem) { agora.canceladas[ordem.id] = 1; });
+        var retiradas = dado.retiradas || [];
         var antes = visto || lerGuardado(CHAVE_VISTO);
         var novos = [];
         // Na primeira vez nesta aba, tudo o que já está na tela conta como visto.
@@ -262,6 +264,10 @@
             });
             dado.canceladas.forEach(function (ordem) {
                 if (ordem.id in antes.fila && !(ordem.id in antes.canceladas)) novos.push(aviso('cancelada', ordem, null));
+            });
+            // Viagem do fracionado que o administrativo tirou da fila porque o cliente não veio.
+            retiradas.forEach(function (ordem) {
+                if (ordem.id in antes.fila && !(ordem.id in agora.fila)) novos.push(aviso('retirada', ordem, null));
             });
         }
         visto = agora;
@@ -290,6 +296,8 @@
             if (antes.cliente !== ordem.cliente) detalhes.push('Antes: ' + antes.cliente);
             if (antes.carga !== ordem.carga) detalhes.push('Antes: ' + antes.carga);
             if ((antes.obs || '') !== obs && obs !== '') detalhes.push('Observação: ' + obs);
+        } else if (tipo === 'retirada') {
+            detalhes.push('O cliente não veio: voltou para Saldo a buscar.');
         } else if (tipo !== 'cancelada' && obs !== '') {
             detalhes.push('Observação: ' + obs);
         }

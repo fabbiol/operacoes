@@ -858,6 +858,7 @@ a.venda:hover { border-color: var(--ink); }
 .aviso-patio.alterada { border-left-color: var(--info); background: #d7e6f8; }
 .aviso-patio.cancelada { border-left-color: var(--saida); background: #fde8e4; }
 .aviso-patio.cancelada strong { color: var(--saida); }
+.aviso-patio.retirada { border-left-color: var(--muted); background: #ecebe6; }
 .avisos-lista { display: grid; gap: 12px; flex: 1 1 auto; min-height: 0; overflow: auto; }
 .aviso-patio .aviso-detalhe { font-size: 17px; font-weight: 700; color: var(--ink); }
 .aviso-resto { margin: 0; color: var(--muted); font-weight: 700; }

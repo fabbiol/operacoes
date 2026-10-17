@@ -699,10 +699,11 @@ final class Lavra
             }
             if ($temLimpeza && self::$janela !== null) {
                 // Só as cargas do período carregado (uma carga dura minutos: um dia de folga basta).
-                // Carga cancelada no meio termina quando foi cancelada.
+                // Carga interrompida no meio termina quando a viagem foi encerrada ou cancelada (o fim do ciclo; o
+                // atualizado_em muda depois, no "Ciente" da escavadeira).
                 $busca = Db::pdo()->prepare(
                     "SELECT retroescavadeira_id, inicio_carga,
-                            COALESCE(fim_carga, CASE WHEN status = 'carregando' THEN NULL ELSE atualizado_em END) AS fim
+                            COALESCE(fim_carga, CASE WHEN status = 'carregando' THEN NULL ELSE COALESCE(fim_ciclo, atualizado_em) END) AS fim
                      FROM ciclos_lavra
                      WHERE retroescavadeira_id IS NOT NULL AND inicio_carga IS NOT NULL AND inicio_carga >= ? AND inicio_carga < ?"
                 );

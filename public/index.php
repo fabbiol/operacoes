@@ -901,21 +901,23 @@ function patio_avisos(): array
     return [
         'fila' => array_map($resumo, Operacoes::patio()),
         'canceladas' => array_map($resumo, Operacoes::canceladasRecentes()),
+        'retiradas' => array_map($resumo, Operacoes::retiradasRecentes()),
     ];
 }
 
 /**
  * O recado mais recente das observações (o último parágrafo escrito por alguém), curto, para o tablet do pátio.
- * As linhas que o sistema acrescenta ("[17/10/2026 09:19] Viagem 2 do CAR-006...") ficam de fora.
+ * As linhas que o sistema acrescenta ("[17/10/2026 09:19] Viagem 2 do CAR-006...") ficam de fora; o que a pessoa
+ * escreveu logo embaixo delas, sem linha em branco, continua.
  */
 function observacao_recente(?string $observacoes): string
 {
-    $partes = preg_split('/\n\s*\n/', trim((string) $observacoes)) ?: [];
+    $semSistema = preg_replace('/^[ \t]*\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}[^\]\n]*\].*$/m', '', str_replace("\r", '', (string) $observacoes)) ?? '';
     $partes = array_values(array_filter(
-        $partes,
-        static fn (string $parte): bool => preg_match('/^\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}[^\]]*\]/', trim($parte)) !== 1
+        array_map('trim', preg_split('/\n\s*\n/', $semSistema) ?: []),
+        static fn (string $parte): bool => $parte !== ''
     ));
-    $ultima = trim((string) end($partes));
+    $ultima = (string) (end($partes) ?: '');
 
     return mb_strlen($ultima, 'UTF-8') > 200 ? mb_substr($ultima, 0, 199, 'UTF-8') . '…' : $ultima;
 }

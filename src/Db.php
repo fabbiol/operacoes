@@ -533,7 +533,8 @@ final class Db
         }
         if (!in_array('nf_emitida_data', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
             $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_emitida_data DATE NULL AFTER nf_emitida_em');
-            $pdo->exec('UPDATE fila_carregamentos SET nf_emitida_data = DATE(nf_emitida_em) WHERE nf_emitida_em IS NOT NULL');
+            // atualizado_em = atualizado_em: o preenchimento não conta como mudança (notas canceladas antigas não viram "recentes").
+            $pdo->exec('UPDATE fila_carregamentos SET nf_emitida_data = DATE(nf_emitida_em), atualizado_em = atualizado_em WHERE nf_emitida_em IS NOT NULL');
         }
     }
 

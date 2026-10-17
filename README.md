@@ -165,7 +165,8 @@ No pátio, o tablet do operador avisa com som, vibração e um quadro grande na 
 
 - **libera uma carga nova** (três bipes subindo);
 - **altera uma carga** que está na fila ou carregando: cliente, pedido, nota, material, quantidade, unidade ou observações (dois bipes);
-- **cancela uma carga** que estava liberada (dois bipes descendo).
+- **cancela uma carga** que estava liberada (dois bipes descendo);
+- **tira da fila** a viagem do fracionado em que o cliente não veio (volta para Saldo a buscar; dois bipes descendo).
 
 O quadro mostra o cliente, a carga e o número (CAR-...) e só some no **Ciente**. Na carga alterada, mostra também o que era antes ("Antes: 4,00 t · Brita 1") e a observação nova. Com muitos avisos, os quadros rolam e o **Ciente** fica sempre à vista. Enquanto ninguém tocar em Ciente, o som repete a cada 20 segundos, até 3 vezes. Se o operador estava em outra tela (iniciando ou finalizando uma carga), o aviso aparece quando ele volta ao pátio. Ao abrir o pátio pela primeira vez, as cargas que já estavam lá não avisam. O administrativo não recebe esses avisos.
 

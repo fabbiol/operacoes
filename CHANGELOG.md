@@ -6,6 +6,7 @@
 - **Som no tablet sem o app**: tenta tocar logo ao abrir o pátio (o Chrome deixa quando a pessoa tocou na tela anterior) e tem um segundo jeito de tocar.
 - **Banco**: a marca da versão do banco fica no próprio banco (tabela `schema_versao`), não num arquivo do servidor. Banco novo ou zerado é montado de novo sozinho. O `/health` confere uma tabela do sistema, não só a conexão.
 - **App 1.2**: no app, o campo **Ler a nota fiscal** abre os arquivos (PDF ou XML); antes só mostrava fotos.
+- **Revisão final** (segurança e um dia de trabalho simulado): só quem iniciou a carga finaliza, também na gravação; a correção da quantidade não passa do total da nota nem mexe numa viagem que começou a carregar; a limpeza da lavra lê só o período do relatório (a TV não fica mais lenta com o tempo); o recado escrito logo embaixo da linha do sistema aparece no tablet; a viagem que volta para Saldo a buscar avisa o tablet ("Carga tirada da fila"); a TV de toque volta à tela toda no primeiro toque; viagem encerrada durante a carga não estica o tempo de carga da escavadeira.
 
 ### Ao publicar esta versão
 1. Pode publicar com o turno rodando. O banco ganha sozinho a tabela `schema_versao`.

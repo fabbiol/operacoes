@@ -469,15 +469,21 @@
         if (telaCheiaGuardada()) {
             telaCheia(true);
             pedirTelaToda();
-            // Primeiro toque ou tecla do controle na TV: aí o navegador deixa ocupar a tela toda.
+            // Toque, clique ou tecla do controle na TV: aí o navegador deixa ocupar a tela toda. Tenta a cada toque até
+            // conseguir (no toque da tela, só o "click" vale como gesto; o "pointerdown" não).
             var aoTocar = function (evento) {
                 if (evento.target === ampliar) return;
-                document.removeEventListener('pointerdown', aoTocar, true);
-                document.removeEventListener('keydown', aoTocar, true);
                 if (document.body.classList.contains('tela-cheia')) pedirTelaToda();
             };
-            document.addEventListener('pointerdown', aoTocar, true);
+            var pararDeTentar = function () {
+                if (!document.fullscreenElement && document.body.classList.contains('tela-cheia')) return;
+                document.removeEventListener('click', aoTocar, true);
+                document.removeEventListener('keydown', aoTocar, true);
+                document.removeEventListener('fullscreenchange', pararDeTentar);
+            };
+            document.addEventListener('click', aoTocar, true);
             document.addEventListener('keydown', aoTocar, true);
+            document.addEventListener('fullscreenchange', pararDeTentar);
         }
     }
 
