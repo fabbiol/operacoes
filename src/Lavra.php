@@ -264,8 +264,9 @@ final class Lavra
         if (!in_array($ciclo['status'], ['no_britador', 'retornando'], true)) {
             throw new InvalidArgumentException('A garagem fica disponível no britador.');
         }
+        // garagem = 1: a viagem terminou no britador, sem volta para a lavra (fica fora da média de volta e de ciclo).
         $comando = Db::pdo()->prepare(
-            "UPDATE ciclos_lavra SET fim_ciclo = ?, status = 'concluido' WHERE id = ? AND status = ?"
+            "UPDATE ciclos_lavra SET fim_ciclo = ?, status = 'concluido', garagem = 1 WHERE id = ? AND status = ?"
         );
         $comando->execute([agora_sql(), $id, $ciclo['status']]);
         if ($comando->rowCount() < 1) {
@@ -358,6 +359,20 @@ final class Lavra
             ['Estrada', $tempos['ida'] ?? null],
             ['Volta', $tempos['retorno'] ?? null],
         ];
+        if ($motivo === '' && (int) ($ciclo['garagem'] ?? 0) === 1) {
+            $caixas = array_slice($completas, 0, 3);
+            $prontas = self::caixasDuracao($caixas);
+            $prontas[] = ['rotulo' => 'Volta', 'valor' => 'garagem'];
+
+            return [
+                'titulo' => 'Foi para a garagem',
+                'selo' => 'Garagem',
+                'classe' => '',
+                'frase' => 'Entra na produção. A volta e o ciclo não entram no tempo médio.',
+                'ciclo' => false,
+                'caixas' => $prontas,
+            ];
+        }
         if ($motivo === '') {
             $caixas = $completas;
             if (($tempos['limpeza'] ?? 0) > 0) {
@@ -563,7 +578,7 @@ final class Lavra
         });
     }
 
-    /** Termina a limpeza desta escavadeira, se houver. Também roda ao iniciar uma carga e ao soltar a escavadeira. */
+    /** Termina a limpeza desta escavadeira, se houver. Também roda ao soltar a escavadeira e ao carregar no pátio. */
     public static function terminarLimpeza(int $retroId): bool
     {
         $comando = Db::pdo()->prepare('UPDATE lavra_limpezas SET fim = ? WHERE retroescavadeira_id = ? AND fim IS NULL');
@@ -585,9 +600,29 @@ final class Lavra
         return null;
     }
 
+    /** O administrativo termina uma limpeza que ficou aberta (pelo Painel). */
+    public static function terminarLimpezaPorId(int $id): bool
+    {
+        $comando = Db::pdo()->prepare('UPDATE lavra_limpezas SET fim = ? WHERE id = ? AND fim IS NULL');
+        $comando->execute([agora_sql(), $id]);
+        self::$limpezas = null;
+
+        return $comando->rowCount() > 0;
+    }
+
     /** @return list<array<string, mixed>> as limpezas em andamento, com o nome da escavadeira */
     public static function limpezasAbertas(): array
     {
+        // Limpeza esquecida aberta de um dia anterior fecha no fim daquele dia: não conta a noite toda
+        // nem fica "em limpeza" no Painel e na TV no dia seguinte.
+        $velhas = Db::pdo()->prepare(
+            "UPDATE lavra_limpezas SET fim = CONCAT(DATE(inicio), ' 23:59:59') WHERE fim IS NULL AND inicio < ?"
+        );
+        $velhas->execute([date('Y-m-d') . ' 00:00:00']);
+        if ($velhas->rowCount() > 0) {
+            self::$limpezas = null;
+        }
+
         return Db::pdo()->query(
             'SELECT l.*, r.maquina AS retro_nome
              FROM lavra_limpezas l
@@ -597,22 +632,23 @@ final class Lavra
         )->fetchAll();
     }
 
-    /** Tempo de limpeza no dia (somando as escavadeiras), em segundos. */
+    /** Tempo de limpeza no dia (somando as escavadeiras, sem os minutos em que ela estava carregando), em segundos. */
     public static function limpezaNoDia(string $dia): int
     {
         $inicioDia = (int) strtotime($dia . ' 00:00:00');
         $fimDia = min((int) strtotime($dia . ' 23:59:59') + 1, time());
         $total = 0;
-        foreach (self::intervalosLimpeza() as $intervalos) {
-            foreach ($intervalos as [$inicio, $fim]) {
-                $total += max(0, min($fim ?? time(), $fimDia) - max($inicio, $inicioDia));
-            }
+        foreach (array_keys(self::intervalosLimpeza()) as $retroId) {
+            $total += self::limpandoEntre($retroId, $inicioDia, $fimDia);
         }
 
         return $total;
     }
 
-    /** Quanto da espera na fila foi durante a limpeza da escavadeira que carregou o caminhão. */
+    /**
+     * Quanto da espera na fila foi durante a limpeza da escavadeira que carregou o caminhão.
+     * Os minutos em que essa escavadeira estava carregando outro caminhão não contam: aí a espera é da fila normal.
+     */
     private static function esperaPorLimpeza(array $ciclo): int
     {
         $retroId = (int) ($ciclo['retroescavadeira_id'] ?? 0);
@@ -621,12 +657,61 @@ final class Lavra
         if ($retroId < 1 || $entrou < 1 || $saiu <= $entrou) {
             return 0;
         }
-        $espera = 0;
+
+        return min(self::limpandoEntre($retroId, $entrou, $saiu), $saiu - $entrou);
+    }
+
+    /** Segundos entre $de e $ate em que a escavadeira estava em limpeza e não estava carregando. */
+    private static function limpandoEntre(int $retroId, int $de, int $ate): int
+    {
+        $total = 0;
         foreach (self::intervalosLimpeza()[$retroId] ?? [] as [$inicio, $fim]) {
-            $espera += max(0, min($fim ?? time(), $saiu) - max($inicio, $entrou));
+            $comeco = max($inicio, $de);
+            $final = min($fim ?? time(), $ate);
+            if ($final <= $comeco) {
+                continue;
+            }
+            $total += $final - $comeco;
+            foreach (self::cargasDaRetro($retroId) as [$carregou, $terminou]) {
+                $total -= max(0, min($terminou, $final) - max($carregou, $comeco));
+            }
         }
 
-        return min($espera, $saiu - $entrou);
+        return max(0, $total);
+    }
+
+    /** @var array<int, list<array{0: int, 1: int}>>|null as cargas de cada escavadeira (início e fim) */
+    private static ?array $cargasDaRetro = null;
+
+    /** @return list<array{0: int, 1: int}> */
+    private static function cargasDaRetro(int $retroId): array
+    {
+        if (self::$cargasDaRetro === null) {
+            self::$cargasDaRetro = [];
+            $primeira = null;
+            foreach (self::intervalosLimpeza() as $intervalos) {
+                foreach ($intervalos as [$inicio]) {
+                    $primeira = $primeira === null ? $inicio : min($primeira, $inicio);
+                }
+            }
+            if ($primeira !== null) {
+                // Só as cargas do período em que houve limpeza. Carga cancelada no meio termina quando foi cancelada.
+                $busca = Db::pdo()->prepare(
+                    "SELECT retroescavadeira_id, inicio_carga,
+                            COALESCE(fim_carga, CASE WHEN status = 'carregando' THEN NULL ELSE atualizado_em END) AS fim
+                     FROM ciclos_lavra
+                     WHERE retroescavadeira_id IS NOT NULL AND inicio_carga IS NOT NULL AND inicio_carga >= ?"
+                );
+                $busca->execute([date('Y-m-d H:i:s', $primeira)]);
+                foreach ($busca->fetchAll() as $linha) {
+                    $inicio = (int) strtotime((string) $linha['inicio_carga']);
+                    $fim = $linha['fim'] !== null ? (int) strtotime((string) $linha['fim']) : time();
+                    self::$cargasDaRetro[(int) $linha['retroescavadeira_id']][] = [$inicio, max($inicio, $fim)];
+                }
+            }
+        }
+
+        return self::$cargasDaRetro[$retroId] ?? [];
     }
 
     /** @return array<int, list<array{0: int, 1: int|null}>> */
@@ -634,9 +719,9 @@ final class Lavra
     {
         if (self::$limpezas === null) {
             self::$limpezas = [];
-            // As limpezas são poucas por dia: carregar as dos últimos 40 dias cobre os relatórios do mês.
-            $busca = Db::pdo()->prepare('SELECT retroescavadeira_id, inicio, fim FROM lavra_limpezas WHERE inicio >= ? ORDER BY inicio');
-            $busca->execute([date('Y-m-d H:i:s', time() - 40 * 86400)]);
+            self::$cargasDaRetro = null;
+            // As limpezas são poucas por dia (algumas por semana): carrega todas, para os relatórios de qualquer data.
+            $busca = Db::pdo()->query('SELECT retroescavadeira_id, inicio, fim FROM lavra_limpezas ORDER BY inicio');
             foreach ($busca->fetchAll() as $linha) {
                 self::$limpezas[(int) $linha['retroescavadeira_id']][] = [
                     (int) strtotime((string) $linha['inicio']),
@@ -669,7 +754,9 @@ final class Lavra
 
     public static function voltando(): array
     {
-        $sql = self::sqlBase() . " WHERE c.status = 'retornando' ORDER BY c.inicio_retorno ASC, c.id ASC";
+        // O motorista não marca a saída do britador: quem já chegou lá está descarregando ou voltando vazio.
+        $sql = self::sqlBase() . " WHERE c.status IN ('retornando', 'no_britador')
+            ORDER BY COALESCE(c.inicio_retorno, c.chegada_britador) ASC, c.id ASC";
 
         return Db::pdo()->query($sql)->fetchAll();
     }
@@ -829,8 +916,9 @@ final class Lavra
         if ($comando->rowCount() < 1) {
             throw new InvalidArgumentException('Esse ciclo mudou de etapa. Atualize a tela.');
         }
-        // Voltou a carregar: a limpeza desta escavadeira termina aqui.
-        self::terminarLimpeza($retroId);
+        // A limpeza continua marcada: a escavadeira carrega este caminhão e volta a limpar.
+        // O tempo de carga não conta como limpeza (ver esperaPorLimpeza).
+        self::$cargasDaRetro = null;
     }
 
     public static function concluirCarga(int $id, ?string $somenteOperador, ?string $esperada = null): string
@@ -922,8 +1010,9 @@ final class Lavra
                 continue;
             }
             $tempos = $ciclo['tempos'] ?? self::tempos($ciclo);
+            $foraDaMedia = self::foraDaMedia($ciclo);
             foreach ($somas as $chave => $valor) {
-                if ($tempos[$chave] === null) {
+                if ($tempos[$chave] === null || isset($foraDaMedia[$chave])) {
                     continue;
                 }
                 $somas[$chave] += $tempos[$chave];
@@ -937,6 +1026,47 @@ final class Lavra
         }
 
         return $medias;
+    }
+
+    /**
+     * Etapas de uma viagem que não representam o Pusch (lavra -> britador -> lavra) e ficam fora das médias.
+     * A viagem continua contando na produção e no número de viagens.
+     * - Encerrada sem voltar (pneu, oficina, fim de turno): a volta e o ciclo não existem; a estrada só vale
+     *   se chegou no britador (senão é o tempo até alguém encerrar).
+     * - Foi para a garagem no britador: não teve volta para a lavra, então volta e ciclo ficam de fora.
+     * - Etapa que atravessa a meia-noite (caminhão deixado na fila ou no britador de um dia para o outro).
+     *
+     * @return array<string, true>
+     */
+    private static function foraDaMedia(array $ciclo): array
+    {
+        $fora = [];
+        if (trim((string) ($ciclo['encerramento'] ?? '')) !== '') {
+            $fora['retorno'] = true;
+            $fora['ciclo'] = true;
+            if (empty($ciclo['chegada_britador'])) {
+                $fora['ida'] = true;
+            }
+        }
+        if ((int) ($ciclo['garagem'] ?? 0) === 1) {
+            $fora['retorno'] = true;
+            $fora['ciclo'] = true;
+        }
+        $etapas = [
+            'fila' => [$ciclo['inicio_fila'] ?? null, $ciclo['inicio_carga'] ?? null],
+            'carga' => [$ciclo['inicio_carga'] ?? null, $ciclo['fim_carga'] ?? null],
+            'ida' => [$ciclo['fim_carga'] ?? null, self::fimDaIda($ciclo)],
+            'retorno' => [self::inicioDoRetorno($ciclo), $ciclo['fim_ciclo'] ?? null],
+        ];
+        foreach ($etapas as $chave => [$inicio, $fim]) {
+            if ($inicio !== null && $inicio !== '' && $fim !== null && $fim !== ''
+                && substr((string) $inicio, 0, 10) !== substr((string) $fim, 0, 10)) {
+                $fora[$chave] = true;
+                $fora['ciclo'] = true;
+            }
+        }
+
+        return $fora;
     }
 
     private static function agrupar(array $linhas, string $campo): array

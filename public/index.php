@@ -456,6 +456,12 @@ function despachar(string $path, string $method): void
 
     exigir_admin();
 
+    if (preg_match('#^lavra/limpezas/(\d+)/terminar$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        flash_set(Lavra::terminarLimpezaPorId((int) $m[1]) ? 'Limpeza da lavra terminada.' : 'A limpeza já estava terminada.');
+        redirect('/painel');
+    }
+
     if ($path === 'usuarios') {
         tela_pessoas();
         return;
@@ -799,7 +805,7 @@ function lavra_marca(): string
     if ($mostraCarga && !$mostraCiclo) {
         $partes['voltando'] = array_map(static fn (array $ciclo): array => [
             (int) $ciclo['id'],
-            $ciclo['inicio_retorno'] ?? null,
+            $ciclo['inicio_retorno'] ?? $ciclo['chegada_britador'] ?? null,
             $ciclo['placa'] ?? null,
         ], Lavra::voltando());
         $partes['chegou'] = array_map(static fn (array $caminhao): array => [

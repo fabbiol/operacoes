@@ -226,11 +226,24 @@
         var lista = estado.lavra.caminhoes;
         var grupos = { lavra: [], ida: [], volta: [] };
         lista.forEach(function (c) { (grupos[c.faixa] || grupos.lavra).push(c); });
-        var marcas = lista.map(function (c) {
+        var pontos = lista.map(function (c) {
             var grupo = grupos[c.faixa] || grupos.lavra;
-            var ponto = lugar(c, grupo.indexOf(c), grupo.length, geo);
+            return { c: c, p: lugar(c, grupo.indexOf(c), grupo.length, geo) };
+        });
+        // Caminhões no mesmo trecho e no mesmo ponto (por exemplo, dois no britador) ficam lado a lado, sem um esconder o outro.
+        ['ida', 'volta'].forEach(function (faixa) {
+            var naFaixa = pontos.filter(function (item) { return item.c.faixa === faixa; })
+                .sort(function (a, b) { return a.p.x - b.p.x; });
+            for (var k = 1; k < naFaixa.length; k++) {
+                if (naFaixa[k].p.x - naFaixa[k - 1].p.x < 10) naFaixa[k].p.x = naFaixa[k - 1].p.x + 10;
+            }
+            var excesso = naFaixa.length ? naFaixa[naFaixa.length - 1].p.x - 90 : 0;
+            if (excesso > 0) naFaixa.forEach(function (item) { item.p.x = Math.max(8, item.p.x - excesso); });
+        });
+        var marcas = pontos.map(function (item) {
+            var c = item.c;
             var tipo = c.faixa === 'volta' ? 'volta' : (c.faixa === 'ida' ? 'carregado' : 'lavra');
-            return '<span class="tv-caminhao tv-cor-' + tipo + '" style="left:' + ponto.x + '%;top:' + ponto.y + '%">' + esc(c.placa) + '</span>';
+            return '<span class="tv-caminhao tv-cor-' + tipo + '" style="left:' + item.p.x + '%;top:' + item.p.y + '%">' + esc(c.placa) + '</span>';
         }).join('');
         var linhas = lista.length
             ? '<ul class="tv-caminhoes" data-um="caminhão" data-varios="caminhões">' + lista.map(function (c) {

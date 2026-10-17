@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-limpeza';
+    private const MIGRACOES = '2026-10-revisao';
 
     private static ?PDO $pdo = null;
 
@@ -118,6 +118,7 @@ final class Db
             self::garantirHorimetro($pdo);
             self::garantirToneladasDaViagem($pdo);
             self::garantirMaquinaOk($pdo);
+            self::garantirRevisao($pdo);
 
             if (!is_dir(dirname($marca))) {
                 mkdir(dirname($marca), 0775, true);
@@ -507,6 +508,17 @@ final class Db
     {
         if (!in_array('maquina_ok', self::colunasDe($pdo, 'horimetro_turnos'), true)) {
             $pdo->exec('ALTER TABLE horimetro_turnos ADD COLUMN maquina_ok TINYINT(1) NULL AFTER horas');
+        }
+    }
+
+    /**
+     * Colunas da revisão de outubro de 2026:
+     * - ciclos_lavra.garagem: a viagem terminou no britador indo para a garagem (fora da média de volta e de ciclo).
+     */
+    private static function garantirRevisao(PDO $pdo): void
+    {
+        if (!in_array('garagem', self::colunasDe($pdo, 'ciclos_lavra'), true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN garagem TINYINT(1) NOT NULL DEFAULT 0 AFTER encerramento_ciente_por');
         }
     }
 

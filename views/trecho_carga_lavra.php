@@ -28,6 +28,16 @@
     <?php if (($filaCarga ?? []) !== []): ?>
         <p class="nota">Conclua esta carga antes de pegar outro caminhão.</p>
     <?php endif; ?>
+    <?php if (!empty($limpeza)): ?>
+        <section class="limpeza-lavra ativa">
+            <strong>Limpeza da lavra continua marcada</strong>
+            <p class="meta">Desde <?= e(hora_curta((string) $limpeza['inicio'])) ?>. Depois desta carga, volte à limpeza. Se a limpeza já acabou, toque em Terminar limpeza.</p>
+            <form method="post" action="<?= e(url('lavra/limpeza/terminar')) ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn secundario">Terminar limpeza</button>
+            </form>
+        </section>
+    <?php endif; ?>
 <?php else: ?>
     <?php if (Auth::admin() && !empty($retroEscolhida)): ?>
         <div class="retro-escolhida">
@@ -48,7 +58,7 @@
                     <?= csrf_field() ?>
                     <button type="submit" class="btn primario">Terminar limpeza</button>
                 </form>
-                <p class="nota">Se iniciar a carga de um caminhão, a limpeza termina sozinha.</p>
+                <p class="nota">Pode carregar os caminhões durante a limpeza: o tempo de carga não conta como limpeza. Toque em Terminar limpeza quando a limpeza acabar.</p>
             </section>
         <?php else: ?>
             <form method="post" action="<?= e(url('lavra/limpeza/iniciar')) ?>" class="limpeza-lavra">
@@ -90,9 +100,10 @@
                 <article class="cartao">
                     <?php $cancelarCiclo = null; $ficha = $ciclo; $selo = 'Voltando'; require __DIR__ . '/trecho_caminhao.php'; ?>
                     <p class="cliente"><?= e($ciclo['operador'] ?: 'Sem motorista') ?></p>
-                    <?php if (!empty($ciclo['inicio_retorno'])): ?>
-                        <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $ciclo['inicio_retorno']) ?>"><?= e(texto_duracao(segundos_entre((string) $ciclo['inicio_retorno'], agora_sql()))) ?></time></p>
-                        <p class="meta">Retorno desde <?= e(hora_curta((string) $ciclo['inicio_retorno'])) ?></p>
+                    <?php $saiuDoBritador = $ciclo['inicio_retorno'] ?? $ciclo['chegada_britador'] ?? null; ?>
+                    <?php if (!empty($saiuDoBritador)): ?>
+                        <p class="ciclo"><time data-desde="<?= (int) strtotime((string) $saiuDoBritador) ?>"><?= e(texto_duracao(segundos_entre((string) $saiuDoBritador, agora_sql()))) ?></time></p>
+                        <p class="meta">No britador às <?= e(hora_curta((string) $saiuDoBritador)) ?></p>
                     <?php endif; ?>
                 </article>
             <?php endforeach; ?>

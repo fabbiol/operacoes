@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     encerramento VARCHAR(160) NULL,
     encerramento_ciente_em DATETIME NULL,
     encerramento_ciente_por VARCHAR(120) NULL,
+    garagem TINYINT(1) NOT NULL DEFAULT 0,
     observacoes TEXT NULL,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

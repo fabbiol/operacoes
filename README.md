@@ -47,7 +47,7 @@ A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. T
 
 - **No alto**: o carregado hoje (o número maior), a fila do pátio com a maior espera, quantas pás estão carregando, as viagens da lavra e os caminhões em ciclo.
 - **Pátio**: cada pá com o cliente e há quanto tempo está carregando; a fila com o tempo de espera de cada cliente. Espera de 30 minutos ou mais fica **amarela**, de 1 hora ou mais fica **vermelha**. O que não cabe na tela aparece como "+ N na fila".
-- **Lavra**: o circuito com os caminhões (azul = carregado indo para o britador, cinza = voltando vazio, contorno = na lavra) e a lista do que cada caminhão está fazendo.
+- **Lavra**: o circuito com os caminhões (azul = carregado indo para o britador, cinza = voltando vazio, contorno = na lavra) e a lista do que cada caminhão está fazendo. O motorista só marca a chegada no britador: 3 minutos depois o caminhão passa a aparecer voltando vazio.
 - **Problemas nas máquinas**: faixa vermelha entre os números e as áreas, com a máquina, o problema, quem avisou e quando (até 4; o resto aparece como "+ N"). Some sozinha quando o problema é marcado como resolvido na ficha da máquina.
 - **Limpeza da lavra**: o quadro "Caminhões na lavra" fica amarelo com "Retro 1 em limpeza", e a área da lavra mostra a faixa com o tempo.
 - **Por hora**: cargas do pátio e viagens da lavra em cada hora do dia; a hora atual em azul.
@@ -176,9 +176,15 @@ Quando a escavadeira para de carregar para limpar a lavra, o operador toca em **
 - os motoristas veem "Retro 1 em limpeza da lavra" na tela dos caminhões;
 - o **Painel** mostra a limpeza em andamento, com quem e desde quando, e o **Monitor da TV** mostra uma faixa amarela na área da lavra.
 
-A limpeza termina no **Terminar limpeza**, ao **iniciar a carga** de um caminhão, ao carregar no pátio com a escavadeira ou ao **soltar** a escavadeira. Não dá para começar a limpeza no meio de uma carga.
+Durante a limpeza a escavadeira pode carregar os caminhões que chegam: a limpeza continua marcada, e os minutos de carga não contam como limpeza. A limpeza termina no **Terminar limpeza**, ao carregar no pátio com a escavadeira ou ao **soltar** a escavadeira. Limpeza esquecida aberta fecha sozinha no fim do dia em que começou, e o administrativo pode terminá-la pelo botão **Terminar** no Painel. Não dá para começar a limpeza no meio de uma carga.
 
-**Tempo médio**: a espera do caminhão na fila durante a limpeza da escavadeira que carregou ele sai da fila e do ciclo, e aparece à parte como **Limpeza** em cada viagem. O Painel e os Tempos do dia mostram o total de limpeza do dia. Assim a limpeza não aumenta o tempo médio.
+**Tempo médio do Pusch** (lavra → britador → lavra): a espera do caminhão na fila enquanto a escavadeira que carregou ele estava limpando (e não carregando outro caminhão) sai da fila e do ciclo, e aparece à parte como **Limpeza** em cada viagem. O Painel e os Tempos do dia mostram o total de limpeza do dia. Também ficam fora da média:
+
+- a viagem **encerrada sem voltar** (pneu, oficina, fim de turno): fora da volta e do ciclo, e da estrada se não chegou no britador;
+- a viagem que foi para a **garagem** no britador: fora da volta e do ciclo;
+- a etapa que **atravessa a meia-noite** (caminhão deixado na fila ou no britador de um dia para o outro).
+
+Essas viagens continuam contando na produção e no número de viagens.
 
 ## Problemas das máquinas
 

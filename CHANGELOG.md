@@ -1,5 +1,16 @@
 # O que mudou
 
+## Outubro de 2026: revisão do tempo médio do Pusch e da limpeza
+
+- **Limpeza intercalada com cargas**: a limpeza não termina mais ao carregar um caminhão. A escavadeira carrega e volta a limpar; os minutos de carga não contam como limpeza. Termina no botão, ao soltar a escavadeira ou, se esquecida, no fim do dia. O administrativo pode terminar pelo Painel.
+- **Tempo médio do Pusch**: viagem encerrada sem voltar, viagem que foi para a garagem e etapa que atravessa a noite ficam fora das médias de estrada, volta e ciclo (continuam na produção).
+- **Monitor**: o caminhão que chegou no britador aparece voltando vazio (cinza) depois de 3 minutos; caminhões no mesmo ponto ficam lado a lado.
+- Relatórios de dias antigos mantêm o desconto da limpeza.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a coluna `garagem` em `ciclos_lavra`.
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+
 ## Outubro de 2026: problemas e limpeza no Monitor da TV
 
 - **Problemas nas máquinas no Monitor**: faixa vermelha com a máquina, o problema, quem avisou e quando (ex.: "ABC1D23 Pneu furou"). Some sozinha quando o problema é resolvido na ficha da máquina.

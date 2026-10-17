@@ -866,5 +866,8 @@ a.venda:hover { border-color: var(--ink); }
 .limpeza-lavra.ativa { padding: 14px 16px; border: 2px solid #b88a00; border-radius: 16px; background: #fff4c2; }
 .limpeza-lavra.ativa > strong { font-size: 22px; }
 .limpeza-lavra.ativa .ciclo { margin: 0; }
-.limpeza-aviso { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 12px; padding: 10px 14px; border-left: 6px solid #b88a00; border-radius: 12px; background: #fff4c2; }
+.limpeza-aviso { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; margin: 0 0 12px; padding: 10px 14px; border-left: 6px solid #b88a00; border-radius: 12px; background: #fff4c2; }
+p.limpeza-aviso, .limpeza-aviso p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; }
 .limpeza-aviso span { color: var(--muted); font-weight: 600; }
+.limpeza-aviso form { margin: 0; }
+.limpeza-aviso .btn { min-height: 40px; padding: 6px 14px; }
