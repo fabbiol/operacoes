@@ -161,6 +161,14 @@ final class Horimetro
         if ((int) $depois->fetchColumn() > 0) {
             throw new InvalidArgumentException('Já houve outra leitura depois da sua entrada. Chame o administrativo para corrigir na ficha da máquina.');
         }
+        // A entrada já tem esse valor (corrigida numa tentativa anterior, em que a saída foi recusada e o formulário
+        // voltou preenchido): não anula e lança de novo.
+        $atual = Db::pdo()->prepare('SELECT leitura FROM horimetros WHERE id = ? AND anulado_em IS NULL');
+        $atual->execute([$entradaId]);
+        $valor = $atual->fetchColumn();
+        if ($valor !== false && abs((float) $valor - self::lerHoras($correta, 'Horímetro', true)) < 0.05) {
+            return;
+        }
         self::anular($entradaId, $tipo, $maquinaId, 'Entrada corrigida por ' . $usuario . ' ao soltar', $usuario, $correta);
     }
 

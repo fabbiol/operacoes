@@ -1143,7 +1143,7 @@ function tela_finalizar(int $id, string $method): void
     if ($method === 'POST') {
         csrf_check();
         try {
-            Operacoes::finalizar($id, $nota, Auth::usuario(), $quantidade);
+            Operacoes::finalizar($id, $nota, Auth::usuario(), $quantidade, Auth::admin() ? null : Auth::usuario());
             flash_set('Carregamento enviado para conferência.');
             redirect('/patio');
         } catch (InvalidArgumentException $e) {

@@ -490,11 +490,16 @@ final class Operacoes
      * Finaliza a carga. No fracionado, o operador informa quanto carregou nesta viagem: o saldo cai, e se ainda
      * sobrar, a próxima viagem fica esperando o cliente voltar ("Saldo a buscar").
      */
-    public static function finalizar(int $id, string $nota, string $operador, ?string $quantidade = null): void
+    /** $dono: quem pode finalizar (o operador que iniciou); null para o administrativo, que finaliza qualquer carga. */
+    public static function finalizar(int $id, string $nota, string $operador, ?string $quantidade = null, ?string $dono = null): void
     {
         $ordem = self::exigir($id);
         if ($ordem['status'] !== 'carregando') {
             throw new InvalidArgumentException('Só dá para finalizar uma ordem que está em carregamento.');
+        }
+        $iniciou = trim((string) ($ordem['operador'] ?? ''));
+        if ($dono !== null && $iniciou !== '' && $iniciou !== $dono) {
+            throw new InvalidArgumentException('Esta carga está com ' . $iniciou . '. Só quem iniciou finaliza (ou o administrativo).');
         }
         $carregada = null;
         if ((int) ($ordem['fracionado'] ?? 0) === 1) {
@@ -518,9 +523,9 @@ final class Operacoes
             $comando = $pdo->prepare(
                 "UPDATE fila_carregamentos
                  SET status = 'aguardando_conferencia', fim_carregamento = ?, observacoes = ?, quantidade_carregada = ?
-                 WHERE id = ? AND status = 'carregando'"
+                 WHERE id = ? AND status = 'carregando' AND (? IS NULL OR operador IS NULL OR operador = '' OR operador = ?)"
             );
-            $comando->execute([agora_sql(), $observacoes, $carregada, $id]);
+            $comando->execute([agora_sql(), $observacoes, $carregada, $id, $dono, $dono]);
             self::exigirAlteracao($comando);
             if ($carregada !== null) {
                 $resto = round((float) $ordem['quantidade_autorizada'] - (float) $carregada, 2);
@@ -833,8 +838,19 @@ final class Operacoes
             throw new InvalidArgumentException('Esta viagem tinha ' . formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . $unidade . ' para carregar. Informe no máximo isso.');
         }
         $principalId = self::grupo($ordem);
+        $antesGrupo = self::viagensDe($principalId);
+        // Esta viagem mais as outras não passam do total da nota.
+        $estaViagem = (float) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']);
+        $outras = round($antesGrupo['carregado'] - $estaViagem, 2);
+        if ($antesGrupo['total'] > 0 && $valor > $antesGrupo['total'] - $outras + 0.0001) {
+            throw new InvalidArgumentException(
+                'A nota tem ' . formatar_quantidade($antesGrupo['total']) . ' ' . $unidade . ' e as outras viagens já levaram '
+                . formatar_quantidade($outras) . ' ' . $unidade . '. Nesta viagem cabem no máximo '
+                . formatar_quantidade(max(0.0, $antesGrupo['total'] - $outras)) . ' ' . $unidade . '.'
+            );
+        }
         // Saldo que o administrativo já tinha encerrado (o cliente não vem mais) continua encerrado.
-        $jaEncerrado = self::viagensDe($principalId)['encerrado'];
+        $jaEncerrado = $antesGrupo['encerrado'];
         $pdo = Db::pdo();
         $pdo->beginTransaction();
         try {
@@ -856,8 +872,15 @@ final class Operacoes
             $saldo = $grupo['saldo'];
             $aviso = 'Quantidade corrigida.';
             if ($saldo > 0.0001 && $pendente !== null) {
-                $pdo->prepare('UPDATE fila_carregamentos SET quantidade_autorizada = ? WHERE id = ?')
-                    ->execute([number_format($saldo, 2, '.', ''), (int) $pendente['id']]);
+                // Só enquanto a viagem não começou: se a pá iniciou agora, nada muda (volta tudo).
+                $ajuste = $pdo->prepare(
+                    "UPDATE fila_carregamentos SET quantidade_autorizada = ?
+                     WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
+                );
+                $ajuste->execute([number_format($saldo, 2, '.', ''), (int) $pendente['id']]);
+                if ($ajuste->rowCount() === 0 && abs((float) $pendente['quantidade_autorizada'] - $saldo) > 0.0001) {
+                    throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
+                }
                 $aviso .= ' A viagem ' . $pendente['ordem'] . ' ficou com o saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . '.';
             } elseif ($saldo > 0.0001 && $jaEncerrado) {
                 $aviso .= ' O saldo desta nota já estava encerrado, então nenhuma viagem nova foi criada.';
@@ -869,11 +892,15 @@ final class Operacoes
                 $aviso .= ' O saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . ' virou a viagem ' . $nova['ordem'] . ', em Saldo a buscar.';
             } elseif ($pendente !== null) {
                 $fecho = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Encerrada: a nota foi toda carregada (correção da viagem ' . $ordem['ordem'] . ').';
-                $pdo->prepare(
+                $encerrar = $pdo->prepare(
                     "UPDATE fila_carregamentos
                      SET status = 'cancelado', observacoes = ?
                      WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
-                )->execute([trim((string) $pendente['observacoes'] . "\n\n" . $fecho), (int) $pendente['id']]);
+                );
+                $encerrar->execute([trim((string) $pendente['observacoes'] . "\n\n" . $fecho), (int) $pendente['id']]);
+                if ($encerrar->rowCount() === 0) {
+                    throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
+                }
                 $aviso .= ' A nota ficou toda carregada, e a viagem ' . $pendente['ordem'] . ' foi encerrada.';
             }
             $pdo->commit();

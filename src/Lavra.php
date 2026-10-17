@@ -640,7 +640,7 @@ final class Lavra
         $inicioDia = (int) strtotime($dia . ' 00:00:00');
         $fimDia = min((int) strtotime($dia . ' 23:59:59') + 1, time());
         $total = 0;
-        foreach (array_keys(self::intervalosLimpeza()) as $retroId) {
+        foreach (array_keys(self::intervalosLimpeza($inicioDia, $fimDia)) as $retroId) {
             $total += self::limpandoEntre($retroId, $inicioDia, $fimDia);
         }
 
@@ -667,7 +667,7 @@ final class Lavra
     private static function limpandoEntre(int $retroId, int $de, int $ate): int
     {
         $total = 0;
-        foreach (self::intervalosLimpeza()[$retroId] ?? [] as [$inicio, $fim]) {
+        foreach (self::intervalosLimpeza($de, $ate)[$retroId] ?? [] as [$inicio, $fim]) {
             $comeco = max($inicio, $de);
             $final = min($fim ?? time(), $ate);
             if ($final <= $comeco) {
@@ -685,26 +685,28 @@ final class Lavra
     /** @var array<int, list<array{0: int, 1: int}>>|null as cargas de cada escavadeira (início e fim) */
     private static ?array $cargasDaRetro = null;
 
+    /** @var array{0: int, 1: int}|null o período carregado em $limpezas e $cargasDaRetro */
+    private static ?array $janela = null;
+
     /** @return list<array{0: int, 1: int}> */
     private static function cargasDaRetro(int $retroId): array
     {
         if (self::$cargasDaRetro === null) {
             self::$cargasDaRetro = [];
-            $primeira = null;
-            foreach (self::intervalosLimpeza() as $intervalos) {
-                foreach ($intervalos as [$inicio]) {
-                    $primeira = $primeira === null ? $inicio : min($primeira, $inicio);
-                }
+            $temLimpeza = false;
+            foreach (self::$limpezas ?? [] as $intervalos) {
+                $temLimpeza = $temLimpeza || $intervalos !== [];
             }
-            if ($primeira !== null) {
-                // Só as cargas do período em que houve limpeza. Carga cancelada no meio termina quando foi cancelada.
+            if ($temLimpeza && self::$janela !== null) {
+                // Só as cargas do período carregado (uma carga dura minutos: um dia de folga basta).
+                // Carga cancelada no meio termina quando foi cancelada.
                 $busca = Db::pdo()->prepare(
                     "SELECT retroescavadeira_id, inicio_carga,
                             COALESCE(fim_carga, CASE WHEN status = 'carregando' THEN NULL ELSE atualizado_em END) AS fim
                      FROM ciclos_lavra
-                     WHERE retroescavadeira_id IS NOT NULL AND inicio_carga IS NOT NULL AND inicio_carga >= ?"
+                     WHERE retroescavadeira_id IS NOT NULL AND inicio_carga IS NOT NULL AND inicio_carga >= ? AND inicio_carga < ?"
                 );
-                $busca->execute([date('Y-m-d H:i:s', $primeira)]);
+                $busca->execute([date('Y-m-d H:i:s', self::$janela[0] - 86400), date('Y-m-d H:i:s', self::$janela[1])]);
                 foreach ($busca->fetchAll() as $linha) {
                     $inicio = (int) strtotime((string) $linha['inicio_carga']);
                     $fim = $linha['fim'] !== null ? (int) strtotime((string) $linha['fim']) : time();
@@ -716,20 +718,37 @@ final class Lavra
         return self::$cargasDaRetro[$retroId] ?? [];
     }
 
-    /** @return array<int, list<array{0: int, 1: int|null}>> */
-    private static function intervalosLimpeza(): array
+    /**
+     * As limpezas que tocam o período de $de a $ate (com um dia de folga de cada lado), por escavadeira.
+     * Carrega só esse período, e não o histórico todo: o Monitor e o Painel pedem a cada poucos segundos.
+     *
+     * @return array<int, list<array{0: int, 1: int|null}>>
+     */
+    private static function intervalosLimpeza(int $de, int $ate): array
     {
-        if (self::$limpezas === null) {
-            self::$limpezas = [];
-            self::$cargasDaRetro = null;
-            // As limpezas são poucas por dia (algumas por semana): carrega todas, para os relatórios de qualquer data.
-            $busca = Db::pdo()->query('SELECT retroescavadeira_id, inicio, fim FROM lavra_limpezas ORDER BY inicio');
-            foreach ($busca->fetchAll() as $linha) {
-                self::$limpezas[(int) $linha['retroescavadeira_id']][] = [
-                    (int) strtotime((string) $linha['inicio']),
-                    $linha['fim'] !== null ? (int) strtotime((string) $linha['fim']) : null,
-                ];
-            }
+        $de = (int) strtotime(date('Y-m-d', $de) . ' 00:00:00 -1 day');
+        $ate = (int) strtotime(date('Y-m-d', $ate) . ' 00:00:00 +2 days');
+        if (self::$limpezas !== null && self::$janela !== null && self::$janela[0] <= $de && self::$janela[1] >= $ate) {
+            return self::$limpezas;
+        }
+        if (self::$limpezas !== null && self::$janela !== null) {
+            $de = min($de, self::$janela[0]);
+            $ate = max($ate, self::$janela[1]);
+        }
+        self::$janela = [$de, $ate];
+        self::$limpezas = [];
+        self::$cargasDaRetro = null;
+        $busca = Db::pdo()->prepare(
+            'SELECT retroescavadeira_id, inicio, fim FROM lavra_limpezas
+             WHERE inicio < ? AND (fim IS NULL OR fim > ?)
+             ORDER BY inicio'
+        );
+        $busca->execute([date('Y-m-d H:i:s', $ate), date('Y-m-d H:i:s', $de)]);
+        foreach ($busca->fetchAll() as $linha) {
+            self::$limpezas[(int) $linha['retroescavadeira_id']][] = [
+                (int) strtotime((string) $linha['inicio']),
+                $linha['fim'] !== null ? (int) strtotime((string) $linha['fim']) : null,
+            ];
         }
 
         return self::$limpezas;
