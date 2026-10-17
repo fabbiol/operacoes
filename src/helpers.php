@@ -477,7 +477,7 @@ function horimetro_precisa_soltar(): bool
  * $situacao é a resposta de "Como ficou a máquina?": 'ok' (tudo certo) ou 'problema', com o texto em $problema.
  * Sem $situacao (chamada antiga), não pergunta.
  */
-function horimetro_soltar(string $leitura, ?string $situacao = null, string $problema = ''): void
+function horimetro_soltar(string $leitura, ?string $situacao = null, string $problema = '', string $entradaCerta = ''): void
 {
     if (maquina_escolhida() === null) {
         return;
@@ -493,20 +493,42 @@ function horimetro_soltar(string $leitura, ?string $situacao = null, string $pro
         }
         $maquinaOk = $situacao === 'ok';
         // Com "Tudo certo", o texto que tenha ficado no campo escondido não vale.
-        $descricao = $maquinaOk ? null : Problemas::texto($problema);
+        $descricao = null;
+        if (!$maquinaOk) {
+            $escolhida = maquina_escolhida();
+            $jaAvisado = $escolhida !== null && Problemas::abertosDa((string) $escolhida['tipo'], (int) $escolhida['id']) !== [];
+            // O mesmo problema já avisado e não resolvido: não precisa escrever de novo (o turno fica como "avisou problema").
+            if (!($jaAvisado && trim($problema) === '')) {
+                $descricao = Problemas::texto($problema);
+            }
+        }
     }
     $usuarioId = Auth::id();
-    Db::comTrava(Posse::TRAVA, static function () use ($leitura, $usuarioId, $maquinaOk, $descricao): void {
+    Db::comTrava(Posse::TRAVA, static function () use ($leitura, $usuarioId, $maquinaOk, $descricao, $entradaCerta): void {
         $posse = Posse::doUsuario($usuarioId, true);
         if ($posse === null) {
             return;
         }
         $tipo = (string) $posse['tipo'];
         $id = (int) $posse['maquina_id'];
+        if (trim($entradaCerta) !== '') {
+            // A pessoa digitou a entrada errada: corrige a própria entrada antes de soltar (a errada fica anulada, com registro).
+            Horimetro::corrigirEntrada($tipo, $id, (int) ($posse['entrada_id'] ?? 0), $entradaCerta, Auth::usuario());
+            $posse = Posse::doUsuario($usuarioId, true) ?? $posse;
+        }
         $pdo = Db::pdo();
         $pdo->beginTransaction();
         try {
-            $saida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
+            try {
+                $saida = Horimetro::lancar($tipo, $id, $leitura, Auth::usuario());
+            } catch (InvalidArgumentException $e) {
+                // Leitura recusada logo depois da própria entrada: a entrada pode ter sido digitada errada.
+                if ($posse['entrada'] !== null && trim($entradaCerta) === '') {
+                    throw new InvalidArgumentException($e->getMessage()
+                        . ' Se a entrada que você digitou (' . Horimetro::texto((float) $posse['entrada']) . ') estava errada, corrija em "A entrada foi digitada errada?", logo acima do botão.');
+                }
+                throw $e;
+            }
             $entrada = $posse['entrada'] !== null ? (float) $posse['entrada'] : null;
             if ($entrada !== null && round($saida, 1) >= round($entrada, 1)) {
                 Horimetro::registrarTurno($tipo, $id, $entrada, $saida, (string) $posse['iniciado_em'], Auth::usuario(), $maquinaOk);

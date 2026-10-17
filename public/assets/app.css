@@ -871,3 +871,9 @@ p.limpeza-aviso, .limpeza-aviso p { display: flex; flex-wrap: wrap; align-items:
 .limpeza-aviso span { color: var(--muted); font-weight: 600; }
 .limpeza-aviso form { margin: 0; }
 .limpeza-aviso .btn { min-height: 40px; padding: 6px 14px; }
+
+/* Soltar a máquina: corrigir a própria entrada digitada errada. */
+.corrigir-entrada { padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; background: white; }
+.corrigir-entrada summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+.corrigir-entrada[open] summary { margin-bottom: 8px; }
+.corrigir-entrada .nota { margin: 6px 0 0; }

@@ -1,5 +1,12 @@
 # O que mudou
 
+## Outubro de 2026: revisão das máquinas
+
+- **Encerrar viagem vira aviso**: o motivo Oficina já registra o problema do caminhão; nos outros motivos, a opção **É problema no caminhão** registra o que foi escrito (ex.: pneu furou). Aparece na hora no Painel, na Manutenção e na TV.
+- **Problema já avisado**: ao soltar, "Teve problema" com o texto em branco vale quando o problema já está aberto (não precisa escrever de novo nem marcar "Tudo certo").
+- **Entrada errada**: o operador corrige a própria entrada na tela de soltar e não fica mais preso no tablet.
+- **Horímetro com ponto de milhar**: "12.350" passa a ser lido como 12.350 h (antes virava 12,4 h).
+
 ## Outubro de 2026: revisão do tempo médio do Pusch e da limpeza
 
 - **Limpeza intercalada com cargas**: a limpeza não termina mais ao carregar um caminhão. A escavadeira carrega e volta a limpar; os minutos de carga não contam como limpeza. Termina no botão, ao soltar a escavadeira ou, se esquecida, no fim do dia. O administrativo pode terminar pelo Painel.

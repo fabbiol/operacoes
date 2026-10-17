@@ -79,7 +79,7 @@ function despachar(string $path, string $method): void
                 return;
             }
             try {
-                horimetro_soltar($leitura, (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''));
+                horimetro_soltar($leitura, (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''), (string) ($_POST['entrada_certa'] ?? ''));
             } catch (InvalidArgumentException $e) {
                 tela_soltar($maquina, $e->getMessage(), 'sair');
                 return;
@@ -1188,7 +1188,7 @@ function tela_maquina(string $method): void
         }
         if ($soltar) {
             try {
-                horimetro_soltar((string) ($_POST['leitura'] ?? ''), (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''));
+                horimetro_soltar((string) ($_POST['leitura'] ?? ''), (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''), (string) ($_POST['entrada_certa'] ?? ''));
                 redirect('/maquina');
             } catch (InvalidArgumentException $e) {
                 $erro = $e->getMessage();
@@ -1420,10 +1420,29 @@ function tela_lavra_encerrar(int $id, string $method): void
     $erro = null;
     $motivo = (string) ($_POST['motivo'] ?? '');
     $outro = (string) ($_POST['outro'] ?? '');
+    $problema = !empty($_POST['problema']);
     if ($method === 'POST') {
         csrf_check();
         try {
+            // Oficina, ou "é problema no caminhão" marcado: vira problema da máquina na hora (Painel, Manutenção e TV),
+            // sem esperar o motorista soltar o caminhão.
+            $descricao = null;
+            if ($motivo === 'oficina') {
+                $descricao = 'Foi para a oficina' . (trim($outro) !== '' ? ': ' . trim($outro) : '');
+            } elseif ($problema) {
+                if (trim($outro) === '') {
+                    throw new InvalidArgumentException('Escreva o que aconteceu com o caminhão.');
+                }
+                $descricao = trim($outro);
+            }
+            if ($descricao !== null) {
+                $descricao = Problemas::texto($descricao);
+            }
             $aviso = Lavra::encerrar($id, $motivo, $outro, Auth::usuario(), Auth::motorista() ? Auth::usuario() : null);
+            if ($descricao !== null) {
+                Problemas::relatar('caminhao', (int) $ciclo['caminhao_id'], Auth::usuario(), $descricao, Horimetro::atual('caminhao', (int) $ciclo['caminhao_id']));
+                $aviso .= ' O problema foi avisado ao escritório.';
+            }
             if (!Auth::admin() && (string) ($ciclo['operador'] ?? '') === Auth::usuario()) {
                 horimetro_marcar_soltar();
             }
@@ -1441,6 +1460,7 @@ function tela_lavra_encerrar(int $id, string $method): void
         'ciclo' => $ciclo,
         'motivo' => $motivo,
         'outro' => $outro,
+        'problema' => $problema,
         'erro' => $erro,
     ]);
 }

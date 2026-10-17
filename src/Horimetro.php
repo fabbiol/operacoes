@@ -145,6 +145,25 @@ final class Horimetro
         return $aviso;
     }
 
+    /**
+     * O operador corrige a entrada do próprio turno (digitou errado ao assumir). Só vale se ninguém lançou
+     * outra leitura depois dela; senão, quem corrige é o administrativo, na ficha da máquina.
+     */
+    public static function corrigirEntrada(string $tipo, int $maquinaId, int $entradaId, string $correta, string $usuario): void
+    {
+        if ($entradaId < 1) {
+            throw new InvalidArgumentException('Este turno não tem entrada para corrigir. Chame o administrativo.');
+        }
+        $depois = Db::pdo()->prepare(
+            'SELECT COUNT(*) FROM horimetros WHERE tipo = ? AND maquina_id = ? AND id > ? AND anulado_em IS NULL'
+        );
+        $depois->execute([$tipo, $maquinaId, $entradaId]);
+        if ((int) $depois->fetchColumn() > 0) {
+            throw new InvalidArgumentException('Já houve outra leitura depois da sua entrada. Chame o administrativo para corrigir na ficha da máquina.');
+        }
+        self::anular($entradaId, $tipo, $maquinaId, 'Entrada corrigida por ' . $usuario . ' ao soltar', $usuario, $correta);
+    }
+
     /** @return list<array<string, mixed>> */
     public static function historico(string $tipo, int $id): array
     {
@@ -461,8 +480,11 @@ final class Horimetro
 
     private static function lerHoras(string $bruto, string $rotulo, bool $permiteZero): float
     {
-        $bruto = trim($bruto);
+        $bruto = str_replace(' ', '', trim($bruto));
         if (str_contains($bruto, ',') && str_contains($bruto, '.')) {
+            $bruto = str_replace('.', '', $bruto);
+        } elseif (preg_match('/^\d{1,3}(\.\d{3})+$/', $bruto)) {
+            // "12.350" ou "1.234.567": ponto de milhar, igual ao que a tela mostra ("12.345,0 h"). A casa decimal é a vírgula.
             $bruto = str_replace('.', '', $bruto);
         }
         $bruto = str_replace(',', '.', $bruto);
@@ -470,7 +492,10 @@ final class Horimetro
             throw new InvalidArgumentException($rotulo . ' precisa ser um número de horas.');
         }
         $numero = round((float) $bruto, 1);
-        if ($numero > 999999.9 || ($permiteZero ? $numero < 0 : $numero <= 0)) {
+        if ($numero > 999999.9) {
+            throw new InvalidArgumentException($rotulo . ' pode ter no máximo 999.999,9 h. Confira o número.');
+        }
+        if ($permiteZero ? $numero < 0 : $numero <= 0) {
             throw new InvalidArgumentException($permiteZero
                 ? $rotulo . ' não pode ser negativo.'
                 : $rotulo . ' precisa ser maior que zero.');

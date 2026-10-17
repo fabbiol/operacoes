@@ -193,7 +193,13 @@ Ao soltar qualquer máquina (pá carregadeira, escavadeira ou caminhão), pelo *
 - **Tudo certo**: solta normalmente. O turno fica marcado como "entregou tudo certo".
 - **Teve problema**: aparece **Qual foi o problema?** (por exemplo, "quebrou o ar-condicionado"). Sem escrever o problema, a máquina não é solta. O problema fica gravado com a máquina, quem avisou, quando e o horímetro.
 
-O operador precisa responder uma das duas para soltar. Se o problema já foi avisado e ainda não foi resolvido, a tela de soltar mostra, para ninguém precisar escrever de novo.
+O operador precisa responder uma das duas para soltar. Se o problema já foi avisado e ainda não foi resolvido, a tela de soltar mostra: basta marcar **Teve problema** e deixar o texto em branco (escreve só se for um problema novo).
+
+**Caminhão que encerra a viagem** (Encerrar viagem): o motivo **Oficina** já vira problema do caminhão na hora, com o detalhe escrito em "O que aconteceu". Nos outros motivos, marque **É problema no caminhão** e escreva o que aconteceu (ex.: "pneu furou"): o escritório e a TV veem na hora, sem esperar o motorista soltar o caminhão. Ao soltar depois, "Teve problema" já vem marcado.
+
+**Entrada digitada errada**: se o operador digitou o horímetro errado ao assumir e a saída é recusada, a tela de soltar tem **A entrada foi digitada errada?**: ele informa o horímetro certo da entrada e solta normalmente. A entrada errada fica anulada, com registro na ficha da máquina. Se já houve outra leitura depois da entrada, quem corrige é o administrativo.
+
+O horímetro aceita ponto de milhar, igual ao que a tela mostra: "12.350" é 12.350 h; a casa decimal é a vírgula ("12.350,5").
 
 Onde aparece:
 

@@ -328,6 +328,8 @@ final class Lavra
         if ($motivo === 'outro') {
             $nota = limpar_texto($outro, 120, true, 'o motivo');
             $texto .= ' · ' . $nota;
+        } elseif ($motivo === 'oficina' && trim($outro) !== '') {
+            $texto .= ' · ' . limpar_texto($outro, 120, false, 'o que aconteceu');
         }
         $aviso = self::avisoEncerramento($ciclo, $texto);
         $fato = self::saiuCarregado($ciclo)

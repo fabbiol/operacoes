@@ -28,6 +28,16 @@
     $entrada = horimetro_entrada();
     $jaRelatados = Problemas::abertosDa((string) $atual['tipo'], (int) $atual['id']);
     $situacao = (string) ($situacao ?? '');
+    if ($situacao === '') {
+        // Quem acabou de avisar um problema neste turno (por exemplo, ao encerrar a viagem) já vem com "Teve problema".
+        $posseAtual = posse_atual();
+        foreach ($jaRelatados as $relatado) {
+            if ((string) $relatado['usuario'] === Auth::usuario() && $posseAtual !== null
+                && (string) $relatado['relatado_em'] >= (string) $posseAtual['iniciado_em']) {
+                $situacao = 'problema';
+            }
+        }
+    }
     ?>
     <p class="nota">Informe o horímetro do painel e como ficou <?= e((string) $atual['nome']) ?>.</p>
     <form method="post" action="<?= e(url(($destino ?? 'maquina') === 'sair' ? 'sair' : 'maquina')) ?>" class="formulario soltar-maquina">
@@ -55,13 +65,23 @@
         </label>
         <?php if ($jaRelatados !== []): ?>
             <div class="ja-relatados">
-                <p class="meta">Já avisado e ainda não resolvido (não precisa escrever de novo):</p>
+                <p class="meta">Já avisado e ainda não resolvido. Se o problema continua, marque <strong>Teve problema</strong> e deixe o texto em branco; escreva só se for um problema novo.</p>
                 <ul>
                     <?php foreach ($jaRelatados as $relatado): ?>
                         <li><?= e((string) $relatado['descricao']) ?> <small><?= e((string) $relatado['usuario']) ?>, <?= e(quando((string) $relatado['relatado_em'])) ?></small></li>
                     <?php endforeach; ?>
                 </ul>
             </div>
+        <?php endif; ?>
+        <?php if ($entrada !== null): ?>
+            <details class="corrigir-entrada"<?= !empty($_POST['entrada_certa']) ? ' open' : '' ?>>
+                <summary>A entrada (<?= e(Horimetro::texto($entrada)) ?>) foi digitada errada?</summary>
+                <label class="campo">
+                    <span>Horímetro certo da entrada</span>
+                    <input type="text" name="entrada_certa" inputmode="decimal" maxlength="10" placeholder="h" value="<?= e((string) ($_POST['entrada_certa'] ?? '')) ?>">
+                </label>
+                <p class="nota">A entrada errada fica anulada (o administrativo vê na ficha da máquina) e o turno é somado com a certa.</p>
+            </details>
         <?php endif; ?>
         <button type="submit" class="btn primario"><?= ($destino ?? '') === 'sair' ? 'Soltar e sair' : 'Soltar' ?></button>
     </form>
