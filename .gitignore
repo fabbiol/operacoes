@@ -7,3 +7,6 @@ storage/fotos/
 Thumbs.db
 storage/sessoes/
 storage/.htaccess
+
+# Saída do Graphify (gerada na máquina, não versionada)
+graphify-out/

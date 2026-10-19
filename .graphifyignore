@@ -1,0 +1,21 @@
+# Exclusões do Graphify (ferramenta ainda não instalada; ver docs/setup.md).
+# Nunca indexar segredos, conteúdo gerado ou de terceiros.
+.git/
+graphify-out/
+.agents/
+.claude/
+.codex/
+.env
+.env.*
+.hostinger/
+storage/
+*.jks
+*.keystore
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+skills-lock.json
+public/baixar/
+tests/notas/

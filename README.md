@@ -4,6 +4,19 @@ O administrativo lança a ordem, confere cliente, pedido, nota, material e quant
 
 O ciclo de lavra conta as viagens do caminhão: fila, carga, ida até o britador e retorno vazio. Na lavra, o operador de escavadeira hidráulica assume a escavadeira e faz a carga. O motorista marca a fila, a ida e o retorno. Quem opera as duas máquinas pode estar no pátio ou na lavra, um lugar por vez. A tela fica em `/lavra`.
 
+## Documentação
+
+Este README é o guia de uso. Para quem desenvolve (pessoas ou agentes de IA):
+
+- [Produto e escopo](PRODUCT.md)
+- [Preparação local](docs/onboarding.md)
+- [Código e arquitetura](docs/architecture.md)
+- [Telas e acessibilidade](docs/design.md)
+- [Qualidade e testes](docs/quality.md)
+- [Instruções para agentes](AGENTS.md)
+- [Ferramentas, decisões e pendências](docs/setup.md)
+- [O que mudou](CHANGELOG.md)
+
 ## Lançar o carregamento pela nota fiscal
 
 Em **Fila › Carregamento › Nova ordem**, o quadro **Ler a nota fiscal** recebe o **XML** ou o **PDF (DANFE)** da nota. Toque em **Ler nota**: o sistema preenche o cliente, o pedido, o número da nota, o material, a quantidade, a unidade e a hora em que a nota foi emitida. Confira, marque **Liberar agora para o pátio** se quiser e toque em **Lançar ordem**.
