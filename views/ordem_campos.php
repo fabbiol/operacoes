@@ -44,6 +44,7 @@ $travado = !empty($travado);
 <form method="post" action="<?= e($acao) ?>" class="formulario">
     <?= csrf_field() ?>
     <input type="hidden" name="nf_chave" value="<?= e($valor['nf_chave'] ?? '') ?>">
+    <input type="hidden" name="nf_emitida_data" value="<?= e($valor['nf_emitida_data'] ?? '') ?>">
     <div class="grade">
         <label class="campo">
             <span>Data</span>
@@ -64,6 +65,9 @@ $travado = !empty($travado);
         <label class="campo">
             <span>Nota emitida em</span>
             <input type="datetime-local" name="nf_emitida_em" step="1" value="<?= e($valor['nf_emitida_em'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
+            <?php if (($valor['nf_emitida_em'] ?? '') === '' && ($valor['nf_emitida_data'] ?? '') !== ''): ?>
+                <small class="dica">A nota é de <?= e(date('d/m/Y', (int) strtotime((string) $valor['nf_emitida_data']))) ?> (o PDF não traz a hora): conta no vendido desse dia.</small>
+            <?php endif; ?>
         </label>
         <?php if (!$viagemSeguinte && !$travado): ?>
             <label class="campo">
@@ -89,6 +93,9 @@ $travado = !empty($travado);
         <label class="campo">
             <span>Unidade</span>
             <select name="unidade" required <?= $travado ? 'disabled' : '' ?>>
+                <?php if (($valor['unidade'] ?? '') === ''): ?>
+                    <option value="" selected>Escolha</option>
+                <?php endif; ?>
                 <?php foreach (unidades() as $codigo => $rotulo): ?>
                     <option value="<?= e($codigo) ?>" <?= ($valor['unidade'] ?? '') === $codigo ? 'selected' : '' ?>><?= e($rotulo) ?></option>
                 <?php endforeach; ?>

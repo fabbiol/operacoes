@@ -45,13 +45,26 @@ final class Operacoes
 
     public static function patio(): array
     {
+        // Pela hora da liberação: a viagem do fracionado liberada agora entra no fim da fila, não no começo.
         $sql = self::sqlBase() . " WHERE f.status IN ('liberado', 'carregando')
-            ORDER BY FIELD(f.status, 'carregando', 'liberado'), f.data ASC, f.id ASC";
+            ORDER BY FIELD(f.status, 'carregando', 'liberado'), COALESCE(f.autorizado_em, f.data) ASC, f.id ASC";
 
         return Db::pdo()->query($sql)->fetchAll();
     }
 
     /** Cargas que estavam liberadas e foram canceladas nas últimas 12 horas (para avisar o tablet do pátio). */
+    /** Viagens do fracionado que voltaram para Saldo a buscar nas últimas horas (saíram da fila sem ser canceladas). */
+    public static function retiradasRecentes(): array
+    {
+        $sql = self::sqlBase() . " WHERE f.status = 'saldo' AND f.ordem_principal_id IS NOT NULL AND f.atualizado_em >= ?
+            ORDER BY f.atualizado_em DESC, f.id DESC
+            LIMIT 30";
+        $comando = Db::pdo()->prepare($sql);
+        $comando->execute([date('Y-m-d H:i:s', time() - 12 * 3600)]);
+
+        return $comando->fetchAll();
+    }
+
     public static function canceladasRecentes(): array
     {
         $sql = self::sqlBase() . " WHERE f.status = 'cancelado' AND f.autorizado_em IS NOT NULL AND f.atualizado_em >= ?
@@ -258,9 +271,9 @@ final class Operacoes
                 $ordem = sprintf('CAR-%03d', ((int) $ultimo) + 1);
                 $comando = $pdo->prepare(
                     'INSERT INTO fila_carregamentos (
-                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_chave, nf_valor, material_id, quantidade_autorizada, unidade,
+                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, material_id, quantidade_autorizada, unidade,
                         fracionado, observacoes, status, autorizado_por, autorizado_em
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 $status = $liberar ? 'liberado' : 'aguardando_autorizacao';
                 $comando->execute([
@@ -270,6 +283,7 @@ final class Operacoes
                     $dados['pedido'],
                     $dados['nf'],
                     $dados['nf_emitida_em'],
+                    $dados['nf_emitida_data'],
                     $dados['nf_chave'],
                     $dados['nf_valor'],
                     $dados['material_id'],
@@ -313,6 +327,13 @@ final class Operacoes
 
         $observacoes = limpar_longo((string) ($post['observacoes'] ?? ''), 4000);
         if (in_array($ordem['status'], ['carregando', 'aguardando_conferencia'], true)) {
+            // O formulário foi aberto com a ordem ainda liberada e a pá começou a carregar antes do Salvar:
+            // a carga não muda mais. Avisa em vez de guardar só a observação e dizer "Ordem atualizada".
+            if (array_key_exists('cliente', $post) && self::mudouACarga($ordem, $post)) {
+                throw new InvalidArgumentException(
+                    'A pá começou a carregar esta ordem antes de você salvar. Nada foi alterado: o cliente, o material e a quantidade continuam como estavam. Fale com o operador se precisar mudar a carga.'
+                );
+            }
             $comando = Db::pdo()->prepare(
                 'UPDATE fila_carregamentos SET observacoes = ? WHERE id = ? AND status = ?'
             );
@@ -331,7 +352,7 @@ final class Operacoes
         }
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
-             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_chave = ?, nf_valor = ?, material_id = ?,
+             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, material_id = ?,
                  quantidade_autorizada = ?, unidade = ?, fracionado = ?, observacoes = ?
              WHERE id = ? AND status IN ('aguardando_autorizacao', 'liberado', 'saldo')"
         );
@@ -341,6 +362,7 @@ final class Operacoes
             $dados['pedido'],
             $dados['nf'],
             $dados['nf_emitida_em'],
+            $dados['nf_emitida_data'],
             $dados['nf_chave'],
             $dados['nf_valor'],
             $dados['material_id'],
@@ -480,11 +502,16 @@ final class Operacoes
      * Finaliza a carga. No fracionado, o operador informa quanto carregou nesta viagem: o saldo cai, e se ainda
      * sobrar, a próxima viagem fica esperando o cliente voltar ("Saldo a buscar").
      */
-    public static function finalizar(int $id, string $nota, string $operador, ?string $quantidade = null): void
+    /** $dono: quem pode finalizar (o operador que iniciou); null para o administrativo, que finaliza qualquer carga. */
+    public static function finalizar(int $id, string $nota, string $operador, ?string $quantidade = null, ?string $dono = null): void
     {
         $ordem = self::exigir($id);
         if ($ordem['status'] !== 'carregando') {
             throw new InvalidArgumentException('Só dá para finalizar uma ordem que está em carregamento.');
+        }
+        $iniciou = trim((string) ($ordem['operador'] ?? ''));
+        if ($dono !== null && $iniciou !== '' && $iniciou !== $dono) {
+            throw new InvalidArgumentException('Esta carga está com ' . $iniciou . '. Só quem iniciou finaliza (ou o administrativo).');
         }
         $carregada = null;
         if ((int) ($ordem['fracionado'] ?? 0) === 1) {
@@ -508,9 +535,9 @@ final class Operacoes
             $comando = $pdo->prepare(
                 "UPDATE fila_carregamentos
                  SET status = 'aguardando_conferencia', fim_carregamento = ?, observacoes = ?, quantidade_carregada = ?
-                 WHERE id = ? AND status = 'carregando'"
+                 WHERE id = ? AND status = 'carregando' AND (? IS NULL OR operador IS NULL OR operador = '' OR operador = ?)"
             );
-            $comando->execute([agora_sql(), $observacoes, $carregada, $id]);
+            $comando->execute([agora_sql(), $observacoes, $carregada, $id, $dono, $dono]);
             self::exigirAlteracao($comando);
             if ($carregada !== null) {
                 $resto = round((float) $ordem['quantidade_autorizada'] - (float) $carregada, 2);
@@ -559,9 +586,9 @@ final class Operacoes
             . formatar_quantidade($resto) . ' ' . unidade_rotulo((string) $ordem['unidade']) . '.';
         Db::pdo()->prepare(
             "INSERT INTO fila_carregamentos (
-                ordem, data, cliente, pedido, nf, nf_emitida_em, nf_chave, nf_valor, material_id, quantidade_autorizada, unidade,
+                ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, material_id, quantidade_autorizada, unidade,
                 fracionado, ordem_principal_id, viagem, observacoes, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 1, ?, ?, ?, 'saldo')"
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 1, ?, ?, ?, 'saldo')"
         )->execute([
             $codigo,
             agora_sql(),
@@ -569,6 +596,7 @@ final class Operacoes
             $ordem['pedido'],
             $ordem['nf'],
             $ordem['nf_emitida_em'] ?? null,
+            $ordem['nf_emitida_data'] ?? null,
             $ordem['nf_chave'] ?? null,
             $ordem['material_id'],
             number_format($resto, 2, '.', ''),
@@ -639,7 +667,8 @@ final class Operacoes
 
     /**
      * Valor das notas emitidas no dia (o "vendido"). Conta cada nota uma vez: a primeira viagem do fracionado
-     * guarda o valor; as seguintes não. Nota sem hora de emissão conta pela data do lançamento.
+     * guarda o valor; as seguintes não. Conta pelo dia da emissão da nota (hora de emissão ou, no PDF sem hora,
+     * a data lida da nota); sem nenhuma das duas, pela data do lançamento.
      *
      * @return array{valor: float, notas: int, sem_valor: int}
      */
@@ -649,9 +678,9 @@ final class Operacoes
             "SELECT COUNT(*) AS notas, COALESCE(SUM(nf_valor), 0) AS valor, SUM(nf_valor IS NULL) AS sem_valor
              FROM fila_carregamentos
              WHERE ordem_principal_id IS NULL AND status <> 'cancelado'
-               AND COALESCE(nf_emitida_em, data) >= ? AND COALESCE(nf_emitida_em, data) <= ?"
+               AND COALESCE(DATE(nf_emitida_em), nf_emitida_data, DATE(data)) = ?"
         );
-        $comando->execute([$dia . ' 00:00:00', $dia . ' 23:59:59']);
+        $comando->execute([$dia]);
         $linha = $comando->fetch() ?: [];
 
         return [
@@ -698,10 +727,10 @@ final class Operacoes
         $doDia = Db::pdo()->prepare(
             "SELECT id FROM fila_carregamentos
              WHERE ordem_principal_id IS NULL
-               AND COALESCE(nf_emitida_em, data) >= ? AND COALESCE(nf_emitida_em, data) <= ?
+               AND COALESCE(DATE(nf_emitida_em), nf_emitida_data, DATE(data)) = ?
              ORDER BY COALESCE(nf_emitida_em, data) DESC, id DESC"
         );
-        $doDia->execute([$dia . ' 00:00:00', $dia . ' 23:59:59']);
+        $doDia->execute([$dia]);
         $idsDia = array_map('intval', array_column($doDia->fetchAll(), 'id'));
 
         $comSaldo = Db::pdo()->query(
@@ -770,6 +799,17 @@ final class Operacoes
         if (!in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true)) {
             throw new InvalidArgumentException('Essa ordem já está encerrada.');
         }
+        // A viagem 1 guarda a nota e o valor: cancelar ela com viagens seguintes ainda abertas tiraria a nota
+        // do vendido e deixaria o saldo solto. Primeiro encerra o saldo (a viagem que falta).
+        if ((int) ($ordem['ordem_principal_id'] ?? 0) === 0) {
+            $grupo = self::viagensDe((int) $ordem['id']);
+            $pendente = $grupo['pendente'];
+            if ($pendente !== null && (int) $pendente['id'] !== (int) $ordem['id']) {
+                throw new InvalidArgumentException(
+                    'Esta é a viagem 1 da nota fracionada. Para encerrar o saldo, use "Encerrar saldo" na viagem ' . $pendente['ordem'] . '.'
+                );
+            }
+        }
         $motivo = limpar_texto((string) $motivo, 300, false, 'o motivo');
         $linha = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Cancelado.';
         if ($motivo !== null) {
@@ -783,6 +823,118 @@ final class Operacoes
              WHERE id = ? AND status = ?"
         );
         $comando->execute([$observacoes, $id, $ordem['status']]);
+        self::exigirAlteracao($comando);
+    }
+
+    /**
+     * O administrativo corrige o que saiu numa viagem já finalizada (o operador digitou errado, ou esqueceram de
+     * marcar fracionado e o cliente levou só uma parte). O saldo da nota é refeito: a viagem que falta é criada,
+     * ajustada ou encerrada.
+     */
+    public static function corrigirCarregado(int $id, string $bruto, string $responsavel): string
+    {
+        $ordem = self::exigir($id);
+        if (!in_array($ordem['status'], ['aguardando_conferencia', 'concluido'], true)) {
+            throw new InvalidArgumentException('Só dá para corrigir a quantidade de uma viagem que já foi finalizada.');
+        }
+        try {
+            $valor = (float) parse_quantidade($bruto);
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('A quantidade carregada precisa ser um número, como 0,50.');
+        }
+        $unidade = unidade_rotulo((string) $ordem['unidade']);
+        if ($valor <= 0) {
+            throw new InvalidArgumentException('A quantidade carregada precisa ser maior que zero.');
+        }
+        if ($valor > (float) $ordem['quantidade_autorizada'] + 0.0001) {
+            throw new InvalidArgumentException('Esta viagem tinha ' . formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . $unidade . ' para carregar. Informe no máximo isso.');
+        }
+        $principalId = self::grupo($ordem);
+        $antesGrupo = self::viagensDe($principalId);
+        // Esta viagem mais as outras não passam do total da nota.
+        $estaViagem = (float) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']);
+        $outras = round($antesGrupo['carregado'] - $estaViagem, 2);
+        if ($antesGrupo['total'] > 0 && $valor > $antesGrupo['total'] - $outras + 0.0001) {
+            throw new InvalidArgumentException(
+                'A nota tem ' . formatar_quantidade($antesGrupo['total']) . ' ' . $unidade . ' e as outras viagens já levaram '
+                . formatar_quantidade($outras) . ' ' . $unidade . '. Nesta viagem cabem no máximo '
+                . formatar_quantidade(max(0.0, $antesGrupo['total'] - $outras)) . ' ' . $unidade . '.'
+            );
+        }
+        // Saldo que o administrativo já tinha encerrado (o cliente não vem mais) continua encerrado.
+        $jaEncerrado = $antesGrupo['encerrado'];
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            $antes = $ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada'];
+            $linha = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Quantidade carregada corrigida: '
+                . formatar_quantidade((string) $antes) . ' → ' . formatar_quantidade($valor) . ' ' . $unidade . '.';
+            $fracionado = $valor < (float) $ordem['quantidade_autorizada'] - 0.0001 ? 1 : (int) $ordem['fracionado'];
+            $pdo->prepare(
+                "UPDATE fila_carregamentos
+                 SET quantidade_carregada = ?, fracionado = ?, observacoes = ?
+                 WHERE id = ? AND status IN ('aguardando_conferencia', 'concluido')"
+            )->execute([number_format($valor, 2, '.', ''), $fracionado, trim((string) $ordem['observacoes'] . "\n\n" . $linha), $id]);
+
+            $grupo = self::viagensDe($principalId);
+            $pendente = $grupo['pendente'];
+            if ($pendente !== null && $pendente['status'] === 'carregando') {
+                throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' está carregando agora. Corrija depois que ela for finalizada.');
+            }
+            $saldo = $grupo['saldo'];
+            $aviso = 'Quantidade corrigida.';
+            if ($saldo > 0.0001 && $pendente !== null) {
+                // Só enquanto a viagem não começou: se a pá iniciou agora, nada muda (volta tudo).
+                $ajuste = $pdo->prepare(
+                    "UPDATE fila_carregamentos SET quantidade_autorizada = ?
+                     WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
+                );
+                $ajuste->execute([number_format($saldo, 2, '.', ''), (int) $pendente['id']]);
+                if ($ajuste->rowCount() === 0 && abs((float) $pendente['quantidade_autorizada'] - $saldo) > 0.0001) {
+                    throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
+                }
+                $aviso .= ' A viagem ' . $pendente['ordem'] . ' ficou com o saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . '.';
+            } elseif ($saldo > 0.0001 && $jaEncerrado) {
+                $aviso .= ' O saldo desta nota já estava encerrado, então nenhuma viagem nova foi criada.';
+            } elseif ($saldo > 0.0001) {
+                $ultima = end($grupo['viagens']);
+                $ultima = is_array($ultima) ? $ultima : $ordem;
+                $novaId = self::criarProximaViagem(['fracionado' => 1] + $ultima, $saldo);
+                $nova = self::exigir($novaId);
+                $aviso .= ' O saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . ' virou a viagem ' . $nova['ordem'] . ', em Saldo a buscar.';
+            } elseif ($pendente !== null) {
+                $fecho = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Encerrada: a nota foi toda carregada (correção da viagem ' . $ordem['ordem'] . ').';
+                $encerrar = $pdo->prepare(
+                    "UPDATE fila_carregamentos
+                     SET status = 'cancelado', observacoes = ?
+                     WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
+                );
+                $encerrar->execute([trim((string) $pendente['observacoes'] . "\n\n" . $fecho), (int) $pendente['id']]);
+                if ($encerrar->rowCount() === 0) {
+                    throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
+                }
+                $aviso .= ' A nota ficou toda carregada, e a viagem ' . $pendente['ordem'] . ' foi encerrada.';
+            }
+            $pdo->commit();
+
+            return $aviso;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /** A viagem do fracionado foi liberada mas o cliente não veio: volta a esperar, em vez de ser cancelada. */
+    public static function voltarParaSaldo(int $id): void
+    {
+        $ordem = self::exigir($id);
+        if ((int) ($ordem['ordem_principal_id'] ?? 0) === 0 || $ordem['status'] !== 'liberado') {
+            throw new InvalidArgumentException('Só a viagem de saldo liberada e ainda não carregada volta para Saldo a buscar.');
+        }
+        $comando = Db::pdo()->prepare(
+            "UPDATE fila_carregamentos SET status = 'saldo', autorizado_por = NULL, autorizado_em = NULL WHERE id = ? AND status = 'liberado'"
+        );
+        $comando->execute([$id]);
         self::exigirAlteracao($comando);
     }
 
@@ -801,7 +953,8 @@ final class Operacoes
             'cliente' => limpar_texto((string) ($post['cliente'] ?? ''), 160, true, 'o cliente'),
             'pedido' => limpar_texto((string) ($post['pedido'] ?? ''), 60, true, 'o pedido'),
             'nf' => limpar_texto((string) ($post['nf'] ?? ''), 60, true, 'a nota fiscal'),
-            'nf_emitida_em' => self::emissaoDaNota($post, $atual),
+            'nf_emitida_em' => $emitidaEm = self::emissaoDaNota($post, $atual),
+            'nf_emitida_data' => self::dataDaNota($post, $atual, $emitidaEm),
             'nf_chave' => self::chaveDaNota($post, $atual),
             'nf_valor' => self::valorDaNota($post, $atual),
             'fracionado' => self::fracionadoDoFormulario($post, $atual),
@@ -826,6 +979,42 @@ final class Operacoes
             return parse_data_hora($bruto);
         } catch (InvalidArgumentException) {
             throw new InvalidArgumentException('Informe a data e a hora em que a nota foi emitida, ou deixe em branco.');
+        }
+    }
+
+    /**
+     * Dia em que a nota foi emitida. Vem da hora de emissão; sem ela, da data lida da nota (o DANFE da Próspera
+     * traz só a data). É o dia em que a nota conta no vendido e no Controle de carga.
+     */
+    private static function dataDaNota(array $post, ?array $atual, ?string $emitidaEm): ?string
+    {
+        if ($emitidaEm !== null) {
+            return substr($emitidaEm, 0, 10);
+        }
+        if (!array_key_exists('nf_emitida_data', $post)) {
+            return $atual['nf_emitida_data'] ?? null;
+        }
+        $bruto = trim((string) $post['nf_emitida_data']);
+        $data = DateTimeImmutable::createFromFormat('!Y-m-d', $bruto);
+
+        return $data !== false && $data->format('Y-m-d') === $bruto ? $bruto : null;
+    }
+
+    /** O formulário trouxe outra carga (cliente, pedido, nota, material, quantidade ou unidade) do que a ordem tem. */
+    private static function mudouACarga(array $ordem, array $post): bool
+    {
+        foreach (['cliente', 'pedido', 'nf'] as $campo) {
+            if (trim((string) ($post[$campo] ?? '')) !== trim((string) $ordem[$campo])) {
+                return true;
+            }
+        }
+        if ((int) ($post['material_id'] ?? 0) !== (int) $ordem['material_id'] || (string) ($post['unidade'] ?? '') !== (string) $ordem['unidade']) {
+            return true;
+        }
+        try {
+            return abs((float) parse_quantidade((string) ($post['quantidade_autorizada'] ?? '')) - (float) $ordem['quantidade_autorizada']) > 0.0001;
+        } catch (InvalidArgumentException) {
+            return true;
         }
     }
 

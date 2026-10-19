@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 final class Dashboard
 {
+    /** Segundos de descarga no britador; depois disso o caminhão aparece voltando vazio no Monitor. */
+    private const DESCARGA = 180;
+
     public static function instantaneo(): array
     {
         $dia = date('Y-m-d');
@@ -33,6 +36,13 @@ final class Dashboard
                 ], Lavra::limpezasAbertas()),
             ],
             'patio' => self::patio($dia, $patio),
+            // Problemas avisados pelos operadores ao soltar a máquina, até alguém marcar como resolvido.
+            'problemas' => array_map(static fn (array $problema): array => [
+                'maquina' => (string) $problema['maquina'],
+                'descricao' => (string) $problema['descricao'],
+                'usuario' => (string) $problema['usuario'],
+                'desde_ts' => (int) strtotime((string) $problema['relatado_em']),
+            ], Problemas::abertos()),
         ];
     }
 
@@ -71,23 +81,29 @@ final class Dashboard
             default => $ciclo['inicio_fila'],
         };
         $naEstrada = in_array($status, ['em_viagem', 'no_britador', 'retornando'], true);
-        $base = match ($status) {
-            'em_viagem' => (int) ($medias['ida'] ?? 0),
-            'retornando' => (int) ($medias['retorno'] ?? 0),
+        $decorrido = segundos_entre((string) $desde, agora_sql()) ?? 0;
+        // O motorista só marca a chegada no britador e a chegada na lavra: passado o tempo de descarga,
+        // o caminhão que está "no britador" já está voltando vazio.
+        $voltando = $status === 'retornando' || ($status === 'no_britador' && $decorrido >= self::DESCARGA);
+        $base = match (true) {
+            $status === 'em_viagem' => (int) ($medias['ida'] ?? 0),
+            $voltando => (int) ($medias['retorno'] ?? 0),
             default => 0,
         };
         if ($base < 60) {
             $base = 900;
         }
-        $decorrido = segundos_entre((string) $desde, agora_sql()) ?? 0;
-        $faixa = match ($status) {
-            'em_viagem', 'no_britador' => 'ida',
-            'retornando' => 'volta',
+        $faixa = match (true) {
+            $voltando => 'volta',
+            $status === 'em_viagem', $status === 'no_britador' => 'ida',
             default => 'lavra',
         };
-        $progresso = $status === 'no_britador'
-            ? 1.0
-            : ($naEstrada ? min(1, $decorrido / $base) : 0.0);
+        $progresso = match (true) {
+            $voltando => min(1, $decorrido / $base),
+            $status === 'no_britador' => 1.0,
+            $naEstrada => min(1, $decorrido / $base),
+            default => 0.0,
+        };
         $distancia = match ($faixa) {
             'ida' => $estrada['ida_km'],
             'volta' => $estrada['retorno_km'],
@@ -102,7 +118,7 @@ final class Dashboard
             'motorista' => (string) ($ciclo['operador'] ?? ''),
             'capacidade' => $ciclo['capacidade_t'] !== null ? (float) $ciclo['capacidade_t'] : null,
             'status' => $status,
-            'estado' => self::estadoLavra($status),
+            'estado' => $voltando ? 'Voltando' : self::estadoLavra($status),
             'faixa' => $faixa,
             'progresso' => round($progresso, 3),
             'km' => $distancia !== null && $naEstrada ? round($progresso * $distancia, 2) : null,

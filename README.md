@@ -9,9 +9,10 @@ O ciclo de lavra conta as viagens do caminhão: fila, carga, ida até o britador
 Em **Fila › Carregamento › Nova ordem**, o quadro **Ler a nota fiscal** recebe o **XML** ou o **PDF (DANFE)** da nota. Toque em **Ler nota**: o sistema preenche o cliente, o pedido, o número da nota, o material, a quantidade, a unidade e a hora em que a nota foi emitida. Confira, marque **Liberar agora para o pátio** se quiser e toque em **Lançar ordem**.
 
 - **XML**: leitura exata, campo por campo. A hora é a da emissão da nota.
-- **PDF**: o sistema lê o texto do DANFE. O número e a série vêm da chave de acesso (conferida pelo dígito verificador); a hora vem do protocolo de autorização (segundos depois da emissão) ou da hora de saída. Alguns DANFEs, como o da Próspera, só mostram a data da emissão, sem a hora: a tela avisa, e para gravar a hora use o XML. PDF escaneado (foto) não tem texto: use o XML.
+- **PDF**: o sistema lê o texto do DANFE. O número e a série vêm da chave de acesso (conferida pelo dígito verificador); a hora vem do protocolo de autorização (segundos depois da emissão) ou da hora de saída. Alguns DANFEs, como o da Próspera, só mostram a data da emissão, sem a hora: a tela avisa, o sistema guarda a data (a nota conta no vendido desse dia) e, para gravar a hora, use o XML. PDF escaneado (foto) não tem texto: use o XML.
 - **Pedido**: o do campo de pedido da nota (xPed) ou, se não tiver, o "Pedido: ..." das informações complementares.
-- **Material**: o do cadastro com o mesmo nome do material da nota (sem diferença de acento ou maiúscula; "BRITA 1" acha "Brita 1"). Se não achar, a tela avisa e você escolhe. Se a nota tiver mais de um material, o carregamento usa o primeiro e a tela avisa.
+- **Material**: o do cadastro com o mesmo nome do material da nota (sem diferença de acento ou maiúscula; "BRITA 1" acha "Brita 1"). Se não achar, a tela avisa e você escolhe. Se a nota tiver mais de um material, o carregamento usa o primeiro e a tela avisa. Linhas do mesmo material em unidades diferentes (t e m³) não se somam: a tela avisa para conferir a quantidade.
+- **Unidade**: t, m³ ou un. Se a nota trouxer outra unidade (por exemplo SC), o campo fica em **Escolha** e a tela avisa.
 - **Nota repetida**: a tela avisa se a nota já está em outro carregamento, e o sistema não deixa lançar a mesma nota (mesma chave de acesso) duas vezes.
 
 A hora em que o caminhão foi carregado continua vindo do pátio (início e fim do carregamento). A ficha da ordem mostra a hora da nota e quanto tempo depois dela o carregamento começou.
@@ -25,14 +26,16 @@ Quando o cliente leva o material da nota em várias viagens (por exemplo, uma no
 - **No pátio**: ao finalizar, o operador informa **quanto foi carregado nesta viagem**. O sistema não aceita mais do que o saldo da nota.
 - **O que sobra**: vira a próxima viagem (CAR-012-2, CAR-012-3...), com a situação **Saldo a buscar**. Ela não entra na fila do pátio sozinha.
 - **Quando o cliente volta**: toque em **O cliente voltou: liberar viagem** na ficha da ordem, ou em **Liberar viagem** no **Controle de carga**. A viagem vai para a fila do pátio com o saldo que falta.
-- **Cliente não vai buscar o resto**: na viagem com saldo, **Encerrar saldo** (cancela só o que faltava; o que já foi carregado continua).
+- **Cliente não vai buscar o resto**: **Encerrar saldo**, na viagem com saldo, na viagem 1 ou no **Controle de carga** (cancela só o que faltava; o que já foi carregado continua). A viagem 1 não se cancela enquanto há saldo aberto: primeiro encerre o saldo.
+- **Viagem liberada e o cliente não veio**: na ficha da viagem, **O cliente não veio: voltar para Saldo a buscar** (sai da fila do pátio sem cancelar).
+- **Quantidade errada ou fracionado esquecido**: na ficha de uma viagem finalizada, **Corrigir a quantidade carregada**. O saldo da nota é refeito: se faltar material, a próxima viagem fica em **Saldo a buscar** (a ordem vira fracionada); se a nota ficar toda carregada, a viagem que esperava é encerrada. Saldo encerrado pelo administrativo continua encerrado.
 - A ficha da ordem mostra todas as viagens da nota, com quanto cada uma levou e o saldo.
 
 ## Controle de carga e vendido do dia
 
 **Fila › Controle** (só administrativo) mostra, para o dia escolhido:
 
-- **Vendido no dia**: a soma do valor das notas emitidas no dia (a data e hora da nota; sem ela, o dia do lançamento). Cada nota conta uma vez, mesmo fracionada. Notas canceladas não contam. Se alguma nota estiver sem valor, a tela avisa quantas.
+- **Vendido no dia**: a soma do valor das notas emitidas no dia (o dia da emissão da nota, também quando o PDF só traz a data; sem nenhuma, o dia do lançamento). Cada nota conta uma vez, mesmo fracionada. Notas canceladas não contam. Se alguma nota estiver sem valor, a tela avisa quantas.
 - **Carregado no dia**: o que saiu do pátio, em t e m³, contando cada viagem do fracionado pelo que foi carregado de verdade.
 - **Saldo a buscar**: as notas fracionadas esperando o cliente voltar, com o botão **Liberar viagem**.
 - **Notas do dia**: cada nota com o vendido, o carregado, o saldo, o valor e a situação.
@@ -47,7 +50,9 @@ A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. T
 
 - **No alto**: o carregado hoje (o número maior), a fila do pátio com a maior espera, quantas pás estão carregando, as viagens da lavra e os caminhões em ciclo.
 - **Pátio**: cada pá com o cliente e há quanto tempo está carregando; a fila com o tempo de espera de cada cliente. Espera de 30 minutos ou mais fica **amarela**, de 1 hora ou mais fica **vermelha**. O que não cabe na tela aparece como "+ N na fila".
-- **Lavra**: o circuito com os caminhões (azul = carregado indo para o britador, cinza = voltando vazio, contorno = na lavra) e a lista do que cada caminhão está fazendo.
+- **Lavra**: o circuito com os caminhões (azul = carregado indo para o britador, cinza = voltando vazio, contorno = na lavra) e a lista do que cada caminhão está fazendo. O motorista só marca a chegada no britador: 3 minutos depois o caminhão passa a aparecer voltando vazio.
+- **Problemas nas máquinas**: faixa vermelha entre os números e as áreas, com a máquina, o problema, quem avisou e quando (até 4; o resto aparece como "+ N"). Some sozinha quando o problema é marcado como resolvido na ficha da máquina.
+- **Limpeza da lavra**: o quadro "Caminhões na lavra" fica amarelo com "Retro 1 em limpeza", e a área da lavra mostra a faixa com o tempo.
 - **Por hora**: cargas do pátio e viagens da lavra em cada hora do dia; a hora atual em azul.
 - Os relógios contam sozinhos e os números se atualizam a cada 8 segundos. Se a internet da TV cair, aparece **"Sem atualização desde ..."** em amarelo; depois de 3 minutos os números ficam apagados, para ninguém ler número velho como se fosse de agora.
 - **Vendido do dia (R$)**: fica escondido na TV, porque os motoristas também veem a tela. Para mostrar, marque **Mostrar o vendido do dia (R$) nesta tela** (vale só para aquele aparelho).
@@ -140,7 +145,7 @@ CHAVE=/caminho/prospera-app.jks CHAVE_SENHA='senha da chave' ENDERECO=https://op
 
 O Android só atualiza o app se a versão nova vier com a mesma chave. Sem a chave, é preciso desinstalar o app antigo em cada tablet antes de instalar o novo (e autorizar o tablet de novo). Nunca coloque a chave no Git: o repositório é público.
 
-O que o app faz: abre só o endereço do sistema (outros endereços vão para o Chrome); mantém a tela acesa quando o sistema pede (com máquina assumida); mostra "Sem conexão" e tenta de novo sozinho; escolhe foto da galeria nos cadastros; o botão Voltar volta uma tela e, no começo, deixa o app em segundo plano; o Android não oferece para guardar senhas digitadas no app.
+O que o app faz: abre só o endereço do sistema (outros endereços vão para o Chrome); mantém a tela acesa quando o sistema pede (com máquina assumida); mostra "Sem conexão" e tenta de novo sozinho; escolhe foto da galeria nos cadastros e o PDF ou XML da nota fiscal (versão 1.2); o botão Voltar volta uma tela e, no começo, deixa o app em segundo plano; o Android não oferece para guardar senhas digitadas no app.
 
 ## Sessão
 
@@ -160,11 +165,14 @@ No pátio, o tablet do operador avisa com som, vibração e um quadro grande na 
 
 - **libera uma carga nova** (três bipes subindo);
 - **altera uma carga** que está na fila ou carregando: cliente, pedido, nota, material, quantidade, unidade ou observações (dois bipes);
-- **cancela uma carga** que estava liberada (dois bipes descendo).
+- **cancela uma carga** que estava liberada (dois bipes descendo);
+- **tira da fila** a viagem do fracionado em que o cliente não veio (volta para Saldo a buscar; dois bipes descendo).
 
-O quadro mostra o cliente, a carga e o número (CAR-...) e só some no **Ciente**. Enquanto ninguém tocar em Ciente, o som repete a cada 20 segundos, até 3 vezes. Se o operador estava em outra tela (iniciando ou finalizando uma carga), o aviso aparece quando ele volta ao pátio. Ao abrir o pátio pela primeira vez, as cargas que já estavam lá não avisam. O administrativo não recebe esses avisos.
+O quadro mostra o cliente, a carga e o número (CAR-...) e só some no **Ciente**. Na carga alterada, mostra também o que era antes ("Antes: 4,00 t · Brita 1") e a observação nova. Com muitos avisos, os quadros rolam e o **Ciente** fica sempre à vista. Enquanto ninguém tocar em Ciente, o som repete a cada 20 segundos, até 3 vezes. Se o operador estava em outra tela (iniciando ou finalizando uma carga), o aviso aparece quando ele volta ao pátio. Ao abrir o pátio pela primeira vez, as cargas que já estavam lá não avisam. O administrativo não recebe esses avisos.
 
-No app da Próspera (versão 1.1) o som e a vibração são do próprio Android. No Chrome, o navegador só deixa tocar som depois de um toque na tela; o quadro aparece de qualquer jeito.
+O cartão da carga no pátio e as telas de iniciar e finalizar mostram a observação do administrativo. Com duas pás, só quem iniciou a carga (ou o administrativo) finaliza: no tablet do outro operador aparece "Carregando com ...". Se o administrativo corrigir a carga no mesmo momento em que a pá começa a carregar, a tela dele avisa que nada foi alterado.
+
+No app da Próspera (versão 1.1) o som e a vibração são do próprio Android. No Chrome, sem o app, quem decide é o navegador: o som toca se o operador tocou em alguma tela do sistema antes de voltar ao pátio (por exemplo, no **Finalizar**) ou já tocou no pátio. Logo depois de abrir o navegador ou recarregar a página, só toca a partir do primeiro toque. O quadro aparece sempre. Para o som tocar sempre, use o app.
 
 ## Limpeza da lavra
 
@@ -174,9 +182,15 @@ Quando a escavadeira para de carregar para limpar a lavra, o operador toca em **
 - os motoristas veem "Retro 1 em limpeza da lavra" na tela dos caminhões;
 - o **Painel** mostra a limpeza em andamento, com quem e desde quando, e o **Monitor da TV** mostra uma faixa amarela na área da lavra.
 
-A limpeza termina no **Terminar limpeza**, ao **iniciar a carga** de um caminhão, ao carregar no pátio com a escavadeira ou ao **soltar** a escavadeira. Não dá para começar a limpeza no meio de uma carga.
+Durante a limpeza a escavadeira pode carregar os caminhões que chegam: a limpeza continua marcada, e os minutos de carga não contam como limpeza. A limpeza termina no **Terminar limpeza**, ao carregar no pátio com a escavadeira ou ao **soltar** a escavadeira. Limpeza esquecida aberta fecha sozinha no fim do dia em que começou, e o administrativo pode terminá-la pelo botão **Terminar** no Painel. Não dá para começar a limpeza no meio de uma carga.
 
-**Tempo médio**: a espera do caminhão na fila durante a limpeza da escavadeira que carregou ele sai da fila e do ciclo, e aparece à parte como **Limpeza** em cada viagem. O Painel e os Tempos do dia mostram o total de limpeza do dia. Assim a limpeza não aumenta o tempo médio.
+**Tempo médio do Pusch** (lavra → britador → lavra): a espera do caminhão na fila enquanto a escavadeira que carregou ele estava limpando (e não carregando outro caminhão) sai da fila e do ciclo, e aparece à parte como **Limpeza** em cada viagem. O Painel e os Tempos do dia mostram o total de limpeza do dia. Também ficam fora da média:
+
+- a viagem **encerrada sem voltar** (pneu, oficina, fim de turno): fora da volta e do ciclo, e da estrada se não chegou no britador;
+- a viagem que foi para a **garagem** no britador: fora da volta e do ciclo;
+- a etapa que **atravessa a meia-noite** (caminhão deixado na fila ou no britador de um dia para o outro).
+
+Essas viagens continuam contando na produção e no número de viagens.
 
 ## Problemas das máquinas
 
@@ -185,11 +199,18 @@ Ao soltar qualquer máquina (pá carregadeira, escavadeira ou caminhão), pelo *
 - **Tudo certo**: solta normalmente. O turno fica marcado como "entregou tudo certo".
 - **Teve problema**: aparece **Qual foi o problema?** (por exemplo, "quebrou o ar-condicionado"). Sem escrever o problema, a máquina não é solta. O problema fica gravado com a máquina, quem avisou, quando e o horímetro.
 
-O operador precisa responder uma das duas para soltar. Se o problema já foi avisado e ainda não foi resolvido, a tela de soltar mostra, para ninguém precisar escrever de novo.
+O operador precisa responder uma das duas para soltar. Se o problema já foi avisado e ainda não foi resolvido, a tela de soltar mostra: basta marcar **Teve problema** e deixar o texto em branco (escreve só se for um problema novo).
+
+**Caminhão que encerra a viagem** (Encerrar viagem): o motivo **Oficina** já vira problema do caminhão na hora, com o detalhe escrito em "O que aconteceu". Nos outros motivos, marque **É problema no caminhão** e escreva o que aconteceu (ex.: "pneu furou"): o escritório e a TV veem na hora, sem esperar o motorista soltar o caminhão. Ao soltar depois, "Teve problema" já vem marcado.
+
+**Entrada digitada errada**: se o operador digitou o horímetro errado ao assumir e a saída é recusada, a tela de soltar tem **A entrada foi digitada errada?**: ele informa o horímetro certo da entrada e solta normalmente. A entrada errada fica anulada, com registro na ficha da máquina. Se já houve outra leitura depois da entrada, quem corrige é o administrativo.
+
+O horímetro aceita ponto de milhar, igual ao que a tela mostra: "12.350" é 12.350 h; a casa decimal é a vírgula ("12.350,5").
 
 Onde aparece:
 
 - **Painel**: quadro **Problemas nas máquinas**, com os problemas abertos. Tocar num problema abre a ficha da máquina.
+- **Monitor da TV**: faixa vermelha **Problemas nas máquinas**, enquanto houver algum aberto.
 - **Manutenção**: os problemas abertos de cada máquina.
 - **Ficha da máquina** (Cadastros): os problemas abertos, **Marcar resolvido** (com o que foi feito, se quiser), **Registrar problema** (quando o aviso chega por telefone) e os últimos resolvidos. Os turnos mostram se a pessoa entregou tudo certo ou avisou problema.
 - **Escolher máquina**: quem vai pegar a máquina vê o problema aberto embaixo do nome dela.
@@ -248,4 +269,4 @@ Sem o token guardado, o script pede o token da API Hostinger na hora; o que é c
 
 ## Mudanças no banco
 
-O banco é atualizado sozinho no primeiro acesso depois de uma publicação: o `database/schema.sql` cria as tabelas, e as funções `garantir*()` de `src/Db.php` acrescentam colunas em tabelas que já existem. Ao criar ou mudar uma função `garantir*()`, troque também o valor de `Db::MIGRACOES`; sem isso, a atualização não roda de novo nos servidores que já estão no ar.
+O banco é atualizado sozinho no primeiro acesso depois de uma publicação (a marca da versão fica no próprio banco, na tabela `schema_versao`: banco novo ou zerado é montado de novo, mesmo que a pasta `storage` tenha sobrado): o `database/schema.sql` cria as tabelas, e as funções `garantir*()` de `src/Db.php` acrescentam colunas em tabelas que já existem. Ao criar ou mudar uma função `garantir*()`, troque também o valor de `Db::MIGRACOES`; sem isso, a atualização não roda de novo nos servidores que já estão no ar.

@@ -34,7 +34,8 @@ function despachar(string $path, string $method): void
     if ($path === 'health') {
         header('Content-Type: application/json; charset=utf-8');
         try {
-            Db::pdo()->query('SELECT 1');
+            // Confere uma tabela do sistema, não só a conexão: banco sem as tabelas não está pronto.
+            Db::pdo()->query('SELECT 1 FROM usuarios LIMIT 1');
             echo '{"ok":true}';
         } catch (Throwable $e) {
             http_response_code(503);
@@ -79,7 +80,7 @@ function despachar(string $path, string $method): void
                 return;
             }
             try {
-                horimetro_soltar($leitura, (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''));
+                horimetro_soltar($leitura, (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''), (string) ($_POST['entrada_certa'] ?? ''));
             } catch (InvalidArgumentException $e) {
                 tela_soltar($maquina, $e->getMessage(), 'sair');
                 return;
@@ -456,6 +457,12 @@ function despachar(string $path, string $method): void
 
     exigir_admin();
 
+    if (preg_match('#^lavra/limpezas/(\d+)/terminar$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        flash_set(Lavra::terminarLimpezaPorId((int) $m[1]) ? 'Limpeza da lavra terminada.' : 'A limpeza já estava terminada.');
+        redirect('/painel');
+    }
+
     if ($path === 'usuarios') {
         tela_pessoas();
         return;
@@ -586,6 +593,27 @@ function despachar(string $path, string $method): void
         redirect(($_POST['voltar'] ?? '') === 'controle'
             ? '/controle' . (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) ? '?dia=' . $dia : '')
             : '/ordens/' . $m[1]);
+    }
+
+    if (preg_match('#^ordens/(\d+)/carregado$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            flash_set(Operacoes::corrigirCarregado((int) $m[1], (string) ($_POST['quantidade'] ?? ''), Auth::usuario()));
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/ordens/' . $m[1]);
+    }
+
+    if (preg_match('#^ordens/(\d+)/saldo$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            Operacoes::voltarParaSaldo((int) $m[1]);
+            flash_set('A viagem voltou para Saldo a buscar.');
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/ordens/' . $m[1]);
     }
 
     if (preg_match('#^ordens/(\d+)/concluir$#', $path, $m) && $method === 'POST') {
@@ -799,7 +827,7 @@ function lavra_marca(): string
     if ($mostraCarga && !$mostraCiclo) {
         $partes['voltando'] = array_map(static fn (array $ciclo): array => [
             (int) $ciclo['id'],
-            $ciclo['inicio_retorno'] ?? null,
+            $ciclo['inicio_retorno'] ?? $ciclo['chegada_britador'] ?? null,
             $ciclo['placa'] ?? null,
         ], Lavra::voltando());
         $partes['chegou'] = array_map(static fn (array $caminhao): array => [
@@ -866,13 +894,32 @@ function patio_avisos(): array
         'cliente' => (string) $ordem['cliente'],
         'carga' => formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . unidade_rotulo((string) $ordem['unidade'])
             . ' · ' . (string) ($ordem['material_nome'] ?? ''),
+        'obs' => observacao_recente($ordem['observacoes'] ?? null),
         'assinatura' => patio_assinatura($ordem),
     ];
 
     return [
         'fila' => array_map($resumo, Operacoes::patio()),
         'canceladas' => array_map($resumo, Operacoes::canceladasRecentes()),
+        'retiradas' => array_map($resumo, Operacoes::retiradasRecentes()),
     ];
+}
+
+/**
+ * O recado mais recente das observações (o último parágrafo escrito por alguém), curto, para o tablet do pátio.
+ * As linhas que o sistema acrescenta ("[17/10/2026 09:19] Viagem 2 do CAR-006...") ficam de fora; o que a pessoa
+ * escreveu logo embaixo delas, sem linha em branco, continua.
+ */
+function observacao_recente(?string $observacoes): string
+{
+    $semSistema = preg_replace('/^[ \t]*\[\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}[^\]\n]*\].*$/m', '', str_replace("\r", '', (string) $observacoes)) ?? '';
+    $partes = array_values(array_filter(
+        array_map('trim', preg_split('/\n\s*\n/', $semSistema) ?: []),
+        static fn (string $parte): bool => $parte !== ''
+    ));
+    $ultima = (string) (end($partes) ?: '');
+
+    return mb_strlen($ultima, 'UTF-8') > 200 ? mb_substr($ultima, 0, 199, 'UTF-8') . '…' : $ultima;
 }
 
 function patio_marca(): string
@@ -924,6 +971,7 @@ function painel_marca(): string
         'viagens' => (int) ($lavraDia['caminhao']['viagens'] ?? 0),
         'toneladas' => $lavraDia['caminhao']['producao']['toneladas'] ?? null,
         'problemas' => array_map(static fn (array $problema): int => (int) $problema['id'], Problemas::abertos()),
+        'vendas' => Operacoes::vendas($dia),
         'limpezas' => array_map(static fn (array $limpeza): int => (int) $limpeza['id'], Lavra::limpezasAbertas()),
     ]);
 }
@@ -1083,6 +1131,13 @@ function tela_iniciar(int $id, string $method): void
 function tela_finalizar(int $id, string $method): void
 {
     $ordem = ordem_ou_404($id);
+    // Com duas pás, a carga em andamento de um operador aparece no tablet do outro: só quem iniciou finaliza
+    // (o administrativo também pode, para resolver uma carga esquecida).
+    $dono = trim((string) ($ordem['operador'] ?? ''));
+    if (!Auth::admin() && $ordem['status'] === 'carregando' && $dono !== '' && $dono !== Auth::usuario()) {
+        flash_set('Esta carga está com ' . $dono . '. Só quem iniciou finaliza (ou o administrativo).', 'erro');
+        redirect('/patio');
+    }
     $erro = null;
     $nota = (string) ($_POST['nota'] ?? '');
     $quantidade = (string) ($_POST['quantidade'] ?? '');
@@ -1090,7 +1145,7 @@ function tela_finalizar(int $id, string $method): void
     if ($method === 'POST') {
         csrf_check();
         try {
-            Operacoes::finalizar($id, $nota, Auth::usuario(), $quantidade);
+            Operacoes::finalizar($id, $nota, Auth::usuario(), $quantidade, Auth::admin() ? null : Auth::usuario());
             flash_set('Carregamento enviado para conferência.');
             redirect('/patio');
         } catch (InvalidArgumentException $e) {
@@ -1182,7 +1237,7 @@ function tela_maquina(string $method): void
         }
         if ($soltar) {
             try {
-                horimetro_soltar((string) ($_POST['leitura'] ?? ''), (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''));
+                horimetro_soltar((string) ($_POST['leitura'] ?? ''), (string) ($_POST['situacao'] ?? ''), (string) ($_POST['problema'] ?? ''), (string) ($_POST['entrada_certa'] ?? ''));
                 redirect('/maquina');
             } catch (InvalidArgumentException $e) {
                 $erro = $e->getMessage();
@@ -1414,10 +1469,29 @@ function tela_lavra_encerrar(int $id, string $method): void
     $erro = null;
     $motivo = (string) ($_POST['motivo'] ?? '');
     $outro = (string) ($_POST['outro'] ?? '');
+    $problema = !empty($_POST['problema']);
     if ($method === 'POST') {
         csrf_check();
         try {
+            // Oficina, ou "é problema no caminhão" marcado: vira problema da máquina na hora (Painel, Manutenção e TV),
+            // sem esperar o motorista soltar o caminhão.
+            $descricao = null;
+            if ($motivo === 'oficina') {
+                $descricao = 'Foi para a oficina' . (trim($outro) !== '' ? ': ' . trim($outro) : '');
+            } elseif ($problema) {
+                if (trim($outro) === '') {
+                    throw new InvalidArgumentException('Escreva o que aconteceu com o caminhão.');
+                }
+                $descricao = trim($outro);
+            }
+            if ($descricao !== null) {
+                $descricao = Problemas::texto($descricao);
+            }
             $aviso = Lavra::encerrar($id, $motivo, $outro, Auth::usuario(), Auth::motorista() ? Auth::usuario() : null);
+            if ($descricao !== null) {
+                Problemas::relatar('caminhao', (int) $ciclo['caminhao_id'], Auth::usuario(), $descricao, Horimetro::atual('caminhao', (int) $ciclo['caminhao_id']));
+                $aviso .= ' O problema foi avisado ao escritório.';
+            }
             if (!Auth::admin() && (string) ($ciclo['operador'] ?? '') === Auth::usuario()) {
                 horimetro_marcar_soltar();
             }
@@ -1435,6 +1509,7 @@ function tela_lavra_encerrar(int $id, string $method): void
         'ciclo' => $ciclo,
         'motivo' => $motivo,
         'outro' => $outro,
+        'problema' => $problema,
         'erro' => $erro,
     ]);
 }
@@ -1645,8 +1720,10 @@ function tela_ler_nota(string $method): void
         'nf' => (string) ($nota['nf'] ?? ''),
         'material_id' => $materialId ?? 0,
         'quantidade_autorizada' => $nota['quantidade'] !== null ? formatar_quantidade($nota['quantidade']) : '',
-        'unidade' => (string) ($nota['unidade'] ?? $dados['valor']['unidade']),
+        // Unidade que a nota traz e o sistema não conhece: fica em branco, para a pessoa escolher (não vira tonelada sozinha).
+        'unidade' => (string) ($nota['unidade'] ?? (($nota['unidade_nota'] ?? '') !== '' ? '' : $dados['valor']['unidade'])),
         'nf_emitida_em' => data_hora_para_input($nota['emitida_em']),
+        'nf_emitida_data' => (string) ($nota['data_emissao'] ?? ''),
         'nf_chave' => (string) ($nota['chave'] ?? ''),
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
     ]);
@@ -1684,6 +1761,10 @@ function leitura_da_nota(array $nota, ?int $materialId): array
     if ($nota['quantidade'] === null) {
         $avisos[] = 'Não achei a quantidade na nota. Preencha a quantidade.';
     }
+    if (($nota['outras_unidades'] ?? []) !== []) {
+        $avisos[] = 'A nota tem o mesmo material em outra unidade (' . implode(', ', $nota['outras_unidades']) . '). Somei só os itens em "'
+            . $nota['unidade_nota'] . '". Confira a quantidade.';
+    }
     if ($nota['unidade'] === null) {
         $avisos[] = $nota['unidade_nota'] !== null && $nota['unidade_nota'] !== ''
             ? 'A unidade da nota ("' . $nota['unidade_nota'] . '") não é t, m³ nem un. Confira a unidade.'
@@ -1694,7 +1775,7 @@ function leitura_da_nota(array $nota, ?int $materialId): array
     }
     if ($nota['emitida_em'] === null) {
         $avisos[] = !empty($nota['data_emissao'])
-            ? 'O PDF desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
+            ? 'O ' . ($nota['origem'] === 'xml' ? 'XML' : 'PDF') . ' desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. A nota conta no vendido desse dia. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
             : 'Não achei a hora em que a nota foi emitida. Preencha "Nota emitida em", se souber.';
     }
     $repetida = Operacoes::ordemComNota($nota['chave'], $nota['nf']);
@@ -1750,7 +1831,7 @@ function tela_cancelar(int $id, string $method): void
         csrf_check();
         try {
             Operacoes::cancelar($id, (string) ($_POST['motivo'] ?? ''), Auth::usuario());
-            flash_set('Ordem cancelada.');
+            flash_set($ordem['status'] === 'saldo' ? 'Saldo encerrado.' : 'Ordem cancelada.');
             redirect('/ordens/' . $id);
         } catch (InvalidArgumentException $e) {
             $erro = $e->getMessage();
@@ -2083,6 +2164,7 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                 'nf_emitida_em' => $post !== null
                     ? (string) ($post['nf_emitida_em'] ?? '')
                     : data_hora_para_input(is_array($ordem) ? ($ordem['nf_emitida_em'] ?? null) : null),
+                'nf_emitida_data' => (string) ($fonte['nf_emitida_data'] ?? ''),
                 'nf_chave' => (string) ($fonte['nf_chave'] ?? ''),
                 'nf_valor' => $post !== null
                     ? (string) ($post['nf_valor'] ?? '')

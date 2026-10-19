@@ -42,6 +42,8 @@
 
     function duracao(segundos) {
         if (segundos == null || segundos < 0) return '—';
+        // Abaixo de 1 minuto mostra os segundos: "0 min" parecia número quebrado.
+        if (segundos < 60) return Math.floor(segundos) + ' s';
         var h = Math.floor(segundos / 3600);
         var m = Math.floor((segundos % 3600) / 60);
         if (h > 0) return h + ' h ' + String(m).padStart(2, '0');
@@ -91,12 +93,17 @@
             : 'ninguém esperando';
         var pas = estado.patio.maquinas.filter(function (m) { return m.ordem; }).map(function (m) { return esc(m.nome); });
         var esperando = estado.lavra.caminhoes.filter(function (c) { return c.status === 'na_fila'; }).length;
+        var limpando = (estado.lavra.limpezas || []).map(function (l) { return l.retro; });
         var lista = [
             tile('Carregado hoje', principal, outra + p.expedidas + (p.expedidas === 1 ? ' carga' : ' cargas'), 'tv-heroi'),
             tile('Na fila do pátio', String(p.aguardando), espera, maior >= ESPERA_CRITICA ? 'critico' : (maior >= ESPERA_ATENCAO ? 'atencao' : '')),
             tile('Carregando', String(p.carregando), pas.length ? pas.join(' · ') : 'nenhuma pá carregando'),
             tile('Viagens da lavra', String(l.viagens), (l.toneladas != null ? quantia(l.toneladas) + ' t · ' : '') + 'ciclo ' + duracao(l.ciclo)),
-            tile('Caminhões na lavra', String(l.operacao), esperando ? esperando + ' esperando a escavadeira' : 'nenhum esperando')
+            tile('Caminhões na lavra', String(l.operacao),
+                limpando.length
+                    ? esc(limpando.join(' e ')) + ' em limpeza'
+                    : (esperando ? esperando + ' esperando a escavadeira' : 'nenhum esperando'),
+                limpando.length ? 'atencao' : '')
         ];
         if (mostrarVendas && estado.vendas) {
             var semValor = estado.vendas.sem_valor || 0;
@@ -105,6 +112,34 @@
                 (semValor ? ' · ' + semValor + ' sem valor' : '')));
         }
         return '<section class="tv-numeros n' + lista.length + '">' + lista.join('') + '</section>';
+    }
+
+    // ---- problemas das máquinas (avisados ao soltar a máquina): faixa vermelha enquanto houver algum aberto
+
+    function quando(epoch) {
+        var dia = function (t) {
+            try {
+                return new Date(t * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: dados.fuso || undefined });
+            } catch (e) {
+                return new Date(t * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            }
+        };
+        return dia(epoch) === dia(agoraServidor()) ? horaMinuto(epoch) : dia(epoch);
+    }
+
+    function problemas(estado) {
+        var lista = estado.problemas || [];
+        if (lista.length === 0) return '';
+        // TV pequena ou baixa: uma linha só (dois avisos lado a lado), para sobrar altura para a fila e a lavra.
+        var visiveis = lista.slice(0, window.innerHeight < 720 ? 2 : 4);
+        return '<section class="tv-problemas" aria-label="Problemas nas máquinas">' +
+            '<h2><i aria-hidden="true">!</i>Problemas nas máquinas<span>' + lista.length + '</span></h2>' +
+            '<ul>' + visiveis.map(function (p) {
+                return '<li><strong>' + esc(p.maquina) + '</strong> ' + esc(p.descricao) +
+                    ' <small>' + esc(p.usuario) + ' · ' + esc(quando(p.desde_ts)) + '</small></li>';
+            }).join('') + '</ul>' +
+            (lista.length > visiveis.length ? '<p class="tv-problemas-mais">+ ' + (lista.length - visiveis.length) + '</p>' : '') +
+            '</section>';
     }
 
     // ---- pátio
@@ -192,11 +227,24 @@
         var lista = estado.lavra.caminhoes;
         var grupos = { lavra: [], ida: [], volta: [] };
         lista.forEach(function (c) { (grupos[c.faixa] || grupos.lavra).push(c); });
-        var marcas = lista.map(function (c) {
+        var pontos = lista.map(function (c) {
             var grupo = grupos[c.faixa] || grupos.lavra;
-            var ponto = lugar(c, grupo.indexOf(c), grupo.length, geo);
+            return { c: c, p: lugar(c, grupo.indexOf(c), grupo.length, geo) };
+        });
+        // Caminhões no mesmo trecho e no mesmo ponto (por exemplo, dois no britador) ficam lado a lado, sem um esconder o outro.
+        ['ida', 'volta'].forEach(function (faixa) {
+            var naFaixa = pontos.filter(function (item) { return item.c.faixa === faixa; })
+                .sort(function (a, b) { return a.p.x - b.p.x; });
+            for (var k = 1; k < naFaixa.length; k++) {
+                if (naFaixa[k].p.x - naFaixa[k - 1].p.x < 10) naFaixa[k].p.x = naFaixa[k - 1].p.x + 10;
+            }
+            var excesso = naFaixa.length ? naFaixa[naFaixa.length - 1].p.x - 90 : 0;
+            if (excesso > 0) naFaixa.forEach(function (item) { item.p.x = Math.max(8, item.p.x - excesso); });
+        });
+        var marcas = pontos.map(function (item) {
+            var c = item.c;
             var tipo = c.faixa === 'volta' ? 'volta' : (c.faixa === 'ida' ? 'carregado' : 'lavra');
-            return '<span class="tv-caminhao tv-cor-' + tipo + '" style="left:' + ponto.x + '%;top:' + ponto.y + '%">' + esc(c.placa) + '</span>';
+            return '<span class="tv-caminhao tv-cor-' + tipo + '" style="left:' + item.p.x + '%;top:' + item.p.y + '%">' + esc(c.placa) + '</span>';
         }).join('');
         var linhas = lista.length
             ? '<ul class="tv-caminhoes" data-um="caminhão" data-varios="caminhões">' + lista.map(function (c) {
@@ -205,10 +253,14 @@
             }).join('') + '</ul><p class="tv-resto" data-total="' + lista.length + '"></p>'
             : '<p class="tv-vazio">Nenhum caminhão em ciclo.</p>';
         // Escavadeira parada para limpar a lavra: explica por que os caminhões esperam na fila.
-        var limpezas = (estado.lavra.limpezas || []).map(function (l) {
-            return '<p class="tv-limpeza">' + esc(l.retro) + ' em limpeza da lavra' +
-                '<span class="tv-tempo" data-desde="' + l.desde_ts + '"><b>' + duracao(agoraServidor() - l.desde_ts) + '</b></span></p>';
-        }).join('');
+        // Uma linha só, mesmo com duas escavadeiras limpando; o tempo é o da limpeza mais antiga.
+        var emLimpeza = estado.lavra.limpezas || [];
+        var limpezas = '';
+        if (emLimpeza.length) {
+            var desde = Math.min.apply(null, emLimpeza.map(function (l) { return l.desde_ts; }));
+            limpezas = '<p class="tv-limpeza">' + esc(emLimpeza.map(function (l) { return l.retro; }).join(' e ')) + ' em limpeza da lavra' +
+                '<span class="tv-tempo" data-desde="' + desde + '"><b>' + duracao(agoraServidor() - desde) + '</b></span></p>';
+        }
         return '<article class="tv-zona">' +
             '<header><h2>Lavra</h2><span class="tv-legenda">' +
                 '<span><i class="tv-cor-carregado"></i>Carregado</span><span><i class="tv-cor-volta"></i>Voltando</span><span><i class="tv-cor-lavra"></i>Na lavra</span>' +
@@ -228,6 +280,10 @@
     function caber() {
         raiz.querySelectorAll('[data-varios]').forEach(function (lista) {
             var itens = lista.children;
+            var resto = lista.nextElementSibling;
+            var temResto = resto && resto.hasAttribute('data-total');
+            // O "+ N" ocupa uma linha embaixo da lista: escreve antes de medir, para a lista medir já sem essa altura.
+            if (temResto) resto.textContent = '+ ' + resto.getAttribute('data-total') + ' ' + lista.getAttribute('data-varios');
             var limite = lista.clientHeight;
             var escondidos = 0;
             for (var i = 0; i < itens.length; i++) {
@@ -239,8 +295,7 @@
                     escondidos++;
                 }
             }
-            var resto = lista.nextElementSibling;
-            if (resto && resto.hasAttribute('data-total')) {
+            if (temResto) {
                 var fora = Number(resto.getAttribute('data-total')) - (itens.length - escondidos);
                 resto.textContent = fora > 0 ? '+ ' + fora + ' ' + lista.getAttribute(fora === 1 ? 'data-um' : 'data-varios') : '';
             }
@@ -282,11 +337,13 @@
                 '<div class="tv-relogio"><span>' + esc(estado.dia || '') + '</span><strong data-relogio>' + esc(horaMinuto(agoraServidor())) + '</strong></div>' +
             '</header>' +
             numeros(estado, mostrarVendas) +
+            problemas(estado) +
             '<section class="tv-zonas">' + patio(estado) + lavra(estado) + '</section>' +
             '<section class="tv-horas">' +
                 porHora('Pátio por hora', estado.patio.horas, 'cargas', 'viagens') +
                 porHora('Lavra por hora', estado.lavra.horas, 'viagens', 'viagens') +
             '</section>';
+        raiz.classList.toggle('com-problemas', (estado.problemas || []).length > 0);
         caber();
         horaUltimoOk = horaMinuto(estado.agora_ts);
         situacao();
@@ -358,7 +415,34 @@
 
     // ---- tela cheia
 
+    // A escolha fica guardada no aparelho: a página recarrega sozinha às 3h e volta em tela cheia. O navegador só
+    // deixa ocupar a tela toda depois de um toque; até lá, a página já fica sem o menu, do tamanho da janela.
     var ampliar = document.getElementById('ampliar');
+    function guardarTelaCheia(ligar) {
+        try {
+            window.localStorage.setItem('monitor-tela-cheia', ligar ? '1' : '0');
+        } catch (e) {
+            // Sem como guardar: vale só enquanto a página estiver aberta.
+        }
+    }
+    function telaCheiaGuardada() {
+        try {
+            return window.localStorage.getItem('monitor-tela-cheia') === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+    function pedirTelaToda() {
+        var pedido = document.documentElement.requestFullscreen;
+        if (pedido && !document.fullscreenElement) {
+            try {
+                var promessa = pedido.call(document.documentElement);
+                if (promessa && promessa.catch) promessa.catch(function () {});
+            } catch (e) {
+                // Sem permissão agora: fica do tamanho da janela.
+            }
+        }
+    }
     function telaCheia(ligar) {
         document.body.classList.toggle('tela-cheia', ligar);
         if (ampliar) ampliar.textContent = ligar ? 'Sair da tela cheia' : 'Tela cheia';
@@ -368,16 +452,39 @@
         ampliar.addEventListener('click', function () {
             var ligar = !document.body.classList.contains('tela-cheia');
             telaCheia(ligar);
+            guardarTelaCheia(ligar);
             if (!ligar) {
                 if (document.fullscreenElement) document.exitFullscreen();
                 return;
             }
-            var pedido = document.documentElement.requestFullscreen;
-            if (pedido) pedido.call(document.documentElement).catch(function () {});
+            pedirTelaToda();
         });
         document.addEventListener('fullscreenchange', function () {
-            if (!document.fullscreenElement) telaCheia(false);
+            // Saiu da tela toda pelo Esc ou pelo botão do controle: volta ao normal e esquece a escolha.
+            if (!document.fullscreenElement && document.body.classList.contains('tela-cheia')) {
+                telaCheia(false);
+                guardarTelaCheia(false);
+            }
         });
+        if (telaCheiaGuardada()) {
+            telaCheia(true);
+            pedirTelaToda();
+            // Toque, clique ou tecla do controle na TV: aí o navegador deixa ocupar a tela toda. Tenta a cada toque até
+            // conseguir (no toque da tela, só o "click" vale como gesto; o "pointerdown" não).
+            var aoTocar = function (evento) {
+                if (evento.target === ampliar) return;
+                if (document.body.classList.contains('tela-cheia')) pedirTelaToda();
+            };
+            var pararDeTentar = function () {
+                if (!document.fullscreenElement && document.body.classList.contains('tela-cheia')) return;
+                document.removeEventListener('click', aoTocar, true);
+                document.removeEventListener('keydown', aoTocar, true);
+                document.removeEventListener('fullscreenchange', pararDeTentar);
+            };
+            document.addEventListener('click', aoTocar, true);
+            document.addEventListener('keydown', aoTocar, true);
+            document.addEventListener('fullscreenchange', pararDeTentar);
+        }
     }
 
     // ---- cuidados com uma tela ligada o dia todo

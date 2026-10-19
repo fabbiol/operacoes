@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-limpeza';
+    private const MIGRACOES = '2026-10-revisao-2';
 
     private static ?PDO $pdo = null;
 
@@ -83,20 +83,20 @@ final class Db
             throw new RuntimeException('Schema do banco não encontrado.');
         }
 
-        $marca = OPERACOES_ROOT . '/storage/.schema-ok';
+        // A marca fica no próprio banco (tabela schema_versao), e não num arquivo do servidor: banco novo, zerado
+        // ou trocado não tem a marca e é montado de novo, mesmo que a pasta storage tenha sobrado de antes.
         // A marca leva também a versão das mudanças deste arquivo. Na publicação o schema.sql sobe antes do Db.php,
         // e o código antigo (inclusive o que ainda está no cache do PHP por alguns segundos depois do envio)
         // grava a marca da versão dele, e não a do Db.php novo: assim o código novo sempre roda as próprias mudanças.
         $hash = hash('sha256', $sql . self::MIGRACOES);
-        if (is_file($marca) && trim((string) file_get_contents($marca)) === $hash) {
+        if (self::marcaGravada($pdo) === $hash) {
             return;
         }
 
         // Um pedido de cada vez: dois pedidos juntos tentariam criar a mesma coluna.
         $trava = $pdo->query('SELECT GET_LOCK(CONCAT(DATABASE(), \':migrar\'), 30)')->fetchColumn();
         try {
-            clearstatcache(true, $marca);
-            if (is_file($marca) && trim((string) file_get_contents($marca)) === $hash) {
+            if (self::marcaGravada($pdo) === $hash) {
                 return;
             }
 
@@ -118,16 +118,26 @@ final class Db
             self::garantirHorimetro($pdo);
             self::garantirToneladasDaViagem($pdo);
             self::garantirMaquinaOk($pdo);
+            self::garantirRevisao($pdo);
 
-            if (!is_dir(dirname($marca))) {
-                mkdir(dirname($marca), 0775, true);
-            }
-            file_put_contents($marca, $hash);
+            $pdo->prepare('REPLACE INTO schema_versao (id, hash, atualizado_em) VALUES (1, ?, NOW())')->execute([$hash]);
         } finally {
             if ((int) $trava === 1) {
                 $pdo->query('SELECT RELEASE_LOCK(CONCAT(DATABASE(), \':migrar\'))');
             }
         }
+    }
+
+    /** A versão do banco gravada na última atualização; null se o banco ainda não tem a tabela (banco novo ou antigo). */
+    private static function marcaGravada(PDO $pdo): ?string
+    {
+        try {
+            $hash = $pdo->query('SELECT hash FROM schema_versao WHERE id = 1')->fetchColumn();
+        } catch (PDOException) {
+            return null;
+        }
+
+        return is_string($hash) ? $hash : null;
     }
 
     private static function retirarCaminhaoDaFila(PDO $pdo): void
@@ -507,6 +517,24 @@ final class Db
     {
         if (!in_array('maquina_ok', self::colunasDe($pdo, 'horimetro_turnos'), true)) {
             $pdo->exec('ALTER TABLE horimetro_turnos ADD COLUMN maquina_ok TINYINT(1) NULL AFTER horas');
+        }
+    }
+
+    /**
+     * Colunas da revisão de outubro de 2026:
+     * - ciclos_lavra.garagem: a viagem terminou no britador indo para a garagem (fora da média de volta e de ciclo).
+     * - fila_carregamentos.nf_emitida_data: o dia em que a nota foi emitida, também quando o PDF não traz a hora
+     *   (é o dia em que a nota conta no vendido).
+     */
+    private static function garantirRevisao(PDO $pdo): void
+    {
+        if (!in_array('garagem', self::colunasDe($pdo, 'ciclos_lavra'), true)) {
+            $pdo->exec('ALTER TABLE ciclos_lavra ADD COLUMN garagem TINYINT(1) NOT NULL DEFAULT 0 AFTER encerramento_ciente_por');
+        }
+        if (!in_array('nf_emitida_data', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_emitida_data DATE NULL AFTER nf_emitida_em');
+            // atualizado_em = atualizado_em: o preenchimento não conta como mudança (notas canceladas antigas não viram "recentes").
+            $pdo->exec('UPDATE fila_carregamentos SET nf_emitida_data = DATE(nf_emitida_em), atualizado_em = atualizado_em WHERE nf_emitida_em IS NOT NULL');
         }
     }
 

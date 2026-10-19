@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     pedido VARCHAR(60) NOT NULL,
     nf VARCHAR(60) NOT NULL,
     nf_emitida_em DATETIME NULL,
+    nf_emitida_data DATE NULL,
     nf_chave CHAR(44) NULL,
     nf_valor DECIMAL(12,2) NULL,
     material_id INT UNSIGNED NOT NULL,
@@ -140,6 +141,7 @@ CREATE TABLE IF NOT EXISTS ciclos_lavra (
     encerramento VARCHAR(160) NULL,
     encerramento_ciente_em DATETIME NULL,
     encerramento_ciente_por VARCHAR(120) NULL,
+    garagem TINYINT(1) NOT NULL DEFAULT 0,
     observacoes TEXT NULL,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -277,4 +279,12 @@ CREATE TABLE IF NOT EXISTS maquina_posse (
     UNIQUE KEY uniq_posse_maquina (tipo, maquina_id),
     UNIQUE KEY uniq_posse_usuario (usuario_id),
     KEY idx_posse_nome (usuario)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Versão do banco: a marca da última atualização (src/Db.php). Banco sem ela é atualizado no próximo acesso.
+CREATE TABLE IF NOT EXISTS schema_versao (
+    id TINYINT UNSIGNED NOT NULL,
+    hash CHAR(64) NOT NULL,
+    atualizado_em DATETIME NOT NULL,
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

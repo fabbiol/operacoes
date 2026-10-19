@@ -27,8 +27,12 @@
             <?php endforeach; ?>
         </fieldset>
         <label class="campo">
-            <span>Outro</span>
-            <input type="text" name="outro" maxlength="120" value="<?= e($outro) ?>" placeholder="Obrigatório quando o motivo é outro">
+            <span>O que aconteceu</span>
+            <input type="text" name="outro" maxlength="120" value="<?= e($outro) ?>" placeholder="Obrigatório no Outro. Ex.: pneu furou">
+        </label>
+        <label class="check">
+            <input type="checkbox" name="problema" value="1" <?= !empty($problema) ? 'checked' : '' ?>>
+            <span>É problema no caminhão: avisa o escritório e a TV (na Oficina já avisa sozinho)</span>
         </label>
         <div class="botoes">
             <button type="submit" class="btn encerrar-viagem">Encerrar viagem</button>

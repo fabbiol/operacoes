@@ -291,7 +291,8 @@ $lista = New-Object 'System.Collections.Generic.List[object]'
 # Ordem de envio: o site continua no ar enquanto os arquivos sobem.
 # 1. O schema primeiro: o código antigo ignora as tabelas novas.
 # 2. As classes novas e o bootstrap.php, que só passa a carregá-las.
-# 3. As telas: as novas funcionam com o código antigo.
+# 3. As telas: as novas funcionam com o código antigo. Tela que usa função nova do index.php ou do helpers.php
+#    (enviados por último) confere antes com function_exists.
 # 4. O resto do código, começando pelo Db.php (ele atualiza o banco), o Lavra.php logo depois (grava a coluna nova
 #    das toneladas) e o Auth.php (o Pessoas.php novo usa função nova dele).
 # 5. Os arquivos públicos e, por fim, helpers.php e index.php um logo depois do outro:

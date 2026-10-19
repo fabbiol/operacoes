@@ -98,8 +98,14 @@
     <section class="painel-bloco">
         <h2><a href="<?= e(url('lavra/fila')) ?>">Lavra</a></h2>
         <?php foreach ($limpezas ?? [] as $limpeza): ?>
-            <p class="limpeza-aviso"><strong><?= e((string) ($limpeza['retro_nome'] ?? 'Escavadeira')) ?> em limpeza da lavra</strong>
-                <span>desde <?= e(hora_curta((string) $limpeza['inicio'])) ?> · <?= e((string) $limpeza['operador']) ?> · <time data-desde="<?= (int) strtotime((string) $limpeza['inicio']) ?>"><?= e(texto_duracao(segundos_entre((string) $limpeza['inicio'], agora_sql()))) ?></time></span></p>
+            <div class="limpeza-aviso">
+                <p><strong><?= e((string) ($limpeza['retro_nome'] ?? 'Escavadeira')) ?> em limpeza da lavra</strong>
+                    <span>desde <?= e(hora_curta((string) $limpeza['inicio'])) ?> · <?= e((string) $limpeza['operador']) ?> · <time data-desde="<?= (int) strtotime((string) $limpeza['inicio']) ?>"><?= e(texto_duracao(segundos_entre((string) $limpeza['inicio'], agora_sql()))) ?></time></span></p>
+                <form method="post" action="<?= e(url('lavra/limpezas/' . (int) $limpeza['id'] . '/terminar')) ?>">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn secundario">Terminar</button>
+                </form>
+            </div>
         <?php endforeach; ?>
         <div class="tempos">
             <div>

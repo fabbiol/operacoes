@@ -1,5 +1,62 @@
 # O que mudou
 
+## Outubro de 2026: Monitor, banco e app 1.2
+
+- **Monitor da TV**: a tela cheia fica guardada no aparelho e volta sozinha depois da recarga das 3h (antes a TV voltava com o menu). Numa TV pequena, os problemas ocupam uma linha só, as limpezas das duas escavadeiras viram uma linha, as pás ficam lado a lado e a fila do pátio aparece. O "+ N na fila" não corta mais a última linha.
+- **Som no tablet sem o app**: tenta tocar logo ao abrir o pátio (o Chrome deixa quando a pessoa tocou na tela anterior) e tem um segundo jeito de tocar.
+- **Banco**: a marca da versão do banco fica no próprio banco (tabela `schema_versao`), não num arquivo do servidor. Banco novo ou zerado é montado de novo sozinho. O `/health` confere uma tabela do sistema, não só a conexão.
+- **App 1.2**: no app, o campo **Ler a nota fiscal** abre os arquivos (PDF ou XML); antes só mostrava fotos.
+- **Revisão final** (segurança e um dia de trabalho simulado): só quem iniciou a carga finaliza, também na gravação; a correção da quantidade não passa do total da nota nem mexe numa viagem que começou a carregar; a limpeza da lavra lê só o período do relatório (a TV não fica mais lenta com o tempo); o recado escrito logo embaixo da linha do sistema aparece no tablet; a viagem que volta para Saldo a buscar avisa o tablet ("Carga tirada da fila"); a TV de toque volta à tela toda no primeiro toque; viagem encerrada durante a carga não estica o tempo de carga da escavadeira.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a tabela `schema_versao`.
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+3. Atualize o app nos tablets onde o administrativo lê nota fiscal: abra `/app`, **Baixar o app** e instale por cima. Nos outros tablets a 1.1 continua funcionando.
+4. Na TV: abra o Monitor e toque em **Tela cheia** uma vez; daí em diante ela volta sozinha.
+
+## Outubro de 2026: revisão do pátio e do fracionado
+
+- **Corrigir a quantidade carregada** na ficha de uma viagem finalizada (operador digitou errado ou esqueceram de marcar fracionado). O saldo da nota é refeito sozinho.
+- **Encerrar saldo** também na viagem 1 e no Controle de carga. A viagem 1 não se cancela mais com saldo aberto (a nota sumia do vendido e o saldo ficava solto).
+- **Cliente não veio**: a viagem liberada volta para Saldo a buscar sem ser cancelada.
+- **Nota do PDF sem hora**: conta no vendido do dia da emissão (antes contava no dia do lançamento).
+- **Tablet do pátio**: o cartão mostra a observação do administrativo; o aviso de carga alterada diz o que era antes; o **Ciente** fica sempre à vista; só quem iniciou a carga finaliza; **Enviadas hoje** e **Meus trabalhos** mostram o que saiu de verdade.
+- **Correção perdida**: se a pá começa a carregar com o formulário de correção aberto, a tela avisa que nada foi alterado (antes dizia "Ordem atualizada").
+- **Leitura da nota**: linhas do mesmo material em unidades diferentes não se somam; unidade desconhecida fica em branco para escolher.
+- A viagem do fracionado liberada entra no fim da fila do pátio, não no começo.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a coluna `nf_emitida_data` em `fila_carregamentos` (preenchida nas notas que já têm a hora).
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+
+## Outubro de 2026: revisão das máquinas
+
+- **Encerrar viagem vira aviso**: o motivo Oficina já registra o problema do caminhão; nos outros motivos, a opção **É problema no caminhão** registra o que foi escrito (ex.: pneu furou). Aparece na hora no Painel, na Manutenção e na TV.
+- **Problema já avisado**: ao soltar, "Teve problema" com o texto em branco vale quando o problema já está aberto (não precisa escrever de novo nem marcar "Tudo certo").
+- **Entrada errada**: o operador corrige a própria entrada na tela de soltar e não fica mais preso no tablet.
+- **Horímetro com ponto de milhar**: "12.350" passa a ser lido como 12.350 h (antes virava 12,4 h).
+
+## Outubro de 2026: revisão do tempo médio do Pusch e da limpeza
+
+- **Limpeza intercalada com cargas**: a limpeza não termina mais ao carregar um caminhão. A escavadeira carrega e volta a limpar; os minutos de carga não contam como limpeza. Termina no botão, ao soltar a escavadeira ou, se esquecida, no fim do dia. O administrativo pode terminar pelo Painel.
+- **Tempo médio do Pusch**: viagem encerrada sem voltar, viagem que foi para a garagem e etapa que atravessa a noite ficam fora das médias de estrada, volta e ciclo (continuam na produção).
+- **Monitor**: o caminhão que chegou no britador aparece voltando vazio (cinza) depois de 3 minutos; caminhões no mesmo ponto ficam lado a lado.
+- Relatórios de dias antigos mantêm o desconto da limpeza.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a coluna `garagem` em `ciclos_lavra`.
+2. No Easypanel, toque em **Implantar** se não começar sozinho.
+
+## Outubro de 2026: problemas e limpeza no Monitor da TV
+
+- **Problemas nas máquinas no Monitor**: faixa vermelha com a máquina, o problema, quem avisou e quando (ex.: "ABC1D23 Pneu furou"). Some sozinha quando o problema é resolvido na ficha da máquina.
+- **Limpeza no Monitor**: o quadro "Caminhões na lavra" fica amarelo com "Retro 1 em limpeza", além da faixa na área da lavra.
+- Tempos abaixo de 1 minuto aparecem em segundos (antes aparecia "0 min").
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar** se não começar sozinho. A TV pega a versão nova sozinha às 3h, ou na hora se recarregar o Monitor.
+
 ## Outubro de 2026: aviso no tablet da pá e limpeza da lavra
 
 **Aviso no tablet do pátio**: quando o administrativo libera uma carga nova, altera ou cancela uma carga, o tablet do operador toca, vibra e mostra um quadro grande com o cliente e a carga, que só some no **Ciente**. O som repete até 3 vezes enquanto ninguém confirma.

@@ -839,11 +839,12 @@ a.venda:hover { border-color: var(--ink); }
 }
 .avisos-patio[hidden] { display: none; }
 .avisos-caixa {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     width: min(560px, 100%);
     max-height: calc(100vh - 32px);
-    overflow: auto;
+    max-height: calc(100dvh - 32px);
     padding: 18px;
     border-radius: 18px;
     background: white;
@@ -857,8 +858,25 @@ a.venda:hover { border-color: var(--ink); }
 .aviso-patio.alterada { border-left-color: var(--info); background: #d7e6f8; }
 .aviso-patio.cancelada { border-left-color: var(--saida); background: #fde8e4; }
 .aviso-patio.cancelada strong { color: var(--saida); }
+.aviso-patio.retirada { border-left-color: var(--muted); background: #ecebe6; }
+.avisos-lista { display: grid; gap: 12px; flex: 1 1 auto; min-height: 0; overflow: auto; }
+.aviso-patio .aviso-detalhe { font-size: 17px; font-weight: 700; color: var(--ink); }
 .aviso-resto { margin: 0; color: var(--muted); font-weight: 700; }
-.avisos-caixa .btn { min-height: 64px; font-size: 22px; }
+.avisos-caixa .btn { flex: 0 0 auto; min-height: 64px; font-size: 22px; }
+@media (max-height: 560px) {
+    .avisos-caixa { padding: 12px; gap: 8px; }
+    .aviso-patio { padding: 10px 12px; }
+    .aviso-patio strong { font-size: 20px; }
+    .aviso-patio p, .aviso-patio .aviso-cliente { font-size: 16px; }
+    .avisos-caixa .btn { min-height: 52px; }
+}
+
+/* Recado do administrativo no cartão do pátio e no resumo da ordem (iniciar, finalizar). */
+.obs-patio { margin: 6px 0 0; padding: 8px 10px; border-left: 5px solid var(--info); border-radius: 8px; background: #eef4fb; font-weight: 600; overflow-wrap: anywhere; }
+.obs-ordem { margin: 10px 0 0; padding: 10px 12px; border-left: 5px solid var(--info); border-radius: 10px; background: #eef4fb; }
+.obs-ordem .texto { margin: 4px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+.corrigir-carregado summary { cursor: pointer; font-weight: 700; }
+.corrigir-carregado .formulario { margin-top: 12px; }
 
 /* Limpeza da lavra (escavadeira parada para limpar): no tablet da escavadeira, dos caminhões e no Painel. */
 .limpeza-lavra { display: grid; gap: 8px; margin: 0 0 16px; }
@@ -866,5 +884,14 @@ a.venda:hover { border-color: var(--ink); }
 .limpeza-lavra.ativa { padding: 14px 16px; border: 2px solid #b88a00; border-radius: 16px; background: #fff4c2; }
 .limpeza-lavra.ativa > strong { font-size: 22px; }
 .limpeza-lavra.ativa .ciclo { margin: 0; }
-.limpeza-aviso { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 12px; padding: 10px 14px; border-left: 6px solid #b88a00; border-radius: 12px; background: #fff4c2; }
+.limpeza-aviso { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; margin: 0 0 12px; padding: 10px 14px; border-left: 6px solid #b88a00; border-radius: 12px; background: #fff4c2; }
+p.limpeza-aviso, .limpeza-aviso p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0; }
 .limpeza-aviso span { color: var(--muted); font-weight: 600; }
+.limpeza-aviso form { margin: 0; }
+.limpeza-aviso .btn { min-height: 40px; padding: 6px 14px; }
+
+/* Soltar a máquina: corrigir a própria entrada digitada errada. */
+.corrigir-entrada { padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; background: white; }
+.corrigir-entrada summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+.corrigir-entrada[open] summary { margin-bottom: 8px; }
+.corrigir-entrada .nota { margin: 6px 0 0; }

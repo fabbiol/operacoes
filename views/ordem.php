@@ -9,7 +9,7 @@
 <dl class="ficha">
     <div><dt>Cliente</dt><dd><?= e($ordem['cliente']) ?></dd></div>
     <div><dt>Pedido</dt><dd><?= e($ordem['pedido']) ?></dd></div>
-    <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php endif; ?></dd></div>
+    <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php elseif (!empty($ordem['nf_emitida_data'])): ?> · emitida em <?= e(date('d/m/Y', (int) strtotime((string) $ordem['nf_emitida_data']))) ?><?php endif; ?></dd></div>
     <div><dt>Material</dt><dd><?php
         $fracionado = (int) ($ordem['fracionado'] ?? 0) === 1;
         $rotuloQuantidade = $fracionado && (int) ($ordem['ordem_principal_id'] ?? 0) > 0 ? 'saldo ' : '';
@@ -93,6 +93,14 @@
     </section>
 <?php endif; ?>
 
+<?php
+// Viagem 1 de um fracionado com outra viagem ainda aberta: o saldo se encerra na viagem que falta, não aqui.
+$pendenteOutra = null;
+if (!empty($grupo) && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $grupo['pendente'] !== null
+    && (int) $grupo['pendente']['id'] !== (int) $ordem['id']) {
+    $pendenteOutra = $grupo['pendente'];
+}
+?>
 <div class="botoes">
     <?php if ($ordem['status'] === 'aguardando_autorizacao' || $ordem['status'] === 'saldo'): ?>
         <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/liberar')) ?>">
@@ -106,7 +114,17 @@
             <button type="submit" class="btn concluir">Concluir</button>
         </form>
     <?php endif; ?>
-    <?php if (in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true)): ?>
+    <?php if ($ordem['status'] === 'liberado' && (int) ($ordem['ordem_principal_id'] ?? 0) > 0): ?>
+        <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/saldo')) ?>">
+            <?= csrf_field() ?>
+            <button type="submit" class="btn secundario">O cliente não veio: voltar para Saldo a buscar</button>
+        </form>
+    <?php endif; ?>
+    <?php if ($pendenteOutra !== null): ?>
+        <?php if ($pendenteOutra['status'] !== 'carregando'): ?>
+            <a class="btn perigo" href="<?= e(url('ordens/' . $pendenteOutra['id'] . '/cancelar')) ?>">Encerrar saldo (viagem <?= e($pendenteOutra['ordem']) ?>)</a>
+        <?php endif; ?>
+    <?php elseif (in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true)): ?>
         <a class="btn perigo" href="<?= e(url('ordens/' . $ordem['id'] . '/cancelar')) ?>"><?= $ordem['status'] === 'saldo' ? 'Encerrar saldo' : 'Cancelar' ?></a>
     <?php endif; ?>
     <a class="btn secundario" href="<?= e(url('fila')) ?>">Voltar à fila</a>
@@ -122,6 +140,21 @@
         <button type="submit" class="btn secundario"><?= $ordem['nf_valor'] !== null ? 'Corrigir valor' : 'Salvar valor' ?></button>
         <p class="nota"><?= $ordem['nf_valor'] !== null ? 'Se o valor estiver errado, corrija aqui.' : 'Esta nota está sem valor e não entra no vendido do dia. Preencha o valor total da nota.' ?></p>
     </form>
+<?php endif; ?>
+
+<?php if (in_array($ordem['status'], ['aguardando_conferencia', 'concluido'], true)): ?>
+    <details class="corrigir-carregado bloco">
+        <summary>Corrigir a quantidade carregada</summary>
+        <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/carregado')) ?>" class="formulario">
+            <?= csrf_field() ?>
+            <label class="campo">
+                <span>Quanto saiu nesta viagem (<?= e(unidade_rotulo((string) $ordem['unidade'])) ?>)</span>
+                <input type="text" name="quantidade" inputmode="decimal" maxlength="16" required placeholder="0,00" value="<?= e(formatar_quantidade((string) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']))) ?>">
+            </label>
+            <p class="nota">Use quando o operador digitou errado ou o cliente levou só uma parte. O saldo da nota é refeito: se faltar material, a próxima viagem fica em Saldo a buscar.</p>
+            <button type="submit" class="btn secundario">Salvar quantidade</button>
+        </form>
+    </details>
 <?php endif; ?>
 
 <?php if (!empty($editavel) && !empty($formulario)): ?>

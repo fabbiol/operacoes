@@ -139,6 +139,63 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 .tv-numero.atencao { border-color: var(--tv-atencao); box-shadow: inset 0 0 0 2px var(--tv-atencao); }
 .tv-numero.critico { border-color: var(--tv-critico); box-shadow: inset 0 0 0 2px var(--tv-critico); }
 
+/* Problemas das máquinas: faixa vermelha entre os números e as áreas, só quando houver algum aberto. */
+.tv.com-problemas { grid-template-rows: auto auto auto minmax(0, 1fr) auto; }
+.tv-problemas {
+    display: flex;
+    align-items: center;
+    gap: var(--vao) calc(var(--vao) * 1.5);
+    min-width: 0;
+    padding: calc(var(--vao) * 0.7) var(--vao);
+    border: 2px solid var(--tv-critico);
+    border-radius: clamp(10px, calc(0.9vw * var(--k)), 20px);
+    background: rgba(208, 59, 59, 0.14);
+}
+.tv-problemas h2 {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: var(--t-rotulo);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.tv-problemas h2 i {
+    display: inline-grid;
+    place-items: center;
+    width: 1.3em;
+    height: 1.3em;
+    border-radius: 50%;
+    background: var(--tv-critico);
+    color: #ffffff;
+    font-style: normal;
+    font-weight: 900;
+}
+.tv-problemas h2 span {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.5em;
+    padding: 0 0.3em;
+    border-radius: 999px;
+    background: var(--tv-texto);
+    color: var(--tv-fundo);
+    font-size: 0.85em;
+}
+.tv-problemas ul {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 28vw), 1fr));
+    gap: calc(var(--vao) * 0.4) var(--vao);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.tv-problemas li { min-width: 0; font-size: var(--t-item-2); font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-problemas li strong { color: var(--tv-texto); font-weight: 800; }
+.tv-problemas li small { color: var(--tv-texto-2); font-size: 0.85em; }
+.tv-problemas-mais { flex: none; margin: 0; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 800; }
+
 /* As duas áreas fixas: pátio à esquerda, lavra à direita. */
 .tv-zonas { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--vao); min-height: 0; }
 .tv-zona {
@@ -159,7 +216,7 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 .tv-zona h3 span { color: var(--tv-texto); margin-left: 0.3em; }
 .tv-vazio { color: var(--tv-apagado); font-size: var(--t-item-2); font-weight: 600; }
 
-.tv-maquinas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: calc(var(--vao) * 0.7); }
+.tv-maquinas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: calc(var(--vao) * 0.7); }
 .tv-maquina {
     min-width: 0;
     padding: clamp(8px, calc(0.7vw * var(--k)), 16px) clamp(10px, calc(1vw * var(--k)), 22px);
@@ -301,7 +358,7 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
 /* Sem atualização: aviso em amarelo; muito tempo sem atualizar: os números apagam. */
 .tv.sem-dados .tv-situacao span { background: var(--tv-atencao); border-color: var(--tv-atencao); color: #1a1a19; }
 .tv.velho .tv-situacao span { background: var(--tv-critico); border-color: var(--tv-critico); color: #ffffff; }
-.tv.velho .tv-numeros, .tv.velho .tv-zonas, .tv.velho .tv-horas { opacity: 0.35; filter: grayscale(1); }
+.tv.velho .tv-numeros, .tv.velho .tv-problemas, .tv.velho .tv-zonas, .tv.velho .tv-horas { opacity: 0.35; filter: grayscale(1); }
 
 /* Tela cheia: só o monitor, do tamanho da TV. */
 body.dashboard.tela-cheia { overflow: hidden; }
@@ -322,6 +379,8 @@ body.dashboard.tela-cheia .tv { --k: 0.85; height: calc(100vh - 2 * clamp(10px, 
     .tv-numeros, .tv-numeros.n6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tv-heroi { grid-column: 1 / -1; }
     .tv-zonas, .tv-horas { grid-template-columns: 1fr; }
+    .tv-problemas { flex-direction: column; align-items: stretch; }
+    .tv-problemas li { white-space: normal; }
 }
 @media (max-width: 600px) {
     .tv-fila li { grid-template-columns: minmax(0, 1fr) auto; }
