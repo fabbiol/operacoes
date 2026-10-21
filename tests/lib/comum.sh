@@ -90,18 +90,21 @@ ambiente_criar() {
         AMB_DB=""
         AMB_ERRO="não consegui criar o banco de teste: $_erro"; return 1
     fi
+    # O servidor sobe por um script na pasta do ambiente: o runner o usa e os testes que precisam derrubar e religar
+    # o servidor (TESTE_SERVIR) usam o mesmo, com as mesmas variáveis.
+    cat >"$AMB_DIR/servir.sh" <<EOS
+cd "$AMB_DIR" || exit 1
+export APP_USUARIOS='Fabio:senha-forte-123:admin,Joao:joao1234:motorista,Maria:maria1234:operador,Pedro:pedro1234:ambos,Ana:ana12345:motorista'
+export APP_ADMIN=Fabio APP_DEBUG=1 APP_TZ=America/Cuiaba
+export DB_HOST='$DB_HOST' DB_PORT='$DB_PORTA' DB_NAME='$AMB_DB' DB_USER='$DB_USUARIO' DB_PASSWORD='$DB_SENHA'
+export PHP_CLI_SERVER_WORKERS=4
+exec php -S "127.0.0.1:\$1" -t public public/router.php
+EOS
     _tent=0
     while [ "$_tent" -lt 5 ]; do
         _tent=$((_tent + 1))
         AMB_PORTA=$(porta_livre) || { AMB_ERRO="sem porta livre entre $PORTA_INICIO e $PORTA_FIM"; return 1; }
-        (
-            cd "$AMB_DIR" || exit 1
-            export APP_USUARIOS='Fabio:senha-forte-123:admin,Joao:joao1234:motorista,Maria:maria1234:operador,Pedro:pedro1234:ambos,Ana:ana12345:motorista'
-            export APP_ADMIN=Fabio APP_DEBUG=1 APP_TZ=America/Cuiaba
-            export DB_HOST="$DB_HOST" DB_PORT="$DB_PORTA" DB_NAME="$AMB_DB" DB_USER="$DB_USUARIO" DB_PASSWORD="$DB_SENHA"
-            export PHP_CLI_SERVER_WORKERS=4
-            exec php -S "127.0.0.1:$AMB_PORTA" -t public public/router.php
-        ) >"$AMB_DIR/servidor.log" 2>&1 &
+        sh "$AMB_DIR/servir.sh" "$AMB_PORTA" >"$AMB_DIR/servidor.log" 2>&1 &
         AMB_PID=$!
         _i=0; _pronto=0
         while [ "$_i" -lt 80 ]; do

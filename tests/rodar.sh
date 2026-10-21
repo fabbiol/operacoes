@@ -47,7 +47,8 @@ if [ "$MODO" = limpar ]; then limpar_tudo; exit 0; fi
 SAIDAS=$(mktemp -d "$TEMP_BASE/$PREFIXO_TEMP-saidas-XXXXXX") || { echo "não consegui criar a pasta temporária"; exit 1; }
 encerrar() { ambiente_destruir; rm -rf "$SAIDAS"; }
 trap encerrar EXIT
-trap 'echo; echo "interrompido"; exit 130' INT TERM
+FILHO=""
+trap 'echo; echo "interrompido"; [ -n "$FILHO" ] && kill "$FILHO" 2>/dev/null; exit 130' INT TERM
 
 # --- Resultado -----------------------------------------------------------------------------------
 registrar() { # $1 = OK|FALHA|PULADO, $2 = nome, $3 = detalhe
@@ -165,9 +166,10 @@ rodar_teste() {
             registrar FALHA "$_id" "não montou o ambiente: $_erro"; return 0
         fi
         export TESTE_BASE="http://127.0.0.1:$AMB_PORTA" TESTE_PORTA="$AMB_PORTA" TESTE_DB="$AMB_DB" \
-            TESTE_AMBIENTE="$AMB_DIR" TESTE_SESSOES="$AMB_DIR/storage/sessoes" TESTE_TMP="$AMB_DIR/tmp"
+            TESTE_AMBIENTE="$AMB_DIR" TESTE_SESSOES="$AMB_DIR/storage/sessoes" TESTE_TMP="$AMB_DIR/tmp" \
+            TESTE_SERVIR="$AMB_DIR/servir.sh" TESTE_SERVIDOR_PID="$AMB_PID"
     else
-        unset TESTE_BASE TESTE_PORTA TESTE_DB TESTE_AMBIENTE TESTE_SESSOES
+        unset TESTE_BASE TESTE_PORTA TESTE_DB TESTE_AMBIENTE TESTE_SESSOES TESTE_SERVIR TESTE_SERVIDOR_PID
         export TESTE_TMP="$SAIDAS"
     fi
     export TESTE_NOTAS="$TESTES/notas"
@@ -176,12 +178,16 @@ rodar_teste() {
         js) _cmd="node" ;;
         *) _cmd="sh" ;;
     esac
+    # Em segundo plano + wait: assim o trap de Ctrl+C/TERM roda na hora (e mata o teste) em vez de esperar o teste acabar.
     if command -v timeout >/dev/null 2>&1; then
-        timeout "$TEMPO_MAXIMO" "$_cmd" "$_arq" >"$_saida" 2>&1
+        timeout "$TEMPO_MAXIMO" "$_cmd" "$_arq" >"$_saida" 2>&1 &
     else
-        "$_cmd" "$_arq" >"$_saida" 2>&1
+        "$_cmd" "$_arq" >"$_saida" 2>&1 &
     fi
+    FILHO=$!
+    wait "$FILHO"
     _cod=$?
+    FILHO=""
     [ "$_precisa_amb" = 1 ] && ambiente_destruir
     _seg=$(( $(date +%s) - _inicio ))
 
@@ -217,7 +223,7 @@ grupo_unitarios() {
 }
 
 grupo_integracao() {
-    cabecalho "integracao (banco temporario)"
+    cabecalho "integração (banco temporário)"
     for _a in "$TESTES"/integracao/*.php "$TESTES"/integracao/*.js; do [ -f "$_a" ] && rodar_teste integracao "$_a"; done
 }
 

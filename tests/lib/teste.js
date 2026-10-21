@@ -58,6 +58,11 @@ function sqlLinhas(q) {
 
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
+// O comando existe no PATH? (usado para pular testes que dependem de uma ferramenta, como o pdftotext)
+function temComando(nome) {
+  try { execFileSync('sh', ['-c', 'command -v "$0"', nome], { stdio: 'pipe' }); return true; } catch (e) { return false; }
+}
+
 // --- Playwright: tenta o pacote local/global e depois o caminho das imagens da nuvem ---
 function carregarPlaywright() {
   const candidatos = [process.env.TESTE_PLAYWRIGHT, 'playwright', '/opt/node-tools/node_modules/playwright'].filter(Boolean);
@@ -140,6 +145,16 @@ function hoje(deslocamentoDias = 0) {
 }
 const brData = iso => iso.split('-').reverse().join('/');
 
+// "AAAA-MM-DDTHH:MM:SS" no horário de Cuiaba para um instante (Date ou texto ISO com fuso, como o dhEmi da nota).
+function cuiabaIso(instante = new Date()) {
+  const d = instante instanceof Date ? instante : new Date(instante);
+  const x = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Cuiaba', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    .formatToParts(d).map(t => [t.type, t.value]));
+  return `${x.year}-${x.month}-${x.day}T${x.hour}:${x.minute}:${x.second}`;
+}
+// 512.3 -> "512,30"; 1512.3 -> "1.512,30"
+const reais = n => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n));
+
 // Fim do teste: confere os erros de JavaScript do navegador, imprime o resumo e define o código de saída.
 function resumo(opcoes = {}) {
   if (opcoes.erros !== false && navegadores.length) ok(erros.length === 0, 'sem erros de JavaScript no navegador', erros.join(' | '));
@@ -162,7 +177,7 @@ async function executar(fn) {
 
 module.exports = {
   RAIZ, BASE, DB, AMBIENTE, SESSOES, NOTAS, TMP, PESSOAS,
-  ok, pular, sql, sqlLinhas, espera, carregarPlaywright, abrir, vigiar, entrar, enviar, envelhecer, assumir,
-  txt, capturar, hoje, brData, resumo, executar, erros,
+  ok, pular, temComando, sql, sqlLinhas, espera, carregarPlaywright, abrir, vigiar, entrar, enviar, envelhecer, assumir,
+  txt, capturar, hoje, brData, cuiabaIso, reais, resumo, executar, erros,
   get falhas() { return falhas; },
 };

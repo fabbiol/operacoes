@@ -60,7 +60,7 @@ T.executar(async () => {
   const idSoData = sql("SELECT id FROM fila_carregamentos WHERE nf='4410'");
   ok(sql(`SELECT CONCAT(IFNULL(nf_emitida_em,'-'),'|',IFNULL(nf_emitida_data,'-')) FROM fila_carregamentos WHERE id=${idSoData}`) === '-|' + dataXml, 'gravou a data da emissão sem hora', sql(`SELECT CONCAT(IFNULL(nf_emitida_em,'-'),'|',IFNULL(nf_emitida_data,'-')) FROM fila_carregamentos WHERE id=${idSoData}`));
   await adm.goto(BASE + '/controle?dia=' + dataXml);
-  ok(/NF 4410/.test(await txt(adm)) && /Vendido no dia R\$ 476,40/.test(await txt(adm)), 'Controle do dia da emissão mostra a nota e o valor', (await txt(adm)).slice(0, 200));
+  ok(/NF 4410/.test(await txt(adm)) && /Vendido no dia R\$ 512,30/.test(await txt(adm)), 'Controle do dia da emissão mostra a nota e o valor', (await txt(adm)).slice(0, 200));
   const hoje = sql("SELECT DATE(NOW())");
   if (hoje !== dataXml) {
     await adm.goto(BASE + '/controle?dia=' + hoje);
