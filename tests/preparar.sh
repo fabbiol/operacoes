@@ -67,7 +67,7 @@ if command -v mysql >/dev/null 2>&1; then MYSQL_BIN=mysql; elif command -v maria
 
 if command -v pdftotext >/dev/null 2>&1; then dizer "OK" "pdftotext (poppler-utils)"
 elif instalar_pacote poppler-utils; then dizer "FEITO" "poppler-utils instalado"
-else falta_opcional "pdftotext (sudo apt-get install -y poppler-utils): sem ele o teste que lê o PDF da nota falha"; fi
+else falta_opcional "pdftotext (sudo apt-get install -y poppler-utils): sem ele os testes que leem o PDF da nota ficam PULADOS"; fi
 
 if php -m 2>/dev/null | grep -qi '^pdo_mysql$'; then dizer "OK" "php pdo_mysql"; else dizer "FALTA" "php pdo_mysql"; falta_essencial "extensão pdo_mysql do PHP (sudo apt-get install -y php-mysql)"; fi
 if php -m 2>/dev/null | grep -qi '^gd$'; then dizer "OK" "php gd"; else dizer "AVISO" "php gd ausente: o teste de fotos fica PULADO (sudo apt-get install -y php-gd)"; falta_opcional "extensão gd do PHP (teste de fotos)"; fi
@@ -154,6 +154,8 @@ if command -v node >/dev/null 2>&1; then
         dizer "" "fora dela: npm install -g playwright && npx playwright install chromium (e NODE_PATH apontando para o node_modules global)."
         falta_opcional "Playwright/Chromium (os testes de tela ficam PULADOS)"
     fi
+else
+    dizer "PULA" "sem node não há como conferir o Playwright"
 fi
 
 echo
