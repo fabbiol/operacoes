@@ -83,8 +83,9 @@ T.executar(async () => {
   // Motorista não pode começar limpeza.
   const antes = sql('SELECT COUNT(*) FROM lavra_limpezas');
   await joao.goto(BASE + '/lavra');
-  await joao.evaluate(async () => { const f = document.querySelector('form'); const d = new URLSearchParams(); for (const el of document.querySelectorAll('input[name=_csrf],input[name=_token]')) d.append(el.name, el.value); await fetch('/lavra/limpeza/iniciar', { method: 'POST', body: d }); });
-  ok(sql('SELECT COUNT(*) FROM lavra_limpezas') === antes, 'motorista não começa limpeza');
+  // Envia com o _csrf válido da própria tela: a recusa tem de vir da checagem de papel (403), não do token.
+  const status = await joao.evaluate(async () => { const d = new URLSearchParams(); const t = document.querySelector('input[name=_csrf]'); if (t) d.append('_csrf', t.value); const r = await fetch('/lavra/limpeza/iniciar', { method: 'POST', body: d }); return r.status; });
+  ok(status === 403 && sql('SELECT COUNT(*) FROM lavra_limpezas') === antes, 'motorista não começa limpeza (acesso recusado)', status);
 
   T.resumo();
 });
