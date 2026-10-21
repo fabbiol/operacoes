@@ -81,6 +81,8 @@ T.executar(async () => {
   await maria.goto(BASE + '/patio');
   ok(/Obs\.: Cliente quer brita lavada/.test(await txt(maria)), 'cartão do pátio mostra a observação');
   // Um toque no cartão do pátio já inicia, com a pá do turno: sem a segunda tela.
+  // A carga chegou depois que a Maria abriu o pátio: antes, o aviso de carga nova pede o Ciente.
+  await maria.locator('.avisos-patio:not([hidden]) button:has-text("Ciente")').click({ timeout: 5000 });
   await enviar(maria, `form[action$="/carregamentos/${idA}/iniciar"] button[type=submit]`);
   const iniciada = sql(`SELECT CONCAT(status,'|',pa_carregadeira_id,'|',operador) FROM fila_carregamentos WHERE id=${idA}`);
   ok(/\/patio$/.test(maria.url()) && iniciada === 'carregando|1|Maria', 'um toque em "Iniciar carregamento" no pátio já inicia a carga', maria.url() + ' ' + iniciada);
