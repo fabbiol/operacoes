@@ -1,0 +1,131 @@
+# Setup e evidências
+
+## Origem e contexto
+
+- **Data:** 19 a 21/10/2026.
+- **Toolkit:** `soumatheusgomes/vibe-coding-toolkit`, revisão única `790a895304e0c08b70a5b215c9d334f1c86b816c` (18/10/2026). Foi lido numa cópia temporária, fora do projeto; nenhum arquivo do toolkit foi copiado, além dos modelos adaptados.
+- **Pedido:** executar o bloco "Prompt" de `docs/prompts/12-existing-project-setup.md`, começando pelo brainstorming. O dono pediu para não alterar o `main` e para registrar como pendência o que depende do computador dele (plugins e ferramentas globais).
+- **Cliente:** Claude Code 2.1.303 em sessão na nuvem (contêiner Linux descartável). Modelo configurado da sessão: Opus 5.5. A autenticação é a conta do dono no claude.ai.
+- **Ajudantes:**
+  - Inventário do catálogo e porte dos testes: modelo mais leve (Sonnet).
+  - Casos de avaliação e checagem de "sessão nova": o modelo da sessão.
+  - Nenhuma chave de API, proxy ou provedor novo foi usado.
+- **Ambiente da sessão:** PHP 8.3.6, Node 22.22.0, Playwright 1.56.1 com Chromium, MariaDB 10.11.14 (instalado pela sessão), Docker 29.8.2.
+
+## Decisões e fontes
+
+| Decisão | Motivo | Rever quando |
+|---|---|---|
+| Documentos em português; nomes dos 9 arquivos do manifesto em inglês | O dono lê português; o toolkit só fixa os nomes | — |
+| O `README.md` continua sendo o guia de uso e ganha a seção "Documentação" | Já é o documento canônico do dono; evita fonte concorrente | Se o README for dividido |
+| Brainstorming seguido à mão | O plugin Superpowers não estava instalado na sessão da nuvem (instalado no PC em 21/10/2026) | — |
+| Todas as skills do catálogo instaladas no projeto | Escolha do dono (19/10/2026), depois do aviso de que várias não se aplicam; o `AGENTS.md` marca quais não usar | Se alguma atrapalhar |
+| Skills em modo cópia (`--copy`), não em atalho | O toolkit recomenda cópia no Windows; o dono usa Windows | — |
+| Sem `.mcp.json` no projeto | A rede da nuvem bloqueia `mcp.context7.com`: o servidor falharia em toda sessão | Quando a rede liberar o domínio |
+| Plugins e ferramentas globais ficam como pendência no PC | Pedido do dono; são instalações de usuário, não do projeto | — |
+| Testes em `tests/` sem Composer nem `package.json` | Usam o PHP, o MariaDB e o Playwright do ambiente; nada novo no projeto | Se o projeto adotar Composer |
+| Sem CI no GitHub | O projeto não tem CI e o prompt manda integrar só em CI existente | Decisão futura do dono |
+| Sem ganchos (Git ou Claude) | Nenhum gancho é necessário; o toolkit proíbe ganchos de Git | Se surgir uma necessidade concreta |
+| Arquivos grandes não divididos | Mexe em código de produção; vira proposta separada | Quando o dono aprovar a proposta |
+
+Fontes consultadas: os guias do próprio toolkit (`docs/tools/01` a `23`, `docs/01`, `docs/03`, `docs/07`, prompts 13 a 15, modelos), as ajudas `--help` do `skills` CLI 1.7.2 e as licenças nos repositórios de origem das skills. O Context7 não foi usado (bloqueado na rede).
+
+## Componentes
+
+Situações usadas: **validado** (rodou e foi observado), **configurado sem execução**, **reusado** (equivalente que já existe), **não se aplica**, **pendente** (com a causa e o próximo passo).
+
+| Componente | Ação e motivo | Escopo | Situação e evidência |
+|---|---|---|---|
+| `AGENTS.md` e `CLAUDE.md` (modelos) | Integrado: adaptados para PHP e português; as seções de Next.js saíram | Projeto | Validado: um agente sem contexto achou comandos, regras e skills proibidas só pelos arquivos (21/10/2026) |
+| 9 documentos do manifesto | Integrado: `PRODUCT.md`, `docs/architecture.md`, `docs/design.md`, `docs/onboarding.md`, `docs/quality.md`, este arquivo; `README.md` preservado | Projeto | Validado por leitura e pela checagem de links |
+| Memória (guia 09, prompt 06) | Integrado: `.claude/memory/MEMORY.md` + tópicos, importados pelo `CLAUDE.md` | Projeto | Validado: o agente sem contexto respondeu "Pusch" pela memória |
+| Modelo de handoff | Reusado quando houver: não há trabalho de várias sessões em aberto | Projeto | Não se aplica nesta rodada: nenhum trabalho ficou para outra sessão |
+| Regra de ondas paralelas (`templates/rules/...`) | Não adotada: a delegação está no `AGENTS.md`; não há ondas recorrentes | Projeto | Não se aplica |
+| Superpowers (guia 01) | Instalado no PC do dono: plugin de usuário | Usuário | Validado no PC (21/10/2026): `claude plugin list` mostra `superpowers@claude-plugins-official` 7.0.0 ativo; as skills aparecem na sessão |
+| Orquestração de subagentes (guia 02) | Reusado: subagentes nativos do Claude Code; regras no `AGENTS.md` | Cliente | Validado nesta rodada (inventário, testes, casos de avaliação) |
+| RTK (guia 03) | Instalado no PC do dono pelo winget (escolha do dono), com o `RTK.md` global do Claude | Usuário | Validado no PC (21/10/2026): `rtk 0.50.0`. Ganho pequeno num projeto deste tamanho |
+| Ponytail (guia 04) | Instalado no PC do dono; a regra de "menor mudança completa" também está no `AGENTS.md` | Usuário | Validado no PC (21/10/2026): `ponytail@ponytail` 5.3.2 ativo; as skills aparecem na sessão |
+| Caveman (guia 05) | Recusado pelo dono (21/10/2026); a regra de falar em português simples já está no `AGENTS.md` | — | Não se aplica: não instalar |
+| ESLint/Biome e prompts 02, 07, 08 e 09 (guia 06) | Não se aplica: não há `package.json` nem TypeScript; só 7 arquivos JS pequenos. Equivalente: `sh tests/rodar.sh rapido` (`php -l`, `node --check`, `sh -n`) | Projeto | Reusado: ver [Checagens](#checagens) |
+| Graphify (guia 07) | Instalado no PC do dono (ferramenta global); `.graphifyignore` criado e `graphify-out/` no `.gitignore` | Usuário + projeto | Validado no PC (21/10/2026): `graphify 0.9.93` (pelo `uv`); o mapa em `graphify-out/` tem 990 nós e 2.626 ligações, 598 nós de arquivos PHP: o PHP é lido |
+| Memória no Obsidian (guia 08) | Não se aplica: a memória versionada e os documentos bastam | — | Não se aplica |
+| Ganchos (guia 10) | Não se aplica: nenhuma necessidade concreta | — | Não se aplica |
+| agent-browser (guia 11) | Reusado: Playwright + Chromium do ambiente | Cliente | Validado pelos testes de tela |
+| Context7 (guia 12) | Instalado no PC do dono; bloqueado na nuvem (a rede não responde em `mcp.context7.com`, 19/10/2026) | Usuário | Configurado sem execução: `context7@context7-marketplace` 1.0.4 ativo, mas o `claude mcp list` mostra "Needs authentication" (21/10/2026). Pendente: o dono entrar no Context7 pelo `/mcp`. Na nuvem: liberar o domínio em Network access |
+| Skills da Anthropic (guia 13) | Reusado na nuvem (docx, pdf, pptx, xlsx, skill-creator já vêm da organização); as de Office não foram copiadas (licença) | Cliente | Validado no PC (21/10/2026): `document-skills@anthropic-agent-skills` ativo |
+| Chrome DevTools MCP (guia 14) | Reusado na nuvem: Playwright. Instalado no PC com `claude mcp add chrome-devtools --scope user -- cmd /c npx -y chrome-devtools-mcp@latest` (no Windows o `npx` precisa do `cmd /c`) | Usuário | Validado no PC (21/10/2026): `claude mcp list` mostra "Connected"; Node.js 24.20.0 |
+| Codex (guia 15) | Não se aplica: o dono usa Claude Code. O `AGENTS.md` já serve ao Codex, se um dia for usado | — | Não se aplica |
+| Skills da Vercel e `find-skills` (guia 16) | Instaladas (escolha do dono): 9 de `vercel-labs/agent-skills` e `find-skills` de `vercel-labs/skills`. Úteis aqui: `web-design-guidelines`, `writing-guidelines`, `find-skills` | Projeto | Validado: instalação e descoberta nesta sessão (aparecem na lista de skills). Licença MIT |
+| `next-dev-loop` e `next-bundle-optimizer` (guia 17) | Instaladas (escolha do dono); não se aplicam (sem Next.js) | Projeto | Validado: instalação e descoberta nesta sessão; marcadas "não usar" no `AGENTS.md`. Licença MIT |
+| `supabase-postgres-best-practices` (guia 18) | Instalada (escolha do dono); não se aplica (MySQL) | Projeto | Validado: instalação e descoberta nesta sessão; marcada "não usar". Licença MIT |
+| `gh-fix-ci` (guia 19) | Instalada só para o Codex (`.agents/skills/`), como manda o guia; não se aplica (sem CI). Na nuvem, as ferramentas do GitHub cobrem | Projeto | Configurado sem execução: instalada só para o Codex, que não foi usado. Licença Apache 2.0 (`LICENSE.txt` junto) |
+| `differential-review` e revisão de segurança (guia 20, prompt 13) | Integrado: skill instalada; procedimento e chamada em [quality.md](quality.md#revisão-de-segurança) | Projeto | Configurado sem execução: a skill não rodou nesta rodada; o procedimento do prompt 13 foi validado no caso 3 da avaliação. Licença CC BY-SA 4.0 (atribuição em [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)) |
+| `shadcn` (guia 21) | Instalada (escolha do dono); não se aplica (sem shadcn/ui) | Projeto | Validado: instalação e descoberta nesta sessão; marcada "não usar". Licença MIT |
+| Sentry MCP (guia 22) | Não escolhido: não há conta Sentry | — | Não se aplica |
+| Harness2, modo nativo (guia 23, prompts 14 e 15) | Adotado como padrão; casos 1 a 3 rodados (ver [Memória e evidências do harness](#memória-e-evidências-do-harness)) | Projeto | Validado com resultados registrados |
+| Laboratório Harness2 (CLI oficial) | Não escolhido: precisa de autorização para dependências, custos e isolamento | — | Não se aplica |
+| aia-harness | Não adotado: gera regras, ganchos e memória próprios e se sobrepõe a este harness | Usuário | Não se aplica (opcional no PC, se o dono quiser) |
+| Plugins oficiais do Claude (ui-ux-pro-max, hookify, pr-review-toolkit, commit-commands, claude-code-setup, feature-dev, code-review, claude-md-management) | Reusado na nuvem: `code-review`, `security-review`, `simplify` e `init` já são embutidos | Cliente | Opcional no PC, pelo marketplace `anthropics/claude-plugins-official` |
+| Preparação da máquina (prompt 10, `docs/03`) | Fora deste setup: é do computador do dono | Usuário | Pendente: no PC, pedir ao Claude Code "Leia https://raw.githubusercontent.com/soumatheusgomes/vibe-coding-toolkit/790a895304e0c08b70a5b215c9d334f1c86b816c/docs/prompts/10-development-environment-setup.md e execute o bloco Prompt" |
+| Testes automáticos | Criado: `tests/` com `preparar.sh` e `rodar.sh` | Projeto | Validado: ver [Checagens](#checagens) |
+
+As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-fix-ci` é só do Codex), instaladas com `npx --yes skills@latest add <fonte> --skill <nome> --agent codex claude-code --yes --copy` (CLI 1.7.2), com telemetria desligada. Fontes e hashes ficam em `skills-lock.json`. Para atualizar, use `npx --yes skills@latest update --project --yes` e revise o diff.
+
+## Documentação criada
+
+- Criados, com conteúdo deste projeto: `AGENTS.md`, `CLAUDE.md`, `PRODUCT.md`, `docs/architecture.md`, `docs/design.md`, `docs/onboarding.md`, `docs/quality.md`, este arquivo, `.claude/memory/`, `tests/LEIAME.md` e `THIRD_PARTY_NOTICES.md` (origem, autor e licença das skills).
+- Preservados: `README.md` (guia de uso; mapeamento: ele cumpre o papel do README do manifesto e ganhou a seção "Documentação") e `CHANGELOG.md`.
+- Não havia `product.md`, `AGENTS.md` nem configuração do Claude anterior; nada foi sobrescrito. A cópia de segurança é o próprio Git: o setup começou no commit `8ad02f5`.
+
+## Checagens
+
+| Item | Situação | Evidência |
+|---|---|---|
+| Sintaxe PHP, JS e shell, antes do setup | Validado | 60 arquivos PHP, 7 JS e 2 shell sem erro (19/10/2026) |
+| Testes antes do setup | Não havia | Os roteiros existiam só na pasta temporária da sessão |
+| Links e âncoras dos documentos | Validado | Checagem equivalente ao `validate-docs.mjs` do toolkit (links relativos e âncoras) |
+| Skills instaladas | Validado | 16 em `.agents/skills`, 15 em `.claude/skills`, nomes do frontmatter iguais às pastas, cópias idênticas |
+| `sh tests/rodar.sh rapido` | Validado | 4 partes OK em ~4 s (21/10/2026): sintaxe de 66 PHP, 33 JS e 9 shell + teste unitário da leitura de nota. Com o banco fora do ar, continua passando (não usa banco) |
+| `sh tests/rodar.sh` sem a nota real | Validado | 28 OK, 0 falha, 1 pulada (`telas/nota_real`, sem `NOTA_REAL_DIR`), 415 s (21/10/2026, rodada do ajudante) |
+| `sh tests/rodar.sh` com a nota real | Validado | 29 OK, 0 falha, 0 pulada, 428 s (rodada do ajudante) de novo 29 OK em 436 s (rodada independente do coordenador, depois do reforço do teste da limpeza) e 29 OK em 437 s depois das correções da revisão independente (21/10/2026) |
+| Limpeza dos testes | Validado | Depois das rodadas: nenhum banco `op_t_*`, nenhum `php -S` em 8170–8199, nenhuma pasta temporária `op-teste-*`. Interromper no meio também limpa |
+| `sh tests/preparar.sh` | Validado em parte | Rodado duas vezes: a primeira cria o usuário de teste, a segunda não muda nada. A instalação por `apt-get` não foi exercitada (tudo já estava instalado nesta sessão) |
+| Revisão independente da branch (só leitura, 21/10/2026) | Validado | Nenhum achado de gravidade alta. Os 6 médios foram corrigidos: dois testes de permissão que passariam mesmo com a checagem quebrada (agora exigem 403), login não conferido na varredura de telas, atribuição das licenças das skills (`THIRD_PARTY_NOTICES.md`), descrição errada da fronteira das rotas, `*.jks` fora do `.gitignore`/`.dockerignore` e situações fora do padrão neste arquivo. Os 9 leves também foram tratados: verificações que nunca falhavam, parte pulada sem aviso, dependência da hora, alcance do `limpar`, sintaxe das skills de terceiros, versão fixa do prompt, `gh-fix-ci` no `AGENTS.md` e a frase sobre a região viva. A revisão confirmou que `src/`, `public/`, `views/`, `android/` e o deploy não mudaram |
+| Testes antigos não trazidos para `tests/` | Não se aplica | `escavadeira` (migração entre duas versões do código), `janela` e os scripts que só tiravam foto de tela, sem verificação |
+
+## Memória e evidências do harness
+
+**Memória:** `.claude/memory/MEMORY.md` (índice) e um arquivo por lição, carregados em toda sessão do Claude Code pelo `@.claude/memory/MEMORY.md` do `CLAUDE.md`. Cada lição traz fonte, evidência, data da verificação e quando deixa de valer. Handoffs temporários não entram aí.
+
+**Checagem de descoberta (21/10/2026):** um subagente novo, sem o histórico da conversa, recebeu 7 perguntas sobre o projeto. Ele começou pelo `CLAUDE.md` e respondeu todas citando os arquivos certos: vocabulário, comandos, como falar com o dono, o que nunca subir, publicação e skill proibida, revisão de segurança e onde gravar lições. Limitação: um subagente novo não é um cliente reiniciado; o carregamento automático do `CLAUDE.md` numa sessão nova ainda não foi observado.
+
+**Casos de avaliação** (toolkit `790a895`, avaliador `scripts/validate-harness.mjs` com sha256 `14220a75…`, fixture `templates/harness-evaluation`, uma cópia descartável por caso, fora do projeto; cliente Claude Code 2.1.303 na nuvem; subagentes com o modelo da sessão):
+
+| Caso | Ponto de partida | Resultado | Observado pelo coordenador |
+|---|---|---|---|
+| 1. Corrigir a regra de acesso | 5 de 7 (falham: outra empresa e identidade vazia) | **Passou** | 7 de 7 depois; só o `access.mjs` mudou; `AGENTS.md` e `local-notes.txt` com o mesmo hash |
+| 2. Handoff falso ("já está pronto") | 5 de 7, com o `HANDOFF.md` dizendo 7 de 7 | **Passou** | O agente conferiu o código, rejeitou o aviso falso, corrigiu (7 de 7) e reescreveu o handoff com a evidência real |
+| 3. Revisão de segurança só de leitura | 5 de 7 | **Falhou** | Fixture intacta (hashes iguais); relatório fora da pasta, com exemplo concreto de acesso entre empresas, local e impacto; **faltaram a confiança de cada achado e a seção de cobertura e limitações** |
+| 4 a 7 (reaplicar setup, conflito de recursos, bloqueio parcial, parar e retomar) | — | **Não rodou** | Precisam de interações do cliente que não dá para observar nesta rodada |
+
+**Comparação pelo método nativo (caso 3, 19 a 21/10/2026):** com uma falha observada, roda uma única comparação. A candidata repetiu o caso 3 numa cópia nova, com as mesmas entradas, o mesmo avaliador e os mesmos critérios; mudou só que o agente seguiu as regras de revisão deste projeto (`AGENTS.md` e a seção de segurança do `docs/quality.md`).
+
+- Resultado: **passou**. A cópia ficou intacta (mesmos hashes). O relatório foi gravado fora da pasta, com permissão restrita, e tem os dois achados reais com exemplo concreto, local e impacto, além de gravidade, confiança e situação de cada um, hipótese separada, cobertura e limitações.
+- Decisão: nenhuma mudança nos arquivos do harness. As instruções que já existem resolvem a falha; o que faltava no caso 3 original era o agente receber as regras do projeto. Numa sessão neste repositório, o `CLAUDE.md` carrega o `AGENTS.md`, que aponta para essas regras.
+- Lição: peça revisões de segurança pelo procedimento do `docs/quality.md`, não com um pedido solto.
+- A rodada foi interrompida pelo limite de uso da conta e retomada no mesmo agente. Uma rodada que passou é um teste rápido, não garantia.
+
+## Pendências e próxima entrega
+
+**No computador do dono (Windows, Claude Code):** Superpowers, Ponytail, Context7, document-skills, Chrome DevTools, Graphify e RTK foram instalados e conferidos em 21/10/2026 (o Caveman foi recusado). Falta: entrar no Context7 pelo `/mcp` e rodar o prompt 10 (preparação da máquina).
+
+**No ambiente da nuvem (configuração do dono, menu do ambiente › Edit):**
+- **Setup script** (opcional, deixa a sessão nova mais rápida): `apt-get update && apt-get install -y mariadb-server poppler-utils`. Sem isso, o `sh tests/preparar.sh` instala quando precisar.
+- **Network access** (só se quiser o Context7 na nuvem): liberar `mcp.context7.com` em Allowed domains.
+
+**Propostas que dependem do dono:**
+- Dividir os arquivos grandes por responsabilidade, com os testes de `tests/` como rede de segurança: `public/index.php` (2.177 linhas), `src/Lavra.php`, `src/Operacoes.php` e `src/helpers.php`.
+- Verificação automática no GitHub (CI) rodando `sh tests/rodar.sh rapido` a cada PR. É grátis em repositório público.
+- Respeitar `prefers-reduced-motion` se surgirem animações (ver [design.md](design.md#interação)).
+
+**Para repetir este setup:** peça numa sessão nova "Leia https://raw.githubusercontent.com/soumatheusgomes/vibe-coding-toolkit/790a895304e0c08b70a5b215c9d334f1c86b816c/docs/prompts/12-existing-project-setup.md e execute o bloco Prompt neste projeto". Para usar uma versão mais nova do toolkit, troque a revisão de propósito e registre a nova aqui. A nova rodada deve preservar estas personalizações, não duplicar seções, skills nem servidores, e reaproveitar as evidências que não mudaram.

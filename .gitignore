@@ -7,3 +7,10 @@ storage/fotos/
 Thumbs.db
 storage/sessoes/
 storage/.htaccess
+
+# Saída do Graphify (gerada na máquina, não versionada)
+graphify-out/
+
+# Chave de assinatura do app Android: nunca no repositório (fica só com o dono)
+*.jks
+*.keystore

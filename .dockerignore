@@ -2,3 +2,10 @@
 storage
 .git
 .github
+tests
+.agents
+.claude
+skills-lock.json
+.graphifyignore
+*.jks
+*.keystore
