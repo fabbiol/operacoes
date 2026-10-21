@@ -45,7 +45,7 @@ Situações usadas: **validado** (rodou e foi observado), **configurado sem exec
 | Orquestração de subagentes (guia 02) | Reusado: subagentes nativos do Claude Code; regras no `AGENTS.md` | Cliente | Validado nesta rodada (inventário, testes, casos de avaliação) |
 | RTK (guia 03) | Pendente no PC, opcional: ganho pequeno num projeto pequeno; o guia não documenta instalação no Windows | Usuário | Pendente: binário de release e `rtk init --global` |
 | Ponytail (guia 04) | Pendente no PC; a regra de "menor mudança completa" já está no `AGENTS.md` | Usuário | Pendente: `/plugin marketplace add DietrichGebert/ponytail` e `/plugin install ponytail@ponytail` |
-| Caveman (guia 05) | Pendente no PC; regra adaptada: português simples, porque o dono não é técnico | Usuário | Pendente: `/plugin marketplace add JuliusBrussee/caveman` e `/plugin install caveman@caveman` |
+| Caveman (guia 05) | Recusado pelo dono (21/10/2026); a regra de falar em português simples já está no `AGENTS.md` | — | Não se aplica: não instalar |
 | ESLint/Biome e prompts 02, 07, 08 e 09 (guia 06) | Não se aplica: não há `package.json` nem TypeScript; só 7 arquivos JS pequenos. Equivalente: `sh tests/rodar.sh rapido` (`php -l`, `node --check`, `sh -n`) | Projeto | Reusado: ver [Checagens](#checagens) |
 | Graphify (guia 07) | Pendente no PC (ferramenta global); `.graphifyignore` criado e `graphify-out/` no `.gitignore` | Usuário + projeto | Configurado sem execução. Pendente: `uv tool install graphifyy` (ou `pipx install graphifyy`), `graphify install`, `GRAPHIFY_NO_AUTO_REFRESH=1 graphify extract . --code-only --no-cluster`. Suporte a PHP não confirmado |
 | Memória no Obsidian (guia 08) | Não se aplica: a memória versionada e os documentos bastam | — | Não se aplica |
@@ -53,7 +53,7 @@ Situações usadas: **validado** (rodou e foi observado), **configurado sem exec
 | agent-browser (guia 11) | Reusado: Playwright + Chromium do ambiente | Cliente | Validado pelos testes de tela |
 | Context7 (guia 12) | Bloqueado na nuvem: a rede não responde em `mcp.context7.com` (19/10/2026). Pendente no PC | Usuário | Pendente: `/plugin marketplace add upstash/context7` e `/plugin install context7@context7-marketplace` (ou `claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp`). Na nuvem: liberar o domínio em Network access |
 | Skills da Anthropic (guia 13) | Reusado na nuvem (docx, pdf, pptx, xlsx, skill-creator já vêm da organização); as de Office não foram copiadas (licença) | Cliente | Pendente no PC, opcional: `/plugin marketplace add anthropics/skills` e `/plugin install document-skills@anthropic-agent-skills` |
-| Chrome DevTools MCP (guia 14) | Reusado na nuvem: Playwright. Opcional no PC | Usuário | Pendente, opcional: `claude mcp add chrome-devtools --scope user npx chrome-devtools-mcp@latest` |
+| Chrome DevTools MCP (guia 14) | Reusado na nuvem: Playwright. Opcional no PC | Usuário | Pendente, opcional: `claude mcp add chrome-devtools --scope user -- cmd /c npx -y chrome-devtools-mcp@latest` (no Windows o `npx` precisa do `cmd /c`; requer Node.js e Google Chrome) |
 | Codex (guia 15) | Não se aplica: o dono usa Claude Code. O `AGENTS.md` já serve ao Codex, se um dia for usado | — | Não se aplica |
 | Skills da Vercel e `find-skills` (guia 16) | Instaladas (escolha do dono): 9 de `vercel-labs/agent-skills` e `find-skills` de `vercel-labs/skills`. Úteis aqui: `web-design-guidelines`, `writing-guidelines`, `find-skills` | Projeto | Validado: instalação e descoberta nesta sessão (aparecem na lista de skills). Licença MIT |
 | `next-dev-loop` e `next-bundle-optimizer` (guia 17) | Instaladas (escolha do dono); não se aplicam (sem Next.js) | Projeto | Validado: instalação e descoberta nesta sessão; marcadas "não usar" no `AGENTS.md`. Licença MIT |
@@ -117,7 +117,7 @@ As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-f
 
 ## Pendências e próxima entrega
 
-**No computador do dono (Windows, Claude Code):** instalar, se quiser, os plugins Superpowers, Ponytail, Caveman e Context7 e as ferramentas Graphify e RTK, com os comandos da tabela acima. Depois, abra uma sessão nova neste projeto e peça "confira as ferramentas do docs/setup.md".
+**No computador do dono (Windows, Claude Code):** instalar, se quiser, os plugins Superpowers, Ponytail e Context7 (o Caveman foi recusado) e as ferramentas Graphify e RTK, com os comandos da tabela acima. Depois, abra uma sessão nova neste projeto e peça "confira as ferramentas do docs/setup.md".
 
 **No ambiente da nuvem (configuração do dono, menu do ambiente › Edit):**
 - **Setup script** (opcional, deixa a sessão nova mais rápida): `apt-get update && apt-get install -y mariadb-server poppler-utils`. Sem isso, o `sh tests/preparar.sh` instala quando precisar.
