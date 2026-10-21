@@ -85,7 +85,12 @@ As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-f
 | Testes antes do setup | Não havia | Os roteiros existiam só na pasta temporária da sessão |
 | Links e âncoras dos documentos | Validado | Checagem equivalente ao `validate-docs.mjs` do toolkit (links relativos e âncoras) |
 | Skills instaladas | Validado | 16 em `.agents/skills`, 15 em `.claude/skills`, nomes do frontmatter iguais às pastas, cópias idênticas |
-| `sh tests/rodar.sh rapido` e `sh tests/rodar.sh` | Pendente | Resultado registrado no fim desta entrega |
+| `sh tests/rodar.sh rapido` | Validado | 4 partes OK em ~4 s (21/10/2026): sintaxe de 66 PHP, 33 JS e 9 shell + teste unitário da leitura de nota. Com o banco fora do ar, continua passando (não usa banco) |
+| `sh tests/rodar.sh` sem a nota real | Validado | 28 OK, 0 falha, 1 pulada (`telas/nota_real`, sem `NOTA_REAL_DIR`), 415 s (21/10/2026, rodada do ajudante) |
+| `sh tests/rodar.sh` com a nota real | Validado | 29 OK, 0 falha, 0 pulada, 428 s (rodada do ajudante) e de novo 29 OK em 436 s (rodada independente do coordenador, depois do reforço do teste da limpeza) |
+| Limpeza dos testes | Validado | Depois das rodadas: nenhum banco `op_t_*`, nenhum `php -S` em 8170–8199, nenhuma pasta temporária `op-teste-*`. Interromper no meio também limpa |
+| `sh tests/preparar.sh` | Validado em parte | Rodado duas vezes: a primeira cria o usuário de teste, a segunda não muda nada. A instalação por `apt-get` não foi exercitada (tudo já estava instalado nesta sessão) |
+| Testes antigos não trazidos para `tests/` | Não se aplica | `escavadeira` (migração entre duas versões do código), `janela` e os scripts que só tiravam foto de tela, sem verificação |
 
 ## Memória e evidências do harness
 
