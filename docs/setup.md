@@ -43,7 +43,7 @@ Situações usadas: **validado** (rodou e foi observado), **configurado sem exec
 | Regra de ondas paralelas (`templates/rules/...`) | Não adotada: a delegação está no `AGENTS.md`; não há ondas recorrentes | Projeto | Não se aplica |
 | Superpowers (guia 01) | Instalado no PC do dono: plugin de usuário | Usuário | Validado no PC (21/10/2026): `claude plugin list` mostra `superpowers@claude-plugins-official` 7.0.0 ativo; as skills aparecem na sessão |
 | Orquestração de subagentes (guia 02) | Reusado: subagentes nativos do Claude Code; regras no `AGENTS.md` | Cliente | Validado nesta rodada (inventário, testes, casos de avaliação) |
-| RTK (guia 03) | Instalado no PC do dono pelo winget (escolha do dono), com o `RTK.md` global do Claude | Usuário | Validado no PC (21/10/2026): `rtk 0.50.0`. Ganho pequeno num projeto deste tamanho |
+| RTK (guia 03) | Instalado no PC do dono pelo winget (escolha do dono), com o `RTK.md` global do Claude | Usuário | Validado no PC (21/10/2026): `rtk` 1.0.1 (atualizado no prompt 10). Ganho pequeno num projeto deste tamanho |
 | Ponytail (guia 04) | Instalado no PC do dono; a regra de "menor mudança completa" também está no `AGENTS.md` | Usuário | Validado no PC (21/10/2026): `ponytail@ponytail` 5.3.2 ativo; as skills aparecem na sessão |
 | Caveman (guia 05) | Recusado pelo dono (21/10/2026); a regra de falar em português simples já está no `AGENTS.md` | — | Não se aplica: não instalar |
 | ESLint/Biome e prompts 02, 07, 08 e 09 (guia 06) | Não se aplica: não há `package.json` nem TypeScript; só 7 arquivos JS pequenos. Equivalente: `sh tests/rodar.sh rapido` (`php -l`, `node --check`, `sh -n`) | Projeto | Reusado: ver [Checagens](#checagens) |
@@ -51,7 +51,7 @@ Situações usadas: **validado** (rodou e foi observado), **configurado sem exec
 | Memória no Obsidian (guia 08) | Não se aplica: a memória versionada e os documentos bastam | — | Não se aplica |
 | Ganchos (guia 10) | Não se aplica: nenhuma necessidade concreta | — | Não se aplica |
 | agent-browser (guia 11) | Reusado: Playwright + Chromium do ambiente | Cliente | Validado pelos testes de tela |
-| Context7 (guia 12) | Instalado no PC do dono; bloqueado na nuvem (a rede não responde em `mcp.context7.com`, 19/10/2026) | Usuário | Configurado sem execução: `context7@context7-marketplace` 1.0.4 ativo, mas o `claude mcp list` mostra "Needs authentication" (21/10/2026). Pendente: o dono entrar no Context7 pelo `/mcp`. Na nuvem: liberar o domínio em Network access |
+| Context7 (guia 12) | Instalado no PC do dono; bloqueado na nuvem (a rede não responde em `mcp.context7.com`, 19/10/2026) | Usuário | Validado no PC (21/10/2026): `context7@context7-marketplace` 1.0.4, `claude mcp list` mostra "Connected". Na nuvem: liberar o domínio em Network access |
 | Skills da Anthropic (guia 13) | Reusado na nuvem (docx, pdf, pptx, xlsx, skill-creator já vêm da organização); as de Office não foram copiadas (licença) | Cliente | Validado no PC (21/10/2026): `document-skills@anthropic-agent-skills` ativo |
 | Chrome DevTools MCP (guia 14) | Reusado na nuvem: Playwright. Instalado no PC com `claude mcp add chrome-devtools --scope user -- cmd /c npx -y chrome-devtools-mcp@latest` (no Windows o `npx` precisa do `cmd /c`) | Usuário | Validado no PC (21/10/2026): `claude mcp list` mostra "Connected"; Node.js 24.20.0 |
 | Codex (guia 15) | Não se aplica: o dono usa Claude Code. O `AGENTS.md` já serve ao Codex, se um dia for usado | — | Não se aplica |
@@ -66,7 +66,7 @@ Situações usadas: **validado** (rodou e foi observado), **configurado sem exec
 | Laboratório Harness2 (CLI oficial) | Não escolhido: precisa de autorização para dependências, custos e isolamento | — | Não se aplica |
 | aia-harness | Não adotado: gera regras, ganchos e memória próprios e se sobrepõe a este harness | Usuário | Não se aplica (opcional no PC, se o dono quiser) |
 | Plugins oficiais do Claude (ui-ux-pro-max, hookify, pr-review-toolkit, commit-commands, claude-code-setup, feature-dev, code-review, claude-md-management) | Reusado na nuvem: `code-review`, `security-review`, `simplify` e `init` já são embutidos | Cliente | Opcional no PC, pelo marketplace `anthropics/claude-plugins-official` |
-| Preparação da máquina (prompt 10, `docs/03`) | Fora deste setup: é do computador do dono | Usuário | Pendente: no PC, pedir ao Claude Code "Leia https://raw.githubusercontent.com/soumatheusgomes/vibe-coding-toolkit/790a895304e0c08b70a5b215c9d334f1c86b816c/docs/prompts/10-development-environment-setup.md e execute o bloco Prompt" |
+| Preparação da máquina (prompt 10, `docs/03`) | Executado no PC do dono (21/10/2026). Instalados: GitHub CLI, pnpm, ripgrep, fd, jq, WSL e Docker Desktop; atualizados: Git e RTK. Não instalados por escolha do dono: Codex e Caveman; `fnm` não instalado porque o Node LTS oficial já existia | Usuário | Validado no PC: Docker rodou `hello-world` e um projeto Compose de teste. Relatório e manifesto ficam fora do projeto, em `C:\Users\Fábio\setup-ambiente`. Pendente: login do `gh` (`gh auth login --web`) |
 | Testes automáticos | Criado: `tests/` com `preparar.sh` e `rodar.sh` | Projeto | Validado: ver [Checagens](#checagens) |
 
 As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-fix-ci` é só do Codex), instaladas com `npx --yes skills@latest add <fonte> --skill <nome> --agent codex claude-code --yes --copy` (CLI 1.7.2), com telemetria desligada. Fontes e hashes ficam em `skills-lock.json`. Para atualizar, use `npx --yes skills@latest update --project --yes` e revise o diff.
@@ -117,7 +117,7 @@ As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-f
 
 ## Pendências e próxima entrega
 
-**No computador do dono (Windows, Claude Code):** Superpowers, Ponytail, Context7, document-skills, Chrome DevTools, Graphify e RTK foram instalados e conferidos em 21/10/2026 (o Caveman foi recusado). Falta: entrar no Context7 pelo `/mcp` e rodar o prompt 10 (preparação da máquina).
+**No computador do dono (Windows, Claude Code):** Superpowers, Ponytail, Context7, document-skills, Chrome DevTools, Graphify e RTK foram instalados e conferidos em 21/10/2026 (o Caveman foi recusado). O Context7 já está conectado e o prompt 10 foi executado (Docker funcionando). Falta só o login do `gh`, se o dono quiser.
 
 **No ambiente da nuvem (configuração do dono, menu do ambiente › Edit):**
 - **Setup script** (opcional, deixa a sessão nova mais rápida): `apt-get update && apt-get install -y mariadb-server poppler-utils`. Sem isso, o `sh tests/preparar.sh` instala quando precisar.
