@@ -1,0 +1,2 @@
+# Scripts que rodam no Linux (Docker, testes, montagem do app) precisam de fim de linha LF, mesmo no Windows.
+*.sh text eol=lf
