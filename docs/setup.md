@@ -18,7 +18,7 @@
 |---|---|---|
 | Documentos em português; nomes dos 9 arquivos do manifesto em inglês | O dono lê português; o toolkit só fixa os nomes | — |
 | O `README.md` continua sendo o guia de uso e ganha a seção "Documentação" | Já é o documento canônico do dono; evita fonte concorrente | Se o README for dividido |
-| Brainstorming seguido à mão | O plugin Superpowers não está instalado nesta sessão | Quando o plugin estiver ativo |
+| Brainstorming seguido à mão | O plugin Superpowers não estava instalado na sessão da nuvem (instalado no PC em 21/10/2026) | — |
 | Todas as skills do catálogo instaladas no projeto | Escolha do dono (19/10/2026), depois do aviso de que várias não se aplicam; o `AGENTS.md` marca quais não usar | Se alguma atrapalhar |
 | Skills em modo cópia (`--copy`), não em atalho | O toolkit recomenda cópia no Windows; o dono usa Windows | — |
 | Sem `.mcp.json` no projeto | A rede da nuvem bloqueia `mcp.context7.com`: o servidor falharia em toda sessão | Quando a rede liberar o domínio |
@@ -41,19 +41,19 @@ Situações usadas: **validado** (rodou e foi observado), **configurado sem exec
 | Memória (guia 09, prompt 06) | Integrado: `.claude/memory/MEMORY.md` + tópicos, importados pelo `CLAUDE.md` | Projeto | Validado: o agente sem contexto respondeu "Pusch" pela memória |
 | Modelo de handoff | Reusado quando houver: não há trabalho de várias sessões em aberto | Projeto | Não se aplica nesta rodada: nenhum trabalho ficou para outra sessão |
 | Regra de ondas paralelas (`templates/rules/...`) | Não adotada: a delegação está no `AGENTS.md`; não há ondas recorrentes | Projeto | Não se aplica |
-| Superpowers (guia 01) | Pendente no PC: plugin de usuário | Usuário | Pendente: `/plugin marketplace add anthropics/claude-plugins-official` e `/plugin install superpowers@claude-plugins-official` |
+| Superpowers (guia 01) | Instalado no PC do dono: plugin de usuário | Usuário | Validado no PC (21/10/2026): `claude plugin list` mostra `superpowers@claude-plugins-official` 7.0.0 ativo; as skills aparecem na sessão |
 | Orquestração de subagentes (guia 02) | Reusado: subagentes nativos do Claude Code; regras no `AGENTS.md` | Cliente | Validado nesta rodada (inventário, testes, casos de avaliação) |
-| RTK (guia 03) | Pendente no PC, opcional: ganho pequeno num projeto pequeno; o guia não documenta instalação no Windows | Usuário | Pendente: binário de release e `rtk init --global` |
-| Ponytail (guia 04) | Pendente no PC; a regra de "menor mudança completa" já está no `AGENTS.md` | Usuário | Pendente: `/plugin marketplace add DietrichGebert/ponytail` e `/plugin install ponytail@ponytail` |
+| RTK (guia 03) | Instalado no PC do dono pelo winget (escolha do dono), com o `RTK.md` global do Claude | Usuário | Validado no PC (21/10/2026): `rtk 0.50.0`. Ganho pequeno num projeto deste tamanho |
+| Ponytail (guia 04) | Instalado no PC do dono; a regra de "menor mudança completa" também está no `AGENTS.md` | Usuário | Validado no PC (21/10/2026): `ponytail@ponytail` 5.3.2 ativo; as skills aparecem na sessão |
 | Caveman (guia 05) | Recusado pelo dono (21/10/2026); a regra de falar em português simples já está no `AGENTS.md` | — | Não se aplica: não instalar |
 | ESLint/Biome e prompts 02, 07, 08 e 09 (guia 06) | Não se aplica: não há `package.json` nem TypeScript; só 7 arquivos JS pequenos. Equivalente: `sh tests/rodar.sh rapido` (`php -l`, `node --check`, `sh -n`) | Projeto | Reusado: ver [Checagens](#checagens) |
-| Graphify (guia 07) | Pendente no PC (ferramenta global); `.graphifyignore` criado e `graphify-out/` no `.gitignore` | Usuário + projeto | Configurado sem execução. Pendente: `uv tool install graphifyy` (ou `pipx install graphifyy`), `graphify install`, `GRAPHIFY_NO_AUTO_REFRESH=1 graphify extract . --code-only --no-cluster`. Suporte a PHP não confirmado |
+| Graphify (guia 07) | Instalado no PC do dono (ferramenta global); `.graphifyignore` criado e `graphify-out/` no `.gitignore` | Usuário + projeto | Validado no PC (21/10/2026): `graphify 0.9.93` (pelo `uv`); o mapa em `graphify-out/` tem 990 nós e 2.626 ligações, 598 nós de arquivos PHP: o PHP é lido |
 | Memória no Obsidian (guia 08) | Não se aplica: a memória versionada e os documentos bastam | — | Não se aplica |
 | Ganchos (guia 10) | Não se aplica: nenhuma necessidade concreta | — | Não se aplica |
 | agent-browser (guia 11) | Reusado: Playwright + Chromium do ambiente | Cliente | Validado pelos testes de tela |
-| Context7 (guia 12) | Bloqueado na nuvem: a rede não responde em `mcp.context7.com` (19/10/2026). Pendente no PC | Usuário | Pendente: `/plugin marketplace add upstash/context7` e `/plugin install context7@context7-marketplace` (ou `claude mcp add --scope user --transport http context7 https://mcp.context7.com/mcp`). Na nuvem: liberar o domínio em Network access |
-| Skills da Anthropic (guia 13) | Reusado na nuvem (docx, pdf, pptx, xlsx, skill-creator já vêm da organização); as de Office não foram copiadas (licença) | Cliente | Pendente no PC, opcional: `/plugin marketplace add anthropics/skills` e `/plugin install document-skills@anthropic-agent-skills` |
-| Chrome DevTools MCP (guia 14) | Reusado na nuvem: Playwright. Opcional no PC | Usuário | Pendente, opcional: `claude mcp add chrome-devtools --scope user -- cmd /c npx -y chrome-devtools-mcp@latest` (no Windows o `npx` precisa do `cmd /c`; requer Node.js e Google Chrome) |
+| Context7 (guia 12) | Instalado no PC do dono; bloqueado na nuvem (a rede não responde em `mcp.context7.com`, 19/10/2026) | Usuário | Configurado sem execução: `context7@context7-marketplace` 1.0.4 ativo, mas o `claude mcp list` mostra "Needs authentication" (21/10/2026). Pendente: o dono entrar no Context7 pelo `/mcp`. Na nuvem: liberar o domínio em Network access |
+| Skills da Anthropic (guia 13) | Reusado na nuvem (docx, pdf, pptx, xlsx, skill-creator já vêm da organização); as de Office não foram copiadas (licença) | Cliente | Validado no PC (21/10/2026): `document-skills@anthropic-agent-skills` ativo |
+| Chrome DevTools MCP (guia 14) | Reusado na nuvem: Playwright. Instalado no PC com `claude mcp add chrome-devtools --scope user -- cmd /c npx -y chrome-devtools-mcp@latest` (no Windows o `npx` precisa do `cmd /c`) | Usuário | Validado no PC (21/10/2026): `claude mcp list` mostra "Connected"; Node.js 24.20.0 |
 | Codex (guia 15) | Não se aplica: o dono usa Claude Code. O `AGENTS.md` já serve ao Codex, se um dia for usado | — | Não se aplica |
 | Skills da Vercel e `find-skills` (guia 16) | Instaladas (escolha do dono): 9 de `vercel-labs/agent-skills` e `find-skills` de `vercel-labs/skills`. Úteis aqui: `web-design-guidelines`, `writing-guidelines`, `find-skills` | Projeto | Validado: instalação e descoberta nesta sessão (aparecem na lista de skills). Licença MIT |
 | `next-dev-loop` e `next-bundle-optimizer` (guia 17) | Instaladas (escolha do dono); não se aplicam (sem Next.js) | Projeto | Validado: instalação e descoberta nesta sessão; marcadas "não usar" no `AGENTS.md`. Licença MIT |
@@ -117,7 +117,7 @@ As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-f
 
 ## Pendências e próxima entrega
 
-**No computador do dono (Windows, Claude Code):** instalar, se quiser, os plugins Superpowers, Ponytail e Context7 (o Caveman foi recusado) e as ferramentas Graphify e RTK, com os comandos da tabela acima. Depois, abra uma sessão nova neste projeto e peça "confira as ferramentas do docs/setup.md".
+**No computador do dono (Windows, Claude Code):** Superpowers, Ponytail, Context7, document-skills, Chrome DevTools, Graphify e RTK foram instalados e conferidos em 21/10/2026 (o Caveman foi recusado). Falta: entrar no Context7 pelo `/mcp` e rodar o prompt 10 (preparação da máquina).
 
 **No ambiente da nuvem (configuração do dono, menu do ambiente › Edit):**
 - **Setup script** (opcional, deixa a sessão nova mais rápida): `apt-get update && apt-get install -y mariadb-server poppler-utils`. Sem isso, o `sh tests/preparar.sh` instala quando precisar.

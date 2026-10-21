@@ -44,7 +44,7 @@ Sistema da pedreira Próspera: fila de carregamento do pátio, ciclo de lavra (P
 
 - Úteis aqui: `differential-review` (revisão de segurança de uma mudança), `web-design-guidelines` (telas e acessibilidade), `writing-guidelines` (textos e documentos), `find-skills` (achar uma skill que falta).
 - Instaladas por escolha do dono, mas **não se aplicam** a este sistema (PHP sem framework, MySQL, Easypanel): as de React, Next.js, React Native, Vercel (inclusive `deploy-to-vercel` e `vercel-cli-with-tokens`), PostgreSQL/Supabase, shadcn e `gh-fix-ci` (só para o Codex, e o projeto não tem CI). Não use. Licenças e origens: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). "Publicar" aqui é juntar no `main` e o dono tocar em **Implantar** no Easypanel.
-- Plugins (Superpowers, Ponytail, Context7) e ferramentas globais (RTK, Graphify) ainda não estão instalados: veja as pendências em [docs/setup.md](docs/setup.md). Confira se a ferramenta existe antes de contar com ela. O dono recusou o Caveman: não instale.
+- No PC do dono estão instalados os plugins Superpowers, Ponytail, Context7 e document-skills, o Chrome DevTools MCP e as ferramentas RTK e Graphify (21/10/2026; detalhes em [docs/setup.md](docs/setup.md)). Na nuvem, nada disso existe: confira se a ferramenta existe antes de contar com ela. O dono recusou o Caveman: não instale.
 - Revisão de segurança reutilizável: veja [docs/quality.md](docs/quality.md#revisão-de-segurança). Relatórios ficam fora do repositório.
 
 ## Delegação e revisão
