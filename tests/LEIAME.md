@@ -10,13 +10,13 @@ sh tests/rodar.sh           # tudo: rápido + integração (banco temporário) +
 
 Para rodar só uma parte: `sh tests/rodar.sh integracao`, `sh tests/rodar.sh telas`, ou o nome (ou pedaço do nome) de um teste,
 com ou sem o grupo na frente: `sh tests/rodar.sh telas patio`, `sh tests/rodar.sh fracionado valor`.
-`sh tests/rodar.sh limpar` apaga restos de uma rodada interrompida à força (bancos `op_t_*`, servidores nas portas 8170–8199, pastas temporárias).
+`sh tests/rodar.sh limpar` apaga restos de uma rodada interrompida à força (bancos `op_t_*`, servidores nas portas 8170–8199, pastas temporárias). Ele apaga **todos** esses recursos, inclusive os de outra rodada que esteja rodando ao mesmo tempo, e sempre olha a faixa 8170–8199, mesmo com `TESTE_PORTA_INICIO`/`TESTE_PORTA_FIM`: só use quando nenhuma rodada estiver em andamento.
 
 ## O que o `rodar.sh` mostra
 
 Cada teste sai como **OK**, **FALHA** ou **PULADO**; no PULADO vem o motivo (por exemplo, "MariaDB não responde em 127.0.0.1:3307 — rode sh tests/preparar.sh").
-No fim há um resumo com as falhas e os pulados. Teste pulado **não conta como passou**: aparece no resumo e o fecho diz "passou, mas com suites PULADAS".
-O código de saída é 1 se algo FALHOU. Com `TESTE_ESTRITO=1`, teste pulado também vira erro (para usar em automação).
+No fim há um resumo com as falhas e os pulados. Teste pulado **não conta como passou**: aparece no resumo e o fecho diz "passou, mas com suites PULADAS". Uma parte pulada dentro de um teste que passou (por exemplo, o caso da fila que atravessou a noite, que só roda depois das 07h) aparece em "PARTES PULADAS" e o fecho diz "passou, mas com partes PULADAS dentro de testes".
+O código de saída é 1 se algo FALHOU. Com `TESTE_ESTRITO=1`, teste ou parte pulada também vira erro (para usar em automação).
 Falhou? As linhas `FALHA` e o fim da saída aparecem na hora. Para ver a saída inteira dos que passaram: `TESTE_VERBOSO=1 sh tests/rodar.sh telas patio`.
 
 ## Pré-requisitos
@@ -43,7 +43,7 @@ O `preparar.sh` pode rodar várias vezes: o que já está pronto não muda. Só 
 | `TESTE_DB_USUARIO`, `TESTE_DB_SENHA` | usuário de teste (senha falsa, só deste banco local) | `operacoes_teste`, `teste_local` |
 | `TESTE_DB_ADMIN` | (só `preparar.sh`) comando do cliente com acesso de administrador | `mysql -uroot` |
 | `TESTE_SEM_APT=1` | (só `preparar.sh`) não instala nada, só mostra o que faria | — |
-| `TESTE_ESTRITO=1` | teste PULADO também faz o `rodar.sh` sair com erro | — |
+| `TESTE_ESTRITO=1` | teste ou parte PULADA também faz o `rodar.sh` sair com erro | — |
 | `TESTE_VERBOSO=1` | mostra a saída completa dos testes que passaram | — |
 | `TESTE_TEMPO_MAXIMO` | segundos que cada teste pode levar | `420` |
 | `TESTE_CAPTURAS` | pasta onde os testes de tela salvam capturas de tela (PNG). Sem ela, não salvam | — |

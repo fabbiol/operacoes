@@ -26,6 +26,8 @@ if (date('H') >= '07') {
     $ins->execute([3, date('Y-m-d', time() - 86400) . ' 17:40:00', $t('07:00'), $t('07:05'), $t('07:25'), $t('07:45'), null, 0]);
     $m = Lavra::resumo(date('Y-m-d'))['caminhao']['medias'];
     ok($m['fila'] === 300 && $m['ciclo'] === 3000, 'fila que passou a noite fica fora da fila e do ciclo médio', json_encode($m));
+} else {
+    pular_parte('fila que passou a noite: só roda depois das 07h (horário de Cuiabá), quando as viagens de hoje já aconteceram');
 }
 // limpeza das 12:00 às 13:00 com carga no meio
 $pdo->exec('DELETE FROM ciclos_lavra');

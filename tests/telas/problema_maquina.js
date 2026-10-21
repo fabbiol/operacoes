@@ -129,12 +129,18 @@ T.executar(async () => {
   ok(/já estava resolvido/.test(resp), 'resolver de novo avisa que já estava resolvido');
   // Operador não acessa as rotas do administrativo.
   const joao2 = await entrar(b, 'Ana', 'ana12345');
+  // Com caminhão assumido: sem máquina, o sistema manda para a escolha de máquina antes de chegar na checagem de acesso.
+  await assumir(joao2, 'caminhao:3', '300');
   const antes = sql('SELECT COUNT(*) FROM maquina_problemas');
+  // Envia com o _csrf válido da própria tela: a recusa tem de vir da checagem de acesso (403), não do token.
   const st = await joao2.evaluate(async () => {
-    const r = await fetch('/cadastros/pas/1/problemas', { method: 'POST', body: new URLSearchParams({ problema: 'teste' }), redirect: 'manual' });
+    const dados = new URLSearchParams({ problema: 'teste' });
+    const t = document.querySelector('input[name=_csrf]');
+    if (t) dados.append('_csrf', t.value);
+    const r = await fetch('/cadastros/pas/1/problemas', { method: 'POST', body: dados, redirect: 'manual' });
     return r.type === 'opaqueredirect' ? 'redireciona' : String(r.status);
   });
-  ok((st === '403' || st === 'redireciona') && sql('SELECT COUNT(*) FROM maquina_problemas') === antes, 'operador não registra problema pela ficha do administrativo', st);
+  ok(st === '403' && sql('SELECT COUNT(*) FROM maquina_problemas') === antes, 'motorista não registra problema pela ficha do administrativo (acesso recusado)', st);
 
   T.resumo();
 });

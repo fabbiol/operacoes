@@ -145,10 +145,11 @@ ambiente_destruir() {
 }
 
 # Lista os arquivos do projeto: os versionados mais os novos da pasta tests/ que ainda não entraram no git.
+# As skills de terceiros (.agents/ e .claude/skills/) ficam de fora: não são código do sistema.
 arquivos_do_projeto() {
     if git -C "$RAIZ" rev-parse --git-dir >/dev/null 2>&1; then
         { git -C "$RAIZ" ls-files; git -C "$RAIZ" ls-files --others --exclude-standard -- tests; } | sort -u
     else
         (cd "$RAIZ" && find . -type f -not -path './.git/*' | sed 's|^\./||' | sort)
-    fi
+    fi | grep -v -e '^\.agents/' -e '^\.claude/skills/'
 }

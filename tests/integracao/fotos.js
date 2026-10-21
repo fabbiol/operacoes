@@ -19,10 +19,11 @@ async function enviar(c, path, campos, arquivo, nome, tipo) {
 }
 T.executar(async () => {
   try {
-    execFileSync('php', [path.join(__dirname, '..', 'lib', 'gerar_imagens.php'), IMG], { stdio: 'pipe' });
+    execFileSync('php', ['-r', 'exit(extension_loaded("gd") ? 0 : 1);'], { stdio: 'pipe' });
   } catch (e) {
-    T.pular('não consegui gerar as imagens de teste (o PHP precisa da extensão gd): ' + String(e.stderr || e.message).split('\n')[0]);
+    T.pular('o PHP desta máquina não tem a extensão gd (sudo apt-get install -y php-gd)');
   }
+  execFileSync('php', [path.join(__dirname, '..', 'lib', 'gerar_imagens.php'), IMG], { stdio: 'pipe' });
   const adm = new Cliente('Fabio'); await adm.login('Fabio', 'senha-forte-123');
   // Caminhão 1: foto grande deitada (EXIF 6)
   let p = await adm.get('/cadastros/caminhoes/1');
@@ -33,7 +34,6 @@ T.executar(async () => {
   const i1 = info(AMB + '/storage/fotos/' + foto1);
   ok(foto1 === 'caminhoes/1.jpg' && Math.max(i1.w, i1.h) === 960 && i1.bytes < 400 * 1024, 'foto reduzida para 960 px', JSON.stringify(i1));
   ok(i1.h > i1.w, 'foto deitada saiu de pé (EXIF)', JSON.stringify(i1));
-  ok(i1.canto[0] < 100 || true, 'canto', JSON.stringify(i1.canto));
   // PNG transparente vira JPG com fundo branco
   p = await adm.get('/cadastros/pas/1');
   f = parseForms(p.text).find(x => x.action.endsWith('/cadastros/pas/1'));
@@ -69,8 +69,8 @@ T.executar(async () => {
   ok(r.status === 304 && r.text === '', 'segunda vez: 304 sem corpo', r.status + ' etag=' + etag);
   // Fotos em paralelo não esperam a sessão
   const t0 = Date.now();
-  await Promise.all([1, 2, 1, 2, 1, 2].map(id => adm.get('/cadastros/caminhoes/' + id + '/foto')));
-  ok(true, 'seis fotos em paralelo em ' + (Date.now() - t0) + ' ms');
+  const paralelas = await Promise.all([1, 2, 1, 2, 1, 2].map(id => adm.get('/cadastros/caminhoes/' + id + '/foto')));
+  ok(paralelas.every(x => x.status === 200), 'seis fotos em paralelo, todas entregues em ' + (Date.now() - t0) + ' ms', paralelas.map(x => x.status).join(','));
   // Operador vê a foto da máquina
   const maria = new Cliente('Maria'); await maria.login('Maria', 'maria1234');
   r = await maria.get('/cadastros/pas/1/foto');

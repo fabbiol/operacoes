@@ -19,7 +19,7 @@
 - HTML semântico, navegação por teclado, foco visível e contraste adequado.
 - Todo campo tem rótulo. O erro aparece ao lado do campo ou num aviso no topo do formulário.
 - Envio mostra "Enviando…", e o toque duplo é barrado (`public/assets/envio.js`).
-- Telas que se atualizam sozinhas anunciam a mudança por uma região viva (`public/assets/fluxo.js`).
+- Telas que se atualizam sozinhas trocam o bloco `#fluxo` quando o estado muda (`public/assets/fluxo.js`). A região viva da página anuncia só a queda e a volta da conexão e o fim da sessão; a troca do bloco não é anunciada.
 - Sem sinal, o tablet mostra "Sem conexão" (`public/offline.html`, `public/sw.js`) e volta sozinho.
 - Movimento: não existe regra `prefers-reduced-motion` nos CSS (19/10/2026). Hoje só há uma transição. Se entrar animação nova, ela deve respeitar essa preferência.
 

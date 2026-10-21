@@ -11,6 +11,12 @@ function ok(bool $condicao, string $mensagem, string $extra = ''): void
     }
 }
 
+/** Parte do teste que não pôde rodar agora: aparece no resumo como parte PULADA (não conta como passou). */
+function pular_parte(string $motivo): void
+{
+    echo "PULADO $motivo\n";
+}
+
 function fim(): void
 {
     echo $GLOBALS['falhas'] ? $GLOBALS['falhas'] . " FALHA(S)\n" : "TUDO OK\n";

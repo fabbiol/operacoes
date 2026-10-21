@@ -10,7 +10,7 @@
 # Cada teste de integração e de tela roda no seu próprio ambiente: pasta temporária com cópia do app,
 # banco op_t_<nome>_<sorteio> novo e servidor php -S numa porta livre de 8170 a 8199. Tudo é apagado no fim.
 # Código de saída: 0 se nada falhou (suites puladas aparecem no resumo); 1 se algum teste FALHOU.
-# Com TESTE_ESTRITO=1, suite PULADA inteira também vira erro (útil em CI).
+# Com TESTE_ESTRITO=1, suite PULADA inteira ou parte PULADA dentro de um teste também vira erro (útil em CI).
 
 TESTES=$(cd "$(dirname "$0")" && pwd)
 RAIZ=$(dirname "$TESTES")
@@ -251,7 +251,8 @@ if [ -n "$RESUMO_PULADOS" ]; then echo; echo "PULADOS (não foram executados —
 if [ -n "$RESUMO_PARCIAIS" ]; then echo; echo "PARTES PULADAS dentro de testes que passaram:"; printf '%s' "$RESUMO_PARCIAIS"; fi
 
 if [ "$N_FALHA" -gt 0 ]; then echo; echo "RESULTADO: FALHOU"; exit 1; fi
-if [ "${TESTE_ESTRITO:-0}" = 1 ] && [ "$N_PULADO" -gt 0 ]; then echo; echo "RESULTADO: FALHOU (TESTE_ESTRITO=1 e há suites puladas)"; exit 1; fi
+if [ "${TESTE_ESTRITO:-0}" = 1 ] && [ $((N_PULADO + N_PARCIAL)) -gt 0 ]; then echo; echo "RESULTADO: FALHOU (TESTE_ESTRITO=1 e há partes puladas)"; exit 1; fi
 if [ "$N_PULADO" -gt 0 ]; then echo; echo "RESULTADO: passou, mas com suites PULADAS"; exit 0; fi
+if [ "$N_PARCIAL" -gt 0 ]; then echo; echo "RESULTADO: passou, mas com partes PULADAS dentro de testes"; exit 0; fi
 echo; echo "RESULTADO: passou"
 exit 0

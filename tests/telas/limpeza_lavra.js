@@ -33,7 +33,9 @@ T.executar(async () => {
   await adm.goto(BASE + '/dashboard'); await espera(800);
   ok(/Retro 1 em limpeza da lavra/.test(await adm.locator('#monitor').innerText()), 'Monitor da TV mostra a limpeza');
 
-  // 20 min de limpeza durante 25 min de fila.
+  // 20 min de limpeza durante 25 min de fila. Entre 00:00 e 00:30 (Cuiabá) isso cairia no dia anterior.
+  const [hh, mm] = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Cuiaba', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).split(':').map(Number);
+  if (hh === 0 && mm < 30) T.pular('perto da meia-noite (Cuiabá): a limpeza de 20 min cairia no dia anterior; rode depois das 00:30');
   sql("UPDATE lavra_limpezas SET inicio = inicio - INTERVAL 20 MINUTE; UPDATE ciclos_lavra SET inicio_fila = inicio_fila - INTERVAL 25 MINUTE");
   await maria.goto(BASE + '/lavra');
   await enviar(maria, 'form[action*="/lavra/ciclos/"][action$="/carga"] button');

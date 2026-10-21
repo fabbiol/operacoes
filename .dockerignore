@@ -7,3 +7,5 @@ tests
 .claude
 skills-lock.json
 .graphifyignore
+*.jks
+*.keystore
