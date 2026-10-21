@@ -1,5 +1,15 @@
 # O que mudou
 
+## Outubro de 2026: iniciar a carga com um toque
+
+- **Tablet do pátio**: um toque em **Iniciar carregamento** no cartão já inicia a carga com a pá do turno. Antes abria uma segunda tela com outro botão "Iniciar carregamento". Se a carga foi cancelada ou já começou com outra pá nesse meio-tempo, o tablet mostra o motivo e o botão **Voltar ao pátio**.
+- O administrativo continua passando pela tela de iniciar, onde escolhe o operador e a pá.
+- A tela de iniciar não repete mais a mesma mensagem de erro duas vezes.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar** se não começar sozinho. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: Monitor, banco e app 1.2
 
 - **Monitor da TV**: a tela cheia fica guardada no aparelho e volta sozinha depois da recarga das 3h (antes a TV voltava com o menu). Numa TV pequena, os problemas ocupam uma linha só, as limpezas das duas escavadeiras viram uma linha, as pás ficam lado a lado e a fila do pátio aparece. O "+ N na fila" não corta mais a última linha.

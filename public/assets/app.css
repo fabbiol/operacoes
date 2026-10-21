@@ -728,6 +728,7 @@ body.lavra .site, body.patio .site, body.trabalhos .site { position: static; }
     }
     .lavra .cartao.destaque > *, .patio .cartao.destaque > * { grid-column: 1; }
     .lavra .cartao.destaque > form,
+    .patio .cartao.destaque > form,
     .lavra .cartao.destaque > .envio-aviso,
     .patio .cartao.destaque > .envio-aviso,
     .lavra .cartao.destaque > .espera,

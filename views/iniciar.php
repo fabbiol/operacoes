@@ -1,10 +1,10 @@
 <?php require __DIR__ . '/resumo_ordem.php'; ?>
 
 <?php if ($ordem['status'] !== 'liberado'): ?>
-    <p class="aviso erro">Essa ordem não está liberada. O início só vale com status liberado.</p>
+    <?php // Depois de um toque que não valeu, o motivo já aparece no topo da tela. ?>
+    <?php if (empty($erro)): ?><p class="aviso erro">Essa ordem não está liberada. O início só vale com status liberado.</p><?php endif; ?>
     <p><a class="btn secundario" href="<?= e(url('patio')) ?>">Voltar ao pátio</a></p>
 <?php elseif (is_array($retroPatio ?? null)): ?>
-    <?php if (!empty($erro)): ?><p class="aviso erro"><?= e($erro) ?></p><?php endif; ?>
     <p class="nota">Nenhuma pá livre. A carga segue com a escavadeira do menu.</p>
     <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
         <?= csrf_field() ?>
@@ -40,7 +40,6 @@
         </div>
     </form>
 <?php elseif ($pas === [] && ($retros ?? []) !== []): ?>
-    <?php if (!empty($erro)): ?><p class="aviso erro"><?= e($erro) ?></p><?php endif; ?>
     <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>" class="formulario">
         <?= csrf_field() ?>
         <p class="nota">Nenhuma pá livre. A carga segue com a escavadeira hidráulica.</p>
