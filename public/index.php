@@ -1020,12 +1020,25 @@ function patio_ocupado(): ?string
     return null;
 }
 
+/** No tablet, com a máquina do turno já escolhida, o toque em "Iniciar carregamento" no pátio já inicia. */
+function patio_um_toque(): bool
+{
+    if (Auth::admin()) {
+        return false;
+    }
+    $maquina = maquina_escolhida();
+
+    return $maquina !== null
+        && ($maquina['tipo'] === 'pa' || ($maquina['tipo'] === 'retro' && Cadastro::opcoes('pas') === []));
+}
+
 function tela_patio(): void
 {
     render('patio', [
         'titulo' => 'Pátio',
         'corpo' => 'patio',
         'ocupado' => Auth::admin() ? null : patio_ocupado(),
+        'umToque' => patio_um_toque(),
         'ordens' => Operacoes::patio(),
         'enviadas' => Operacoes::enviadasHoje(),
         'fluxoUrl' => url('patio/situacao'),

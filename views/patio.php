@@ -72,6 +72,11 @@
                     <p class="espera-patio">Carregando com <?= e((string) $ordem['operador']) ?>: só quem iniciou finaliza.</p>
                 <?php elseif (!empty($ocupado)): ?>
                     <p class="espera-patio"><?= e($ocupado) ?></p>
+                <?php elseif (!empty($umToque)): ?>
+                    <form method="post" action="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn primario">Iniciar carregamento</button>
+                    </form>
                 <?php else: ?>
                     <a class="btn primario" href="<?= e(url('carregamentos/' . $ordem['id'] . '/iniciar')) ?>">Iniciar carregamento</a>
                 <?php endif; ?>

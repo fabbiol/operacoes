@@ -80,7 +80,10 @@ T.executar(async () => {
   const idA = await novaOrdem(adm, '9001', '10', 't', false, 'Cliente quer brita lavada');
   await maria.goto(BASE + '/patio');
   ok(/Obs\.: Cliente quer brita lavada/.test(await txt(maria)), 'cartão do pátio mostra a observação');
-  await iniciar(maria, idA);
+  // Um toque no cartão do pátio já inicia, com a pá do turno: sem a segunda tela.
+  await enviar(maria, `form[action$="/carregamentos/${idA}/iniciar"] button[type=submit]`);
+  const iniciada = sql(`SELECT CONCAT(status,'|',pa_carregadeira_id,'|',operador) FROM fila_carregamentos WHERE id=${idA}`);
+  ok(/\/patio$/.test(maria.url()) && iniciada === 'carregando|1|Maria', 'um toque em "Iniciar carregamento" no pátio já inicia a carga', maria.url() + ' ' + iniciada);
   // Pedro não finaliza a carga da Maria.
   await pedro.goto(BASE + '/patio');
   ok(/Carregando com Maria: só quem iniciou finaliza/.test(await txt(pedro)) && await pedro.locator(`a[href$="/carregamentos/${idA}/finalizar"]`).count() === 0, 'pátio do Pedro: sem "Finalizar" na carga da Maria');
