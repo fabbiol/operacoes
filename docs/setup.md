@@ -66,7 +66,7 @@ Situações usadas: **validado** (rodou e foi observado), **configurado sem exec
 | Laboratório Harness2 (CLI oficial) | Não escolhido: precisa de autorização para dependências, custos e isolamento | — | Não se aplica |
 | aia-harness | Não adotado: gera regras, ganchos e memória próprios e se sobrepõe a este harness | Usuário | Não se aplica (opcional no PC, se o dono quiser) |
 | Plugins oficiais do Claude (ui-ux-pro-max, hookify, pr-review-toolkit, commit-commands, claude-code-setup, feature-dev, code-review, claude-md-management) | Reusado na nuvem: `code-review`, `security-review`, `simplify` e `init` já são embutidos | Cliente | Opcional no PC, pelo marketplace `anthropics/claude-plugins-official` |
-| Preparação da máquina (prompt 10, `docs/03`) | Executado no PC do dono (21/10/2026). Instalados: GitHub CLI, pnpm, ripgrep, fd, jq, WSL e Docker Desktop; atualizados: Git e RTK. Não instalados por escolha do dono: Codex e Caveman; `fnm` não instalado porque o Node LTS oficial já existia | Usuário | Validado no PC: Docker rodou `hello-world` e um projeto Compose de teste. Relatório e manifesto ficam fora do projeto, em `C:\Users\Fábio\setup-ambiente`. Pendente: login do `gh` (`gh auth login --web`) |
+| Preparação da máquina (prompt 10, `docs/03`) | Executado no PC do dono (21/10/2026). Instalados: GitHub CLI, pnpm, ripgrep, fd, jq, WSL e Docker Desktop; atualizados: Git e RTK. Não instalados por escolha do dono: Codex e Caveman; `fnm` não instalado porque o Node LTS oficial já existia | Usuário | Validado no PC: Docker rodou `hello-world` e um projeto Compose de teste. Relatório e manifesto ficam fora do projeto, em `C:\Users\Fábio\setup-ambiente`. Login do `gh` feito como `fabbiol` |
 | Testes automáticos | Criado: `tests/` com `preparar.sh` e `rodar.sh` | Projeto | Validado: ver [Checagens](#checagens) |
 
 As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-fix-ci` é só do Codex), instaladas com `npx --yes skills@latest add <fonte> --skill <nome> --agent codex claude-code --yes --copy` (CLI 1.7.2), com telemetria desligada. Fontes e hashes ficam em `skills-lock.json`. Para atualizar, use `npx --yes skills@latest update --project --yes` e revise o diff.
@@ -117,7 +117,7 @@ As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-f
 
 ## Pendências e próxima entrega
 
-**No computador do dono (Windows, Claude Code):** Superpowers, Ponytail, Context7, document-skills, Chrome DevTools, Graphify e RTK foram instalados e conferidos em 21/10/2026 (o Caveman foi recusado). O Context7 já está conectado e o prompt 10 foi executado (Docker funcionando). Falta só o login do `gh`, se o dono quiser.
+**No computador do dono (Windows, Claude Code):** Superpowers, Ponytail, Context7, document-skills, Chrome DevTools, Graphify e RTK foram instalados e conferidos em 21/10/2026 (o Caveman foi recusado). O Context7 já está conectado e o prompt 10 foi executado (Docker funcionando). O `gh` também está com login feito.
 
 **No ambiente da nuvem (configuração do dono, menu do ambiente › Edit):**
 - **Setup script** (opcional, deixa a sessão nova mais rápida): `apt-get update && apt-get install -y mariadb-server poppler-utils`. Sem isso, o `sh tests/preparar.sh` instala quando precisar.
