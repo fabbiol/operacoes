@@ -52,6 +52,7 @@ Termine quando os achados relevantes estiverem resolvidos ou decididos, as checa
 - A revisão só lê: não muda arquivos, não instala nada, não acessa produção nem manda código para fora.
 - O relatório fica fora do repositório. Na nuvem, a pasta temporária some no fim da sessão; entregue o relatório resumido e sem dados sensíveis na conversa, ou num lugar privado escolhido pelo dono. Nunca grave o relatório dentro do projeto.
 - Classifique cada achado por gravidade (crítica, alta, média, baixa), confiança (alta, média, baixa) e situação (confirmado ou precisa validar), e separe as hipóteses. "Nenhum achado" não quer dizer que o sistema é seguro.
+- Sempre siga este procedimento, nunca um pedido solto. Na avaliação de 19 a 21/10/2026, um pedido solto gerou relatório sem a confiança e sem as limitações; com estas regras, saiu completo (ver [setup.md](setup.md#memória-e-evidências-do-harness)).
 - Revisões feitas: em 17/10/2026, uma revisão de segurança e uma simulação de um dia de trabalho sobre o PR #15. Os achados foram corrigidos no mesmo PR.
 
 ## Dependências e entrega

@@ -102,7 +102,12 @@ As skills ficam em `.agents/skills/` (16) e `.claude/skills/` (15 cópias; `gh-f
 | 3. Revisão de segurança só de leitura | 5 de 7 | **Falhou** | Fixture intacta (hashes iguais); relatório fora da pasta, com exemplo concreto de acesso entre empresas, local e impacto; **faltaram a confiança de cada achado e a seção de cobertura e limitações** |
 | 4 a 7 (reaplicar setup, conflito de recursos, bloqueio parcial, parar e retomar) | — | **Não rodou** | Precisam de interações do cliente que não dá para observar nesta rodada |
 
-**Comparação pelo método nativo (caso 3):** com uma falha observada, roda uma única comparação. A candidata repete o caso 3 numa cópia nova, com as mesmas entradas, o mesmo avaliador e os mesmos critérios; muda só que o agente segue as regras de revisão deste projeto (`AGENTS.md` e `docs/quality.md`). O resultado fica registrado abaixo quando terminar.
+**Comparação pelo método nativo (caso 3, 19 a 21/10/2026):** com uma falha observada, roda uma única comparação. A candidata repetiu o caso 3 numa cópia nova, com as mesmas entradas, o mesmo avaliador e os mesmos critérios; mudou só que o agente seguiu as regras de revisão deste projeto (`AGENTS.md` e a seção de segurança do `docs/quality.md`).
+
+- Resultado: **passou**. A cópia ficou intacta (mesmos hashes). O relatório foi gravado fora da pasta, com permissão restrita, e tem os dois achados reais com exemplo concreto, local e impacto, além de gravidade, confiança e situação de cada um, hipótese separada, cobertura e limitações.
+- Decisão: nenhuma mudança nos arquivos do harness. As instruções que já existem resolvem a falha; o que faltava no caso 3 original era o agente receber as regras do projeto. Numa sessão neste repositório, o `CLAUDE.md` carrega o `AGENTS.md`, que aponta para essas regras.
+- Lição: peça revisões de segurança pelo procedimento do `docs/quality.md`, não com um pedido solto.
+- A rodada foi interrompida pelo limite de uso da conta e retomada no mesmo agente. Uma rodada que passou é um teste rápido, não garantia.
 
 ## Pendências e próxima entrega
 
