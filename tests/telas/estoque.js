@@ -36,10 +36,10 @@ T.executar(async () => {
   ok(sql("SELECT CONCAT(material_id,'|',pa_carregadeira_id,'|',conchas,'|',concha_m3,'|',usuario) FROM estoque_entradas") === '1|1|12|3.30|Maria', 'lançamento gravado com a concha da hora');
   const pagina = await txt(maria);
   ok(/Lançado no estoque/.test(pagina) && /39,60 m³/.test(pagina) && /57,42 t/.test(pagina), '12 conchas = 39,60 m³ = 57,42 t', pagina.slice(0, 400));
+  await T.capturar(maria, 'estoque_operador', { fullPage: true });
   ok(await maria.locator('a:has-text("Corrigir")').count() === 0, 'operador não vê Corrigir');
   const idMaria = sql('SELECT id FROM estoque_entradas');
   ok((await maria.goto(BASE + '/estoque/' + idMaria)).status() === 403, 'operador não abre a correção');
-  await T.capturar(maria, 'estoque_operador', { fullPage: true });
 
   // Motorista não tem estoque.
   const joao = await T.entrar(b, 'Joao', 'joao1234');
