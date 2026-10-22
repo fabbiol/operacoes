@@ -7,6 +7,8 @@
   - a escavadeira carregando ou limpando a lavra;
   - o caminhão em viagem.
 - As pás carregadeiras saíram da lista "Máquinas em uso" da lavra: aparecem só na coluna do pátio.
+- **Vendido hoje** com o valor completo, com centavos (R$ 126.230,75), no total e em cada forma de pagamento. Antes arredondava para "R$ 126 mil".
+- **Estoque**: a planilha antiga entra sozinha no primeiro acesso depois de publicar (veja os passos do estoque abaixo).
 
 ### Ao publicar esta versão
 1. Pode publicar com o turno rodando. Nada muda no banco.
