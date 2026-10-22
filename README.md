@@ -187,6 +187,16 @@ O cartão da carga no pátio e as telas de iniciar e finalizar mostram a observa
 
 No app da Próspera (versão 1.1) o som e a vibração são do próprio Android. No Chrome, sem o app, quem decide é o navegador: o som toca se o operador tocou em alguma tela do sistema antes de voltar ao pátio (por exemplo, no **Finalizar**) ou já tocou no pátio. Logo depois de abrir o navegador ou recarregar a página, só toca a partir do primeiro toque. O quadro aparece sempre. Para o som tocar sempre, use o app.
 
+## Estoque das pilhas
+
+O estoque de Brita 01, Pedrisco e outros materiais da pilha é contado pelas conchas da pá. Ele só soma o que entra: os caminhões dos clientes carregam na bica.
+
+- **Preparar** (administrativo, uma vez): em **Cadastros › Pás carregadeiras**, preencha a **Concha** de cada pá em m³ (a 656 pega 3,3 m³). Em **Cadastros › Materiais**, marque **Tem estoque** nos materiais da pilha.
+- **Lançar** (operador da pá): no pátio, toque em **Estoque**. Escolha o material, digite quantas conchas colocou e toque em **Lançar no estoque**. Vale a pá do turno e a hora do lançamento.
+- **O que aparece**: para cada material, o total na pilha em m³, toneladas (1,45 t/m³) e conchas, o que entrou hoje e os últimos lançamentos com quem lançou.
+- **Corrigir** (só o administrativo): no menu **Estoque**, toque em **Corrigir** no lançamento errado para mudar o material, as conchas ou a data, ou apagar. O administrativo também lança com data passada, escolhendo a pá. O operador que errou avisa o administrativo.
+- Cada lançamento guarda a concha da pá naquela hora. Mudar a concha no cadastro depois não altera o que já entrou.
+
 ## Limpeza da lavra
 
 Quando a escavadeira para de carregar para limpar a lavra, o operador toca em **Iniciar limpeza da lavra** na tela de carga. Enquanto isso:

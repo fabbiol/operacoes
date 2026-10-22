@@ -43,6 +43,7 @@ T.executar(async () => {
 
   // Motorista não tem estoque.
   const joao = await T.entrar(b, 'Joao', 'joao1234');
+  await T.assumir(joao, 'caminhao:1', '100', { envelhecer: true });
   ok((await joao.goto(BASE + '/estoque')).status() === 403, 'motorista não abre o estoque');
 
   // Saldo da planilha: o administrativo lança 640 conchas com data de ontem.

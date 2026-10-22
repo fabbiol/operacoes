@@ -1,5 +1,20 @@
 # O que mudou
 
+## Outubro de 2026: estoque das pilhas
+
+- **Estoque** (Brita 01, Pedrisco...): substitui a planilha. O operador da pá toca em **Estoque** no pátio, escolhe o material, digita quantas conchas colocou na pilha e toca em **Lançar no estoque**. A pá é a do turno, e o sistema faz a conta: conchas × concha da pá = m³, e m³ × 1,45 = toneladas.
+- A tela mostra o total de cada pilha em m³, toneladas e conchas, o que entrou hoje e os últimos lançamentos. O administrativo vê o estoque no menu **Estoque**.
+- Só o administrativo corrige ou apaga um lançamento (**Corrigir**, na lista). Ele também pode lançar com data passada, escolhendo a pá.
+- **Cadastros**: a pá ganha o campo **Concha** (m³) e o material ganha **Tem estoque**. Só os materiais marcados aparecem para o operador. Mudar a concha depois não altera o que já foi lançado.
+- O estoque só soma o que entra. Os carregamentos dos clientes saem da bica e não descontam nada.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a tabela do estoque e os dois campos novos.
+2. No Easypanel, toque em **Implantar** se não começar sozinho. Os tablets não precisam de app novo.
+3. Em **Cadastros › Pás carregadeiras**, abra a 656 e preencha **Concha** com 3,3.
+4. Em **Cadastros › Materiais**, marque **Tem estoque** na Brita 01 e no Pedrisco.
+5. Em **Estoque**, lance o saldo da planilha: Brita 01 com 640 conchas e Pedrisco com 350 conchas, pá 656, data de 21/10/2026 e a observação "saldo da planilha". O total fica em 2.112 m³ de Brita 01 e 1.155 m³ de Pedrisco. Se a planilha recebeu lançamentos depois de 21/10, some esses também.
+
 ## Outubro de 2026: iniciar a carga com um toque
 
 - **Tablet do pátio**: um toque em **Iniciar carregamento** no cartão já inicia a carga com a pá do turno. Antes abria uma segunda tela com outro botão "Iniciar carregamento". Se a carga foi cancelada ou já começou com outra pá nesse meio-tempo, o tablet mostra o motivo e o botão **Voltar ao pátio**.

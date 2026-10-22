@@ -26,6 +26,7 @@ src/               classes de domínio, uma por assunto
   Horimetro.php    leituras, turnos, manutenção preventiva
   Posse.php        quem está com cada máquina
   Problemas.php    problemas das máquinas
+  Estoque.php      estoque das pilhas (conchas lançadas pela pá)
   NotaFiscal.php   leitura da NF-e (XML e PDF)
   Dashboard.php    dados do Monitor da TV
   Cadastro.php, Pessoas.php, Fotos.php, Tablets.php
