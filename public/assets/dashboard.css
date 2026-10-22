@@ -303,7 +303,7 @@ body.dashboard.tela-cheia .tv-britador-problemas { flex: 1 1 0; min-height: 0; o
 
 /* Britador secundário: situação agora, horários do dia e problemas. */
 .tv-situacao-britador { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6em; padding: calc(var(--vao) * 0.8) var(--vao); border-radius: clamp(8px, calc(0.8vw * var(--k)), 18px); background: var(--tv-elevado); border: 2px solid var(--tv-linha); }
-.tv-situacao-britador strong { font-size: var(--t-valor); line-height: 1.1; }
+.tv-situacao-britador strong { font-size: calc(var(--t-titulo) * 1.25); line-height: 1.15; }
 .tv-situacao-britador span { color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 700; }
 .tv-situacao-britador.britando { border-color: var(--tv-azul); background: var(--tv-azul-fundo); }
 .tv-situacao-britador.parado { border-color: var(--tv-critico); background: var(--tv-vermelho-fundo); }
@@ -320,7 +320,7 @@ body.dashboard.tela-cheia .tv-britador-problemas { flex: 1 1 0; min-height: 0; o
 .tv-britador-problemas span { color: var(--tv-texto-2); font-size: calc(var(--t-item-2) * 0.92); font-weight: 600; }
 
 /* Rodapé: a melhor hora do dia e quando foi a última atualização. */
-.tv-rodape { display: flex; justify-content: space-between; align-items: center; gap: var(--vao); color: var(--tv-texto-2); font-size: var(--t-detalhe); font-weight: 600; }
+.tv-rodape { display: flex; justify-content: flex-start; align-items: center; gap: var(--vao); color: var(--tv-texto-2); font-size: var(--t-detalhe); font-weight: 600; }
 .tv-situacao span {
     display: inline-block;
     padding: 0.25em 0.9em;

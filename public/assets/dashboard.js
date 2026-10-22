@@ -326,8 +326,9 @@
         var partes = [];
         if (melhor.patio) partes.push('Melhor hora do pátio: ' + melhor.patio.hora + 'h, com ' + melhor.patio.quantidade + (melhor.patio.quantidade === 1 ? ' carga' : ' cargas'));
         if (melhor.lavra) partes.push('Melhor hora da lavra: ' + melhor.lavra.hora + 'h, com ' + melhor.lavra.quantidade + (melhor.lavra.quantidade === 1 ? ' viagem' : ' viagens'));
-        return '<footer class="tv-rodape"><span>' + esc(partes.join(' · ')) + '</span>' +
-            '<p class="tv-situacao" role="status"><span data-situacao>Atualizado às ' + esc(horaMinuto(estado.agora_ts)) + '</span></p></footer>';
+        // A situação fica à esquerda: o canto direito de baixo é do botão de sair da tela cheia.
+        return '<footer class="tv-rodape"><p class="tv-situacao" role="status"><span data-situacao>Atualizado às ' + esc(horaMinuto(estado.agora_ts)) + '</span></p>' +
+            '<span>' + esc(partes.join(' · ')) + '</span></footer>';
     }
 
     // Esconde as linhas que não cabem na altura da área e mostra quantas ficaram de fora.
