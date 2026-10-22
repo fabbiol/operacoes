@@ -63,6 +63,10 @@ $funcoes = is_array($pessoa) ? Pessoas::funcoes($pessoa) : [];
                 <input type="checkbox" name="funcoes[]" value="escavadeira" <?= in_array('escavadeira', $funcoes, true) ? 'checked' : '' ?>>
                 <span>Operador de escavadeira hidráulica<small>Carga dos caminhões na lavra</small></span>
             </label>
+            <label class="escolha">
+                <input type="checkbox" name="funcoes[]" value="britador" <?= in_array('britador', $funcoes, true) ? 'checked' : '' ?>>
+                <span>Operador do britador secundário<small>Só essa função: início, problemas e fim da britagem</small></span>
+            </label>
         </fieldset>
     <?php endif; ?>
     <label class="campo">

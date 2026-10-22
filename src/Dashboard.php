@@ -37,13 +37,115 @@ final class Dashboard
             ],
             'patio' => self::patio($dia, $patio),
             // Problemas avisados pelos operadores ao soltar a máquina, até alguém marcar como resolvido.
+            // A pá aparece na coluna do pátio; escavadeira e caminhão, na da lavra.
             'problemas' => array_map(static fn (array $problema): array => [
+                'tipo' => (string) $problema['tipo'],
+                'area' => (string) $problema['tipo'] === 'pa' ? 'patio' : 'lavra',
                 'maquina' => (string) $problema['maquina'],
                 'descricao' => (string) $problema['descricao'],
                 'usuario' => (string) $problema['usuario'],
                 'desde_ts' => (int) strtotime((string) $problema['relatado_em']),
             ], Problemas::abertos()),
+            'em_uso' => self::emUso($abertos),
+            'britador' => self::britador($dia),
+            'melhor_hora' => [
+                'patio' => self::melhorHora(self::horasPatio($dia)),
+                'lavra' => self::melhorHora(self::horasLavra($dia)),
+            ],
         ];
+    }
+
+    /**
+     * Cada máquina que está com alguém agora, com a pessoa e o que ela está fazendo.
+     *
+     * @return list<array{tipo: string, nome: string, pessoa: string, faz: string, ativo: bool}>
+     */
+    private static function emUso(array $abertos): array
+    {
+        $ciclos = [];
+        $carregandoRetro = [];
+        foreach ($abertos as $ciclo) {
+            $ciclos[(int) $ciclo['caminhao_id']] = $ciclo;
+            if ((string) $ciclo['status'] === 'carregando' && (int) ($ciclo['retroescavadeira_id'] ?? 0) > 0) {
+                $carregandoRetro[(int) $ciclo['retroescavadeira_id']] = (string) $ciclo['placa'];
+            }
+        }
+        $limpando = [];
+        foreach (Lavra::limpezasAbertas() as $limpeza) {
+            $limpando[(int) $limpeza['retroescavadeira_id']] = true;
+        }
+        $noPatio = [];
+        foreach (Operacoes::patio() as $ordem) {
+            if ((string) $ordem['status'] !== 'carregando') {
+                continue;
+            }
+            $chave = (int) ($ordem['pa_carregadeira_id'] ?? 0) > 0 ? 'pa:' . (int) $ordem['pa_carregadeira_id'] : 'retro:' . (int) ($ordem['retroescavadeira_id'] ?? 0);
+            $noPatio[$chave] = (string) $ordem['cliente'];
+        }
+
+        $lista = [];
+        foreach (Posse::todas() as $posse) {
+            $tipo = (string) $posse['tipo'];
+            $id = (int) $posse['maquina_id'];
+            [$faz, $ativo] = match ($tipo) {
+                'retro' => match (true) {
+                    isset($carregandoRetro[$id]) => ['carregando ' . $carregandoRetro[$id], true],
+                    isset($limpando[$id]) => ['limpando a lavra', false],
+                    isset($noPatio['retro:' . $id]) => ['carregando no pátio', true],
+                    default => ['na lavra', false],
+                },
+                'pa' => isset($noPatio['pa:' . $id]) ? ['carregando ' . $noPatio['pa:' . $id], true] : ['livre no pátio', false],
+                default => isset($ciclos[$id])
+                    ? [mb_strtolower(self::estadoLavra((string) $ciclos[$id]['status']), 'UTF-8'), (string) $ciclos[$id]['status'] === 'carregando']
+                    : ['sem viagem agora', false],
+            };
+            $lista[] = [
+                'tipo' => $tipo,
+                'nome' => Posse::nomeDaMaquina($tipo, $id),
+                'pessoa' => (string) $posse['usuario'],
+                'faz' => $faz,
+                'ativo' => $ativo,
+            ];
+        }
+        // Escavadeiras e pás primeiro: são poucas e explicam a fila dos caminhões.
+        usort($lista, static fn (array $a, array $b): int => [array_search($a['tipo'], ['retro', 'pa', 'caminhao'], true), $a['nome']] <=> [array_search($b['tipo'], ['retro', 'pa', 'caminhao'], true), $b['nome']]);
+
+        return $lista;
+    }
+
+    private static function britador(string $dia): array
+    {
+        $britador = Britador::doDia($dia);
+        $hora = static fn (?string $quando): ?string => $quando !== null ? hora_curta($quando) : null;
+
+        return [
+            'inicio' => $hora($britador['inicio']),
+            'fim' => $hora($britador['fim']),
+            'aberta' => $britador['aberta'],
+            'aberta_desde_ts' => $britador['aberta_desde'] !== null ? (int) strtotime((string) $britador['aberta_desde']) : null,
+            'parado' => $britador['parado'],
+            'problemas' => array_map(static fn (array $problema): array => [
+                'descricao' => (string) $problema['descricao'],
+                'parou' => (int) $problema['parou'] === 1,
+                'desde' => hora_curta((string) $problema['inicio']),
+                'desde_ts' => (int) strtotime((string) $problema['inicio']),
+                'ate' => $hora($problema['resolvido_em']),
+                'resolvido' => $problema['resolvido_em'] !== null,
+            ], $britador['problemas']),
+        ];
+    }
+
+    /** A hora com mais cargas (ou viagens) no dia; null antes da primeira. */
+    private static function melhorHora(array $horas): ?array
+    {
+        $melhor = null;
+        foreach ($horas as $hora) {
+            if ($hora['viagens'] > 0 && ($melhor === null || $hora['viagens'] > $melhor['viagens'])) {
+                $melhor = $hora;
+            }
+        }
+
+        return $melhor !== null ? ['hora' => $melhor['hora'], 'quantidade' => $melhor['viagens']] : null;
     }
 
     public static function estrada(): array

@@ -1,9 +1,5 @@
 <div class="monitor-topo">
     <p class="monitor-nota">Para a TV: toque em Tela cheia. Os números se atualizam sozinhos; se a conexão cair, a TV avisa desde quando está sem atualizar.</p>
-    <label class="monitor-opcao">
-        <input type="checkbox" id="mostrar-vendas">
-        <span>Mostrar o vendido do dia (R$) nesta tela</span>
-    </label>
     <button type="button" id="ampliar" class="ampliar">Tela cheia</button>
 </div>
 <form class="estrada-medidas" method="post" action="<?= e(url('dashboard/estrada')) ?>">

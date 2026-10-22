@@ -28,8 +28,6 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 /* Controles do administrativo (somem na tela cheia). */
 .monitor-topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 20px; margin: 0 0 14px; }
 .monitor-nota { flex: 1 1 360px; margin: 0; color: var(--tv-apagado); font-size: 14px; }
-.monitor-opcao { display: flex; align-items: center; gap: 8px; color: var(--tv-texto-2); font-size: 14px; font-weight: 700; }
-.monitor-opcao input { width: 20px; height: 20px; }
 .ampliar {
     flex: none;
     min-height: 44px;
@@ -78,19 +76,22 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 
 /* ---------- A tela da TV ----------
  * As medidas acompanham a largura da tela, vezes --k: menor na página do administrativo,
- * maior na tela cheia da TV (lida de longe). */
+ * maior na tela cheia da TV (lida de longe). Três números no topo, três colunas e o rodapé. */
 .tv {
     --k: 0.7;
-    --t-heroi: clamp(34px, calc(5vw * var(--k)), 120px);
-    --t-valor: clamp(28px, calc(3.9vw * var(--k)), 94px);
-    --t-rotulo: clamp(13px, calc(1.35vw * var(--k)), 32px);
-    --t-detalhe: clamp(12px, calc(1.15vw * var(--k)), 28px);
-    --t-titulo: clamp(17px, calc(1.75vw * var(--k)), 42px);
-    --t-item: clamp(15px, calc(1.75vw * var(--k)), 42px);
-    --t-item-2: clamp(12px, calc(1.2vw * var(--k)), 29px);
-    --t-tempo: clamp(15px, calc(1.75vw * var(--k)), 42px);
+    --tv-amarelo-fundo: rgba(250, 178, 25, 0.16);
+    --tv-vermelho-fundo: rgba(208, 59, 59, 0.18);
+    --tv-azul-fundo: rgba(57, 135, 229, 0.18);
+    --t-heroi: clamp(30px, calc(4.4vw * var(--k)), 110px);
+    --t-valor: clamp(26px, calc(3.6vw * var(--k)), 88px);
+    --t-rotulo: clamp(13px, calc(1.3vw * var(--k)), 32px);
+    --t-detalhe: clamp(12px, calc(1.1vw * var(--k)), 28px);
+    --t-titulo: clamp(16px, calc(1.6vw * var(--k)), 40px);
+    --t-item: clamp(14px, calc(1.45vw * var(--k)), 36px);
+    --t-item-2: clamp(11px, calc(1.05vw * var(--k)), 26px);
+    --t-tempo: clamp(13px, calc(1.3vw * var(--k)), 32px);
     --t-relogio: clamp(26px, calc(3vw * var(--k)), 72px);
-    --vao: clamp(8px, calc(0.8vw * var(--k)), 18px);
+    --vao: clamp(6px, calc(0.75vw * var(--k)), 18px);
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     gap: var(--vao);
@@ -100,32 +101,21 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 .tv h2, .tv h3, .tv p, .tv ul, .tv ol { margin: 0; }
 .tv [hidden] { display: none !important; }
 
-.tv-topo { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--vao); }
+.tv-topo { display: flex; justify-content: space-between; align-items: center; gap: var(--vao); }
 .tv-marca strong { display: block; font-size: var(--t-titulo); line-height: 1; }
 .tv-marca span { color: var(--tv-apagado); font-size: var(--t-detalhe); font-weight: 700; }
-.tv-situacao span {
-    display: inline-block;
-    padding: 0.35em 0.9em;
-    border-radius: 999px;
-    background: var(--tv-superficie);
-    border: 1px solid var(--tv-linha);
-    color: var(--tv-texto-2);
-    font-size: var(--t-detalhe);
-    font-weight: 700;
-}
 .tv-relogio { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0 0.6em; text-align: right; }
 .tv-relogio strong { font-size: var(--t-relogio); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
 .tv-relogio span { color: var(--tv-texto-2); font-size: var(--t-detalhe); font-weight: 600; }
 
-/* Números do dia: o primeiro (carregado hoje) é o maior. */
-.tv-numeros { display: grid; grid-template-columns: 1.5fr repeat(4, minmax(0, 1fr)); gap: var(--vao); }
-.tv-numeros.n6 { grid-template-columns: 1.4fr repeat(5, minmax(0, 1fr)); }
+/* Três números do dia. */
+.tv-numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--vao); }
 .tv-numero {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     min-width: 0;
-    padding: clamp(10px, calc(1vw * var(--k)), 24px) clamp(12px, calc(1.2vw * var(--k)), 28px);
+    padding: clamp(8px, calc(0.9vw * var(--k)), 22px) clamp(12px, calc(1.2vw * var(--k)), 28px);
     border-radius: clamp(10px, calc(0.9vw * var(--k)), 20px);
     background: var(--tv-superficie);
     border: 1px solid var(--tv-linha);
@@ -135,124 +125,90 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 .tv-valor small { font-size: 0.45em; font-weight: 700; color: var(--tv-texto-2); }
 .tv-heroi .tv-valor { font-size: var(--t-heroi); }
 .tv-detalhe { color: var(--tv-texto-2); font-size: var(--t-detalhe); font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tv-detalhe b { font-variant-numeric: tabular-nums; }
-.tv-numero.atencao { border-color: var(--tv-atencao); box-shadow: inset 0 0 0 2px var(--tv-atencao); }
-.tv-numero.critico { border-color: var(--tv-critico); box-shadow: inset 0 0 0 2px var(--tv-critico); }
+.tv-vendas header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--vao); }
+.tv-vendas ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 calc(var(--vao) * 2); list-style: none; padding: 0; }
+.tv-vendas li { display: flex; justify-content: space-between; gap: 0.5em; font-size: var(--t-detalhe); font-weight: 600; line-height: 1.3; color: var(--tv-texto-2); }
+.tv-vendas li b { color: var(--tv-texto); font-variant-numeric: tabular-nums; }
+.tv-vendas li b small { font-size: 0.8em; color: var(--tv-texto-2); }
 
-/* Problemas das máquinas: faixa vermelha entre os números e as áreas, só quando houver algum aberto. */
-.tv.com-problemas { grid-template-rows: auto auto auto minmax(0, 1fr) auto; }
-.tv-problemas {
-    display: flex;
-    align-items: center;
-    gap: var(--vao) calc(var(--vao) * 1.5);
-    min-width: 0;
-    padding: calc(var(--vao) * 0.7) var(--vao);
-    border: 2px solid var(--tv-critico);
-    border-radius: clamp(10px, calc(0.9vw * var(--k)), 20px);
-    background: rgba(208, 59, 59, 0.14);
-}
-.tv-problemas h2 {
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 0.4em;
-    font-size: var(--t-rotulo);
-    line-height: 1.2;
-    white-space: nowrap;
-}
-.tv-problemas h2 i {
-    display: inline-grid;
-    place-items: center;
-    width: 1.3em;
-    height: 1.3em;
-    border-radius: 50%;
-    background: var(--tv-critico);
-    color: #ffffff;
-    font-style: normal;
-    font-weight: 900;
-}
-.tv-problemas h2 span {
-    display: inline-grid;
-    place-items: center;
-    min-width: 1.5em;
-    padding: 0 0.3em;
-    border-radius: 999px;
-    background: var(--tv-texto);
-    color: var(--tv-fundo);
-    font-size: 0.85em;
-}
-.tv-problemas ul {
-    flex: 1;
-    min-width: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 28vw), 1fr));
-    gap: calc(var(--vao) * 0.4) var(--vao);
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.tv-problemas li { min-width: 0; font-size: var(--t-item-2); font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tv-problemas li strong { color: var(--tv-texto); font-weight: 800; }
-.tv-problemas li small { color: var(--tv-texto-2); font-size: 0.85em; }
-.tv-problemas-mais { flex: none; margin: 0; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 800; }
-
-/* As duas áreas fixas: pátio à esquerda, lavra à direita. */
-.tv-zonas { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--vao); min-height: 0; }
+/* As três colunas: pátio, lavra e britador secundário. */
+.tv-zonas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--vao); min-height: 0; }
 .tv-zona {
     display: flex;
     flex-direction: column;
     gap: calc(var(--vao) * 0.8);
     min-height: 0;
+    min-width: 0;
     overflow: hidden;
-    padding: clamp(12px, calc(1.1vw * var(--k)), 26px);
+    padding: clamp(10px, calc(1vw * var(--k)), 24px);
     border-radius: clamp(12px, calc(1vw * var(--k)), 22px);
     background: var(--tv-superficie);
     border: 1px solid var(--tv-linha);
 }
 .tv-zona > header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--vao); }
 .tv-zona h2 { font-size: var(--t-titulo); line-height: 1.2; }
-.tv-zona > header > span { color: var(--tv-apagado); font-size: var(--t-detalhe); font-weight: 700; text-align: right; }
+.tv-zona > header > span { color: var(--tv-atencao); font-size: var(--t-detalhe); font-weight: 700; text-align: right; }
 .tv-zona h3 { color: var(--tv-texto-2); font-size: var(--t-rotulo); line-height: 1.2; text-transform: uppercase; letter-spacing: 0.04em; }
 .tv-zona h3 span { color: var(--tv-texto); margin-left: 0.3em; }
 .tv-vazio { color: var(--tv-apagado); font-size: var(--t-item-2); font-weight: 600; }
+.tv-resto { flex: none; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 700; }
+.tv-resto:empty { display: none; }
 
-.tv-maquinas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: calc(var(--vao) * 0.7); }
+/* Problemas de máquina dentro da coluna (no máximo dois e "+ N"). */
+.tv-avisos { flex: none; display: grid; gap: calc(var(--vao) * 0.4); list-style: none; padding: 0; }
+.tv-avisos li {
+    padding: calc(var(--vao) * 0.5) var(--vao);
+    border: 2px solid var(--tv-critico);
+    border-radius: clamp(8px, calc(0.7vw * var(--k)), 16px);
+    background: var(--tv-vermelho-fundo);
+    font-size: var(--t-item-2);
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tv-avisos small { color: var(--tv-texto-2); font-size: 0.9em; }
+.tv-avisos .tv-avisos-mais { border: 0; background: none; padding: 0; color: var(--tv-texto-2); font-weight: 800; }
+
+/* Cada pá: carregando em amarelo, parada em vermelho, livre em cinza. */
+.tv-maquinas { display: grid; gap: calc(var(--vao) * 0.6); }
 .tv-maquina {
     min-width: 0;
-    padding: clamp(8px, calc(0.7vw * var(--k)), 16px) clamp(10px, calc(1vw * var(--k)), 22px);
+    padding: clamp(6px, calc(0.6vw * var(--k)), 14px) clamp(10px, calc(0.9vw * var(--k)), 20px);
     border-radius: clamp(8px, calc(0.7vw * var(--k)), 16px);
     background: var(--tv-elevado);
-    border-left: clamp(4px, calc(0.35vw * var(--k)), 8px) solid var(--tv-linha);
+    border: 2px solid var(--tv-linha);
 }
-.tv-maquina.ocupada { border-left-color: var(--tv-azul); }
+.tv-maquina.ocupada { border-color: var(--tv-atencao); background: var(--tv-amarelo-fundo); }
+.tv-maquina.parada { border-color: var(--tv-critico); background: var(--tv-vermelho-fundo); }
+.tv-estado { display: block; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-maquina.livre .tv-estado { color: var(--tv-apagado); }
 .tv-maquina > strong { display: block; font-size: var(--t-item); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tv-maquina.livre > strong { color: var(--tv-apagado); font-weight: 600; }
-.tv-maquina p { display: flex; justify-content: space-between; align-items: baseline; gap: var(--vao); color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; line-height: 1.25; }
-.tv-maquina p > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tv-maquina p b { color: var(--tv-texto); }
-.tv-maquina .tv-tempo { padding: 0; font-size: var(--t-item-2); color: var(--tv-texto); }
+.tv-maquina p { color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-conta b { color: var(--tv-texto); font-variant-numeric: tabular-nums; }
 
-/* Fila do pátio e caminhões da lavra: uma linha por item; o que não cabe vira "+ N". */
-.tv-fila, .tv-caminhoes { position: relative; list-style: none; padding: 0; }
-/* Na tela cheia a altura é a da TV: a lista ocupa o que sobra e o excesso vira "+ N". */
+/* Fila do pátio, máquinas em uso e problemas do britador: o que não cabe vira "+ N". */
+.tv-fila, .tv-em-uso, .tv-britador-problemas { position: relative; list-style: none; padding: 0; }
 body.dashboard.tela-cheia .tv-fila,
-body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: hidden; }
-.tv-fila li, .tv-caminhoes li {
+body.dashboard.tela-cheia .tv-em-uso,
+body.dashboard.tela-cheia .tv-britador-problemas { flex: 1 1 0; min-height: 0; overflow: hidden; }
+.tv-fila li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--vao);
     padding: clamp(4px, calc(0.4vw * var(--k)), 10px) 0;
     line-height: 1.15;
     border-bottom: 1px solid var(--tv-linha);
 }
-.tv-fila li:last-child, .tv-caminhoes li:last-child { border-bottom: 0; }
-.tv-fila strong { font-size: var(--t-item); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tv-fila li > span:not(.tv-tempo) { color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
-.tv-resto { flex: none; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 700; }
-.tv-resto:empty { display: none; }
+.tv-fila li:last-child { border-bottom: 0; }
+.tv-ordem { color: var(--tv-apagado); font-size: var(--t-item); font-weight: 800; font-variant-numeric: tabular-nums; }
+.tv-fila li > div { min-width: 0; }
+.tv-fila strong { display: block; font-size: var(--t-item); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-fila li > div > span { display: block; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Tempo em espera/carga: números alinhados; amarelo e vermelho só quando a espera passa do limite (com "!"). */
+/* Tempo de espera: amarelo e vermelho só quando a espera passa do limite (com "!"). */
 .tv-tempo {
     flex: none;
     display: inline-flex;
@@ -281,10 +237,6 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
 .tv-tempo.atencao i { color: var(--tv-atencao); }
 .tv-tempo.critico { background: var(--tv-critico); color: #ffffff; }
 
-.tv-caminhoes li { grid-template-columns: auto minmax(0, 1fr) auto; }
-.tv-caminhoes strong { font-size: var(--t-item); letter-spacing: 0.02em; }
-.tv-caminhoes li > span:not(.tv-tempo) { color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
 /* Escavadeira em limpeza da lavra: faixa em amarelo, porque explica a fila dos caminhões. */
 .tv-limpeza {
     display: flex;
@@ -300,8 +252,8 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
 }
 .tv-limpeza .tv-tempo { font-size: var(--t-item-2); padding: 0; color: var(--tv-atencao); }
 
-/* Circuito da lavra. */
-.tv-circuito { position: relative; flex: none; height: clamp(90px, calc(9vw * var(--k)), 220px); }
+/* Pista da lavra até o britador primário. Os caminhões deslizam até o lugar novo a cada atualização. */
+.tv-circuito { position: relative; flex: none; height: clamp(110px, calc(11vw * var(--k)), 260px); margin: 0.6em 0; }
 .tv-circuito svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .tv-circuito path { fill: none; stroke: var(--tv-linha); stroke-width: clamp(8px, calc(0.9vw * var(--k)), 20px); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .tv-posto {
@@ -311,9 +263,14 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
     color: var(--tv-apagado);
     font-size: var(--t-item-2);
     font-weight: 800;
+    line-height: 1.15;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
+.tv-posto.direita { text-align: right; }
+.tv-sentido { position: absolute; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 700; white-space: nowrap; }
+.tv-sentido.ida { top: -1.5em; right: 4%; color: #b9d1ff; }
+.tv-sentido.volta { bottom: -1.5em; left: 4%; }
 .tv-caminhao {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -323,68 +280,83 @@ body.dashboard.tela-cheia .tv-caminhoes { flex: 1 1 0; min-height: 0; overflow: 
     font-weight: 800;
     white-space: nowrap;
     border: 2px solid var(--tv-superficie);
+    transition: left 7.5s linear, top 1.5s ease;
 }
 .tv-caminhao.tv-cor-carregado { background: var(--tv-azul); color: #ffffff; }
 .tv-caminhao.tv-cor-volta { background: #5b5a55; color: #ffffff; }
-.tv-caminhao.tv-cor-lavra { background: var(--tv-superficie); color: var(--tv-texto); box-shadow: inset 0 0 0 2px var(--tv-azul); }
-.tv-zona header .tv-legenda { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.3em 0.9em; color: var(--tv-texto-2); font-weight: 600; }
+.tv-caminhao.tv-cor-lavra { background: var(--tv-amarelo-fundo); color: var(--tv-texto); border-color: var(--tv-atencao); }
+.tv-caminhao.tv-problema { border-color: var(--tv-critico); box-shadow: 0 0 0 2px var(--tv-critico); }
+.tv-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3em 0.9em; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 600; }
 .tv-legenda span { display: inline-flex; align-items: center; gap: 0.35em; }
 .tv-legenda i { display: inline-block; width: 0.85em; height: 0.85em; border-radius: 0.2em; }
 .tv-legenda i.tv-cor-carregado { background: var(--tv-azul); }
 .tv-legenda i.tv-cor-volta { background: #5b5a55; }
-.tv-legenda i.tv-cor-lavra { box-shadow: inset 0 0 0 2px var(--tv-azul); }
+.tv-legenda i.tv-cor-lavra { background: var(--tv-atencao); }
 
-/* Por hora: colunas finas, uma série por gráfico, a hora atual em azul e as outras em cinza. */
-.tv-horas { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--vao); }
-.tv-hora {
-    padding: clamp(10px, calc(0.9vw * var(--k)), 22px) clamp(12px, calc(1.1vw * var(--k)), 26px);
-    border-radius: clamp(12px, calc(1vw * var(--k)), 22px);
+/* Máquinas em uso: quem está com cada máquina e o que está fazendo. */
+.tv-em-uso { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: calc(var(--vao) * 0.5); }
+.tv-em-uso li { min-width: 0; padding: calc(var(--vao) * 0.4) calc(var(--vao) * 0.8); border-radius: clamp(6px, calc(0.6vw * var(--k)), 12px); background: var(--tv-elevado); border: 1px solid var(--tv-linha); }
+.tv-em-uso li.ativo { border-color: var(--tv-atencao); background: var(--tv-amarelo-fundo); }
+.tv-em-uso strong, .tv-em-uso span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-em-uso strong { font-size: var(--t-item-2); }
+.tv-em-uso span { color: var(--tv-texto-2); font-size: calc(var(--t-item-2) * 0.92); font-weight: 600; }
+
+/* Britador secundário: situação agora, horários do dia e problemas. */
+.tv-situacao-britador { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.6em; padding: calc(var(--vao) * 0.8) var(--vao); border-radius: clamp(8px, calc(0.8vw * var(--k)), 18px); background: var(--tv-elevado); border: 2px solid var(--tv-linha); }
+.tv-situacao-britador strong { font-size: var(--t-valor); line-height: 1.1; }
+.tv-situacao-britador span { color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 700; }
+.tv-situacao-britador.britando { border-color: var(--tv-azul); background: var(--tv-azul-fundo); }
+.tv-situacao-britador.parado { border-color: var(--tv-critico); background: var(--tv-vermelho-fundo); }
+.tv-horarios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--vao) * 0.6); }
+.tv-horarios div { padding: calc(var(--vao) * 0.6) var(--vao); border-radius: clamp(8px, calc(0.7vw * var(--k)), 16px); background: var(--tv-elevado); }
+.tv-horarios span { display: block; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.tv-horarios strong { font-size: var(--t-valor); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tv-horarios div:last-child strong { font-size: var(--t-item); }
+.tv-britador-problemas { display: grid; align-content: start; gap: calc(var(--vao) * 0.5); }
+.tv-britador-problemas li { min-width: 0; padding: calc(var(--vao) * 0.5) var(--vao); border-radius: clamp(8px, calc(0.7vw * var(--k)), 16px); background: var(--tv-elevado); border: 1px solid var(--tv-linha); }
+.tv-britador-problemas li.aberto { border: 2px solid var(--tv-critico); background: var(--tv-vermelho-fundo); }
+.tv-britador-problemas strong, .tv-britador-problemas span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-britador-problemas strong { font-size: var(--t-item-2); }
+.tv-britador-problemas span { color: var(--tv-texto-2); font-size: calc(var(--t-item-2) * 0.92); font-weight: 600; }
+
+/* Rodapé: a melhor hora do dia e quando foi a última atualização. */
+.tv-rodape { display: flex; justify-content: space-between; align-items: center; gap: var(--vao); color: var(--tv-texto-2); font-size: var(--t-detalhe); font-weight: 600; }
+.tv-situacao span {
+    display: inline-block;
+    padding: 0.25em 0.9em;
+    border-radius: 999px;
     background: var(--tv-superficie);
     border: 1px solid var(--tv-linha);
+    color: var(--tv-texto-2);
+    font-size: var(--t-detalhe);
+    font-weight: 700;
+    white-space: nowrap;
 }
-.tv-hora header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--vao); margin-bottom: 0.2em; line-height: 1.2; }
-.tv-hora h3 { color: var(--tv-texto-2); font-size: var(--t-rotulo); text-transform: uppercase; letter-spacing: 0.04em; }
-.tv-hora header span { font-size: var(--t-rotulo); font-weight: 800; }
-.tv-colunas { display: flex; align-items: flex-end; gap: 2px; height: clamp(56px, calc(4.8vw * var(--k)), 120px); border-bottom: 1px solid var(--tv-linha); }
-.tv-coluna { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
-.tv-coluna i { display: block; width: min(24px, 60%); min-height: 2px; border-radius: 4px 4px 0 0; background: #4d4c47; }
-.tv-coluna.agora i { background: var(--tv-azul); }
-.tv-coluna.futuro i { background: transparent; }
-.tv-coluna b { color: var(--tv-texto); font-size: var(--t-item-2); font-variant-numeric: tabular-nums; margin-bottom: 0.15em; }
-.tv-coluna small { position: absolute; bottom: -1.5em; color: var(--tv-apagado); font-size: clamp(11px, calc(0.85vw * var(--k)), 20px); font-variant-numeric: tabular-nums; }
-.tv-hora { padding-bottom: clamp(22px, calc(1.9vw * var(--k)), 44px); }
-.tv-coluna b { line-height: 1.2; }
 
 /* Sem atualização: aviso em amarelo; muito tempo sem atualizar: os números apagam. */
 .tv.sem-dados .tv-situacao span { background: var(--tv-atencao); border-color: var(--tv-atencao); color: #1a1a19; }
 .tv.velho .tv-situacao span { background: var(--tv-critico); border-color: var(--tv-critico); color: #ffffff; }
-.tv.velho .tv-numeros, .tv.velho .tv-problemas, .tv.velho .tv-zonas, .tv.velho .tv-horas { opacity: 0.35; filter: grayscale(1); }
+.tv.velho .tv-numeros, .tv.velho .tv-zonas { opacity: 0.35; filter: grayscale(1); }
 
 /* Tela cheia: só o monitor, do tamanho da TV. */
 body.dashboard.tela-cheia { overflow: hidden; }
 body.dashboard.tela-cheia .site,
 body.dashboard.tela-cheia .monitor-nota,
-body.dashboard.tela-cheia .monitor-opcao,
 body.dashboard.tela-cheia .estrada-medidas { display: none; }
 body.dashboard.tela-cheia .folha { width: 100%; max-width: none; margin: 0; padding: clamp(10px, 1.2vw, 28px); }
 body.dashboard.tela-cheia .monitor-topo { position: fixed; right: 8px; bottom: 8px; z-index: 5; margin: 0; }
 body.dashboard.tela-cheia .ampliar { opacity: 0.25; min-height: 32px; padding: 4px 10px; font-size: 12px; }
 body.dashboard.tela-cheia .ampliar:hover, body.dashboard.tela-cheia .ampliar:focus { opacity: 1; }
 body.dashboard.tela-cheia .tv { --k: 0.85; height: calc(100vh - 2 * clamp(10px, 1.2vw, 28px)); }
+@media (prefers-reduced-motion: reduce) {
+    .tv-caminhao { transition: none; }
+}
 
 /* Telas estreitas (celular do administrativo): tudo em uma coluna. */
 @media (max-width: 900px) {
-    .tv-topo { grid-template-columns: 1fr auto; }
-    .tv-situacao { grid-column: 1 / -1; grid-row: 2; }
-    .tv-numeros, .tv-numeros.n6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .tv-heroi { grid-column: 1 / -1; }
-    .tv-zonas, .tv-horas { grid-template-columns: 1fr; }
-    .tv-problemas { flex-direction: column; align-items: stretch; }
-    .tv-problemas li { white-space: normal; }
+    .tv-numeros, .tv-zonas { grid-template-columns: 1fr; }
+    .tv-rodape { flex-direction: column; align-items: flex-start; }
 }
 @media (max-width: 600px) {
-    .tv-fila li { grid-template-columns: minmax(0, 1fr) auto; }
-    .tv-fila li > span:not(.tv-tempo) { grid-column: 1; grid-row: 2; text-align: left; }
-    .tv-fila .tv-tempo { grid-column: 2; grid-row: 1 / span 2; }
-    .tv-posto { display: none; }
+    .tv-posto, .tv-sentido { display: none; }
 }

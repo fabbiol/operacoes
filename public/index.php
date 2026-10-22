@@ -159,6 +159,37 @@ function despachar(string $path, string $method): void
         redirect('/estoque');
     }
 
+    if ($path === 'britador') {
+        exigir_papel('britador');
+        render('britador', [
+            'titulo' => 'Britador secundário',
+            'britador' => Britador::doDia(date('Y-m-d')),
+        ]);
+        return;
+    }
+
+    if (preg_match('#^britador/(iniciar|terminar|problemas|problemas/(\d+)/resolver)$#', $path, $m) && $method === 'POST') {
+        exigir_papel('britador');
+        csrf_check();
+        try {
+            match ($m[1]) {
+                'iniciar' => Britador::iniciar(Auth::usuario()),
+                'terminar' => Britador::terminar(Auth::usuario()),
+                'problemas' => Britador::avisar(Auth::usuario(), (string) ($_POST['descricao'] ?? ''), ($_POST['parou'] ?? '') === '1'),
+                default => Britador::resolver((int) $m[2], Auth::usuario()),
+            };
+            flash_set(match ($m[1]) {
+                'iniciar' => 'Britagem iniciada.',
+                'terminar' => 'Britagem terminada.',
+                'problemas' => 'Problema avisado. Ele aparece no Monitor até ser resolvido.',
+                default => 'Problema resolvido.',
+            });
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/britador');
+    }
+
     if ($path === 'lavra') {
         exigir_papel('motorista', 'escavadeira');
         tela_lavra();
@@ -1291,7 +1322,8 @@ function exigir_maquina(): void
     if (preg_match('#^(usuarios/\d+/foto|cadastros/[a-z]+/\d+/foto)$#', $path)) {
         return;
     }
-    if (Auth::admin()) {
+    // O britador secundário não é máquina do cadastro: quem opera ele não assume máquina.
+    if (Auth::admin() || Auth::britador()) {
         return;
     }
     $trabalho = maquina_do_trabalho();
