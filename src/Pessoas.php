@@ -5,12 +5,14 @@ declare(strict_types=1);
 final class Pessoas
 {
     /** Funções que se marcam no cadastro. "operador" é o operador de pá carregadeira (pátio). */
-    public const FUNCOES = ['motorista', 'operador', 'escavadeira'];
+    public const FUNCOES = ['motorista', 'operador', 'escavadeira', 'britador'];
+
+    public const ROTULO_BRITADOR = 'Operador do britador secundário';
 
     public static function listar(): array
     {
         return Db::pdo()->query(
-            'SELECT id, nome, nome_completo, administrador, motorista, operador, escavadeira, foto, ativo
+            'SELECT id, nome, nome_completo, administrador, motorista, operador, escavadeira, britador, foto, ativo
              FROM usuarios
              ORDER BY ativo DESC, administrador DESC, nome ASC'
         )->fetchAll();
@@ -19,7 +21,7 @@ final class Pessoas
     public static function buscar(int $id): ?array
     {
         $busca = Db::pdo()->prepare(
-            'SELECT id, nome, nome_completo, administrador, motorista, operador, escavadeira, foto, ativo
+            'SELECT id, nome, nome_completo, administrador, motorista, operador, escavadeira, britador, foto, ativo
              FROM usuarios WHERE id = ? LIMIT 1'
         );
         $busca->execute([$id]);
@@ -31,9 +33,9 @@ final class Pessoas
     public static function paraEntrada(): array
     {
         $linhas = Db::pdo()->query(
-            'SELECT id, nome, nome_completo, foto, motorista, operador, escavadeira
+            'SELECT id, nome, nome_completo, foto, motorista, operador, escavadeira, britador
              FROM usuarios
-             WHERE ativo = 1 AND administrador = 0 AND (motorista = 1 OR operador = 1 OR escavadeira = 1)
+             WHERE ativo = 1 AND administrador = 0 AND (motorista = 1 OR operador = 1 OR escavadeira = 1 OR britador = 1)
              ORDER BY nome ASC'
         )->fetchAll();
 
@@ -65,7 +67,7 @@ final class Pessoas
             return null;
         }
         $busca = Db::pdo()->prepare(
-            'SELECT id, nome, nome_completo, foto, motorista, operador, escavadeira, administrador, ativo
+            'SELECT id, nome, nome_completo, foto, motorista, operador, escavadeira, britador, administrador, ativo
              FROM usuarios WHERE id = ? LIMIT 1'
         );
         $busca->execute([$id]);
@@ -73,7 +75,7 @@ final class Pessoas
         if (!$pessoa || (int) $pessoa['ativo'] !== 1 || (int) $pessoa['administrador'] === 1) {
             return null;
         }
-        if ((int) $pessoa['motorista'] !== 1 && (int) $pessoa['operador'] !== 1 && (int) $pessoa['escavadeira'] !== 1) {
+        if ((int) $pessoa['motorista'] !== 1 && (int) $pessoa['operador'] !== 1 && (int) $pessoa['escavadeira'] !== 1 && (int) ($pessoa['britador'] ?? 0) !== 1) {
             return null;
         }
         if (Auth::administradorFixo((string) $pessoa['nome'])) {
@@ -105,6 +107,9 @@ final class Pessoas
             return 'Administrativo';
         }
         $funcoes = self::funcoes($pessoa);
+        if (in_array('britador', $funcoes, true)) {
+            return self::ROTULO_BRITADOR;
+        }
 
         return self::rotuloFuncoes(
             in_array('motorista', $funcoes, true),
@@ -155,6 +160,7 @@ final class Pessoas
             $motorista = 0;
             $operador = 0;
             $escavadeira = 0;
+            $britador = 0;
             $papel = 'admin';
         } else {
             $funcoes = self::funcoesDoFormulario($post);
@@ -164,7 +170,11 @@ final class Pessoas
             $motorista = in_array('motorista', $funcoes, true) ? 1 : 0;
             $operador = in_array('operador', $funcoes, true) ? 1 : 0;
             $escavadeira = in_array('escavadeira', $funcoes, true) ? 1 : 0;
-            $papel = self::papel($motorista === 1, $operador === 1, $escavadeira === 1);
+            $britador = in_array('britador', $funcoes, true) ? 1 : 0;
+            if ($britador === 1 && count($funcoes) > 1) {
+                throw new InvalidArgumentException('O operador do britador secundário tem só essa função. Desmarque as outras.');
+            }
+            $papel = $britador === 1 ? 'britador' : self::papel($motorista === 1, $operador === 1, $escavadeira === 1);
         }
 
         $ativo = $fixo ? 1 : (isset($post['ativo']) ? 1 : 0);
@@ -188,9 +198,9 @@ final class Pessoas
         $pendente = self::prepararFoto();
         try {
             if ($id === null) {
-                $idSalvo = self::inserir($nome, $completo, $senha, $papel, $motorista, $operador, $escavadeira, $ativo);
+                $idSalvo = self::inserir($nome, $completo, $senha, $papel, $motorista, $operador, $escavadeira, $britador, $ativo);
             } else {
-                self::atualizar($id, (string) $atual['nome'], $nome, $completo, $senha, $papel, $motorista, $operador, $escavadeira, $ativo, $admin);
+                self::atualizar($id, (string) $atual['nome'], $nome, $completo, $senha, $papel, $motorista, $operador, $escavadeira, $britador, $ativo, $admin);
                 $idSalvo = $id;
             }
 
@@ -337,14 +347,15 @@ final class Pessoas
         int $motorista,
         int $operador,
         int $escavadeira,
+        int $britador,
         int $ativo
     ): int {
         $comando = Db::pdo()->prepare(
-            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, escavadeira, ativo)
-             VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)'
+            'INSERT INTO usuarios (nome, nome_completo, senha_hash, administrador, papel, motorista, operador, escavadeira, britador, ativo)
+             VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)'
         );
         try {
-            $comando->execute([$nome, $completo, password_hash($senha, PASSWORD_DEFAULT), $papel, $motorista, $operador, $escavadeira, $ativo]);
+            $comando->execute([$nome, $completo, password_hash($senha, PASSWORD_DEFAULT), $papel, $motorista, $operador, $escavadeira, $britador, $ativo]);
         } catch (PDOException $e) {
             self::traduzirDuplicado($e);
         }
@@ -362,11 +373,12 @@ final class Pessoas
         int $motorista,
         int $operador,
         int $escavadeira,
+        int $britador,
         int $ativo,
         bool $admin
     ): void {
-        $sql = 'UPDATE usuarios SET nome = ?, nome_completo = ?, papel = ?, motorista = ?, operador = ?, escavadeira = ?, ativo = ?';
-        $params = [$nome, $completo, $papel, $motorista, $operador, $escavadeira, $ativo];
+        $sql = 'UPDATE usuarios SET nome = ?, nome_completo = ?, papel = ?, motorista = ?, operador = ?, escavadeira = ?, britador = ?, ativo = ?';
+        $params = [$nome, $completo, $papel, $motorista, $operador, $escavadeira, $britador, $ativo];
         if ($senha !== '') {
             $sql .= ', senha_hash = ?';
             $params[] = password_hash($senha, PASSWORD_DEFAULT);
@@ -411,6 +423,8 @@ final class Pessoas
             'maquina_posse' => ['usuario'],
             'maquina_problemas' => ['usuario', 'resolvido_por'],
             'lavra_limpezas' => ['operador'],
+            'britagens' => ['usuario'],
+            'britagem_problemas' => ['usuario', 'resolvido_por'],
         ];
         foreach ($colunas as $tabela => $lista) {
             foreach ($lista as $coluna) {

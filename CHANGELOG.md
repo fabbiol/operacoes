@@ -1,5 +1,24 @@
 # O que mudou
 
+## Outubro de 2026: Monitor novo, Britador Secundário e forma de pagamento
+
+- **Monitor da TV** redesenhado para quem olha de fora:
+  - três números no topo: entregue aos clientes, viagens ao britador primário e **vendido hoje por forma de pagamento**;
+  - três colunas: **Clientes · Pátio**, **Lavra → Britador Primário** e **Britador Secundário**;
+  - os problemas das máquinas aparecem dentro da coluna de cada parte (sai a faixa vermelha do topo);
+  - a lavra mostra as **máquinas em uso**, e os caminhões deslizam pela pista;
+  - os gráficos por hora viraram uma frase no rodapé ("Melhor hora do pátio...");
+  - o vendido agora aparece sempre: a opção de esconder saiu.
+- **Britador secundário**: função nova no cadastro de Pessoas ("Operador do britador secundário"), com tela própria no tablet: iniciar a britagem, avisar problema (parou ou não), marcar resolvido e terminar.
+- **Forma de pagamento da nota**: campo novo ao lançar a ordem (Pix, Dinheiro, Cartão, Cheque, Boleto, A prazo). É obrigatório para liberar. Pelo XML vem preenchido; pelo PDF, escolha na hora. Corrige-se no quadro do valor da ficha.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho as tabelas do britador e os campos novos.
+2. No Easypanel, toque em **Implantar** se não começar sozinho. Os tablets não precisam de app novo.
+3. Em **Pessoas**, cadastre o operador do britador secundário marcando só a função **Operador do britador secundário**.
+4. As ordens que estão **aguardando autorização** na hora da publicação precisam da forma de pagamento antes de liberar: abra a ordem, escolha a forma e salve. As já liberadas continuam na fila normalmente.
+5. Na TV, o Monitor muda sozinho em até 8 segundos (ou recarregue a página).
+
 ## Outubro de 2026: estoque das pilhas
 
 - **Estoque** (Brita 01, Pedrisco...): substitui a planilha. O operador da pá toca em **Estoque** no pátio, escolhe o material, digita quantas conchas colocou na pilha e toca em **Lançar no estoque**. A pá é a do turno, e o sistema faz a conta: conchas × concha da pá = m³, e m³ × 1,45 = toneladas.

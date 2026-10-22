@@ -54,6 +54,7 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
                     </div>
                     <a class="link<?= (str_starts_with($caminho, 'usuarios') || str_starts_with($caminho, 'tablets')) ? ' ativo' : '' ?>" href="<?= e(url('usuarios')) ?>">Pessoas</a>
                     <a class="link<?= str_starts_with($caminho, 'estoque') ? ' ativo' : '' ?>" href="<?= e(url('estoque')) ?>">Estoque</a>
+                    <a class="link<?= str_starts_with($caminho, 'britador') ? ' ativo' : '' ?>" href="<?= e(url('britador')) ?>">Britador</a>
                     <a class="link<?= str_starts_with($caminho, 'cadastros') ? ' ativo' : '' ?>" href="<?= e(url('cadastros')) ?>">Cadastros</a>
                     <a class="link<?= $caminho === 'manutencao' ? ' ativo' : '' ?>" href="<?= e(url('manutencao')) ?>">Manutenção</a>
                 <?php else: ?>
@@ -63,7 +64,11 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
                     <?php if (pode_patio()): ?>
                         <a class="link<?= ($caminho === 'patio' || str_starts_with($caminho, 'carregamentos/') || $caminho === 'estoque') ? ' ativo' : '' ?>" href="<?= e(url('patio')) ?>">Pátio</a>
                     <?php endif; ?>
-                    <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
+                    <?php if (method_exists(Auth::class, 'britador') && Auth::britador()): ?>
+                        <a class="link<?= str_starts_with($caminho, 'britador') ? ' ativo' : '' ?>" href="<?= e(url('britador')) ?>">Britador</a>
+                    <?php else: ?>
+                        <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <span class="site-usuario">
                     <?php if (Auth::temFoto()): ?>

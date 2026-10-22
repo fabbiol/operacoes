@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     motorista TINYINT(1) NOT NULL DEFAULT 0,
     operador TINYINT(1) NOT NULL DEFAULT 0,
     escavadeira TINYINT(1) NOT NULL DEFAULT 0,
+    britador TINYINT(1) NOT NULL DEFAULT 0,
     foto VARCHAR(80) NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     PRIMARY KEY (id),
@@ -73,6 +74,7 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     nf_emitida_data DATE NULL,
     nf_chave CHAR(44) NULL,
     nf_valor DECIMAL(12,2) NULL,
+    nf_pagamento VARCHAR(12) NULL,
     material_id INT UNSIGNED NOT NULL,
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,
@@ -308,4 +310,29 @@ CREATE TABLE IF NOT EXISTS schema_versao (
     hash CHAR(64) NOT NULL,
     atualizado_em DATETIME NOT NULL,
     PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Britador secundário: cada britagem (início e fim) e os problemas avisados pelo operador dele.
+CREATE TABLE IF NOT EXISTS britagens (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    usuario VARCHAR(40) NOT NULL,
+    inicio DATETIME NOT NULL,
+    fim DATETIME NULL,
+    terminado_por VARCHAR(40) NULL,
+    PRIMARY KEY (id),
+    KEY idx_britagem_inicio (inicio),
+    KEY idx_britagem_aberta (fim)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS britagem_problemas (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    usuario VARCHAR(40) NOT NULL,
+    descricao VARCHAR(500) NOT NULL,
+    parou TINYINT(1) NOT NULL DEFAULT 0,
+    inicio DATETIME NOT NULL,
+    resolvido_em DATETIME NULL,
+    resolvido_por VARCHAR(40) NULL,
+    PRIMARY KEY (id),
+    KEY idx_britagem_problema_inicio (inicio),
+    KEY idx_britagem_problema_aberto (resolvido_em)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

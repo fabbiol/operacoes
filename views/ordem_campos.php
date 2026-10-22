@@ -74,6 +74,15 @@ $travado = !empty($travado);
                 <span>Valor da nota (R$)</span>
                 <input type="text" name="nf_valor" inputmode="decimal" maxlength="16" value="<?= e($valor['nf_valor'] ?? '') ?>" placeholder="0,00" <?= $travado ? 'disabled' : '' ?>>
             </label>
+            <label class="campo">
+                <span>Forma de pagamento</span>
+                <select name="nf_pagamento">
+                    <option value="">Escolha (obrigatório para liberar)</option>
+                    <?php foreach ((function_exists('formas_pagamento') ? formas_pagamento() : []) as $codigo => $rotulo): ?>
+                        <option value="<?= e($codigo) ?>" <?= ($valor['nf_pagamento'] ?? '') === $codigo ? 'selected' : '' ?>><?= e($rotulo) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
         <?php endif; ?>
         <label class="campo">
             <span>Material</span>

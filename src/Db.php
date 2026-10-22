@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-estoque';
+    private const MIGRACOES = '2026-10-britador-pagamento';
 
     private static ?PDO $pdo = null;
 
@@ -120,6 +120,7 @@ final class Db
             self::garantirMaquinaOk($pdo);
             self::garantirRevisao($pdo);
             self::garantirEstoque($pdo);
+            self::garantirBritadorEPagamento($pdo);
 
             $pdo->prepare('REPLACE INTO schema_versao (id, hash, atualizado_em) VALUES (1, ?, NOW())')->execute([$hash]);
         } finally {
@@ -547,6 +548,20 @@ final class Db
         }
         if (!in_array('concha_m3', self::colunasDe($pdo, 'pas_carregadeiras'), true)) {
             $pdo->exec('ALTER TABLE pas_carregadeiras ADD COLUMN concha_m3 DECIMAL(5,2) NULL AFTER ano');
+        }
+    }
+
+    /**
+     * Forma de pagamento da nota (pix, dinheiro, cartao, cheque, boleto, prazo); vazia nas notas antigas.
+     * Função "Operador do britador secundário" no cadastro de pessoas.
+     */
+    private static function garantirBritadorEPagamento(PDO $pdo): void
+    {
+        if (!in_array('nf_pagamento', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_pagamento VARCHAR(12) NULL AFTER nf_valor');
+        }
+        if (!in_array('britador', self::colunasDe($pdo, 'usuarios'), true)) {
+            $pdo->exec('ALTER TABLE usuarios ADD COLUMN britador TINYINT(1) NOT NULL DEFAULT 0 AFTER escavadeira');
         }
     }
 

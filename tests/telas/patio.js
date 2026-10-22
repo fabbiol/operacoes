@@ -35,6 +35,7 @@ async function novaOrdem(adm, nf, qtd, unidade, fracionado, obs) {
   await adm.selectOption(F + ' select[name=unidade]', unidade);
   if (fracionado) await adm.check(F + ' [name=fracionado]');
   if (obs) await adm.fill(F + ' [name=observacoes]', obs);
+  await adm.selectOption(F + ' [name=nf_pagamento]', 'pix');
   await adm.check(F + ' [name=liberar]');
   await enviar(adm, F + ' button[type=submit]');
   return sql(`SELECT id FROM fila_carregamentos WHERE nf='${nf}' AND ordem_principal_id IS NULL`);
@@ -55,6 +56,7 @@ T.executar(async () => {
   const dataLida = await adm.inputValue(F + ' [name=nf_emitida_data]');
   ok(dataLida === dataXml && (await adm.inputValue(F + ' [name=nf_emitida_em]')) === '', 'nota sem hora: a data da nota vai no campo escondido', dataLida);
   ok(/conta no vendido desse dia/.test(await txt(adm)), 'formulário explica que a nota conta no dia da emissão');
+  await adm.selectOption(F + ' [name=nf_pagamento]', 'pix');
   await adm.check(F + ' [name=liberar]');
   await enviar(adm, F + ' button[type=submit]');
   const idSoData = sql("SELECT id FROM fila_carregamentos WHERE nf='4410'");

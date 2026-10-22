@@ -1,6 +1,7 @@
 (function () {
-    // Monitor da TV: lido de 3 a 6 metros. Poucos números, grandes; cor só para o que pede atenção
-    // (espera longa, conexão caída). Os relógios contam sozinhos entre uma atualização e outra.
+    // Monitor da TV: lido de 3 a 6 metros. Três números no topo e três colunas (pátio, lavra e britador secundário),
+    // cada uma com os seus avisos; cor sempre com palavra (amarelo = carregando ou espera longa, vermelho = parado
+    // ou problema, azul = carregado ou britando). Os relógios contam sozinhos entre uma atualização e outra.
     var raiz = document.getElementById('monitor');
     var bruto = document.getElementById('monitor-dados');
     var dados = JSON.parse(bruto.textContent);
@@ -10,6 +11,7 @@
     var ESPERA_CRITICA = 60 * 60;
     var SEM_ATUALIZAR_AVISO = 60 * 1000;
     var SEM_ATUALIZAR_VELHO = 3 * 60 * 1000;
+    var FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cheque: 'Cheque', boleto: 'Boleto', prazo: 'A prazo', sem_forma: 'Sem forma' };
     var desvio = 0;
     var ultimoOk = Date.now();
     var horaUltimoOk = '';
@@ -62,6 +64,10 @@
         }
     }
 
+    function relogio(desde) {
+        return '<span class="tv-conta" data-desde="' + desde + '"><b>' + duracao(agoraServidor() - desde) + '</b></span>';
+    }
+
     // ---- números do dia
 
     function tile(rotulo, valor, detalhe, classe) {
@@ -72,7 +78,24 @@
             '</article>';
     }
 
-    function numeros(estado, mostrarVendas) {
+    function vendido(vendas) {
+        vendas = vendas || { valor: 0, notas: 0, sem_valor: 0, por_forma: {} };
+        var formas = Object.keys(FORMAS).filter(function (chave) {
+            return vendas.por_forma && vendas.por_forma[chave] > 0;
+        });
+        var lista = formas.map(function (chave) {
+            return '<li><span>' + esc(FORMAS[chave]) + '</span><b>' + dinheiro(vendas.por_forma[chave]) + '</b></li>';
+        }).join('');
+        var semValor = vendas.sem_valor || 0;
+        return '<article class="tv-numero tv-vendas">' +
+            '<header><span class="tv-rotulo">Vendido hoje</span><strong class="tv-valor">' + dinheiro(vendas.valor) + '</strong></header>' +
+            (lista ? '<ul>' + lista + '</ul>' : '') +
+            '<span class="tv-detalhe">' + vendas.notas + (vendas.notas === 1 ? ' nota' : ' notas') +
+                (semValor ? ' · ' + semValor + ' sem valor' : '') + '</span>' +
+            '</article>';
+    }
+
+    function numeros(estado) {
         var p = estado.patio.indicadores;
         var l = estado.lavra.indicadores;
         // Toneladas e m³ não se somam: a maior medida vai grande, a outra no detalhe.
@@ -84,37 +107,16 @@
         } else if (p.volume != null) {
             principal = quantia(p.volume) + '<small> m³</small>';
         }
-        var maior = 0;
-        estado.patio.fila.forEach(function (item) {
-            maior = Math.max(maior, agoraServidor() - item.desde_ts);
-        });
-        var espera = estado.patio.fila.length
-            ? 'maior espera <b data-desde="' + (agoraServidor() - maior) + '">' + duracao(maior) + '</b>'
-            : 'ninguém esperando';
-        var pas = estado.patio.maquinas.filter(function (m) { return m.ordem; }).map(function (m) { return esc(m.nome); });
-        var esperando = estado.lavra.caminhoes.filter(function (c) { return c.status === 'na_fila'; }).length;
-        var limpando = (estado.lavra.limpezas || []).map(function (l) { return l.retro; });
-        var lista = [
-            tile('Carregado hoje', principal, outra + p.expedidas + (p.expedidas === 1 ? ' carga' : ' cargas'), 'tv-heroi'),
-            tile('Na fila do pátio', String(p.aguardando), espera, maior >= ESPERA_CRITICA ? 'critico' : (maior >= ESPERA_ATENCAO ? 'atencao' : '')),
-            tile('Carregando', String(p.carregando), pas.length ? pas.join(' · ') : 'nenhuma pá carregando'),
-            tile('Viagens da lavra', String(l.viagens), (l.toneladas != null ? quantia(l.toneladas) + ' t · ' : '') + 'ciclo ' + duracao(l.ciclo)),
-            tile('Caminhões na lavra', String(l.operacao),
-                limpando.length
-                    ? esc(limpando.join(' e ')) + ' em limpeza'
-                    : (esperando ? esperando + ' esperando a escavadeira' : 'nenhum esperando'),
-                limpando.length ? 'atencao' : '')
-        ];
-        if (mostrarVendas && estado.vendas) {
-            var semValor = estado.vendas.sem_valor || 0;
-            lista.push(tile('Vendido hoje', dinheiro(estado.vendas.valor),
-                estado.vendas.notas + (estado.vendas.notas === 1 ? ' nota' : ' notas') +
-                (semValor ? ' · ' + semValor + ' sem valor' : '')));
-        }
-        return '<section class="tv-numeros n' + lista.length + '">' + lista.join('') + '</section>';
+        return '<section class="tv-numeros">' +
+            tile('Entregue aos clientes hoje', principal,
+                outra + p.expedidas + (p.expedidas === 1 ? ' carga' : ' cargas') + ' · ' + p.aguardando + ' na fila agora', 'tv-heroi') +
+            tile('Viagens ao britador primário hoje', String(l.viagens) + '<small> ' + (l.viagens === 1 ? 'viagem' : 'viagens') + '</small>',
+                (l.toneladas != null ? quantia(l.toneladas) + ' t levadas · ' : '') + 'viagem completa em ' + duracao(l.ciclo)) +
+            vendido(estado.vendas) +
+            '</section>';
     }
 
-    // ---- problemas das máquinas (avisados ao soltar a máquina): faixa vermelha enquanto houver algum aberto
+    // ---- avisos de problema dentro de cada coluna
 
     function quando(epoch) {
         var dia = function (t) {
@@ -127,19 +129,14 @@
         return dia(epoch) === dia(agoraServidor()) ? horaMinuto(epoch) : dia(epoch);
     }
 
-    function problemas(estado) {
-        var lista = estado.problemas || [];
-        if (lista.length === 0) return '';
-        // TV pequena ou baixa: uma linha só (dois avisos lado a lado), para sobrar altura para a fila e a lavra.
-        var visiveis = lista.slice(0, window.innerHeight < 720 ? 2 : 4);
-        return '<section class="tv-problemas" aria-label="Problemas nas máquinas">' +
-            '<h2><i aria-hidden="true">!</i>Problemas nas máquinas<span>' + lista.length + '</span></h2>' +
-            '<ul>' + visiveis.map(function (p) {
-                return '<li><strong>' + esc(p.maquina) + '</strong> ' + esc(p.descricao) +
-                    ' <small>' + esc(p.usuario) + ' · ' + esc(quando(p.desde_ts)) + '</small></li>';
-            }).join('') + '</ul>' +
-            (lista.length > visiveis.length ? '<p class="tv-problemas-mais">+ ' + (lista.length - visiveis.length) + '</p>' : '') +
-            '</section>';
+    function avisos(lista) {
+        if (!lista.length) return '';
+        // No máximo dois, para sobrar altura para a fila e a pista; o resto vira "+ N".
+        var fora = lista.length - 2;
+        return '<ul class="tv-avisos">' + lista.slice(0, 2).map(function (p) {
+            return '<li><strong>' + esc(p.maquina) + ':</strong> ' + esc(p.descricao) +
+                ' <small>desde ' + esc(quando(p.desde_ts)) + ' · ' + esc(p.usuario) + '</small></li>';
+        }).join('') + (fora > 0 ? '<li class="tv-avisos-mais">+ ' + fora + (fora === 1 ? ' problema' : ' problemas') + '</li>' : '') + '</ul>';
     }
 
     // ---- pátio
@@ -148,7 +145,7 @@
         var segundos = agoraServidor() - item.desde_ts;
         var classe = segundos >= ESPERA_CRITICA ? 'critico' : (segundos >= ESPERA_ATENCAO ? 'atencao' : '');
         return '<span class="tv-tempo ' + classe + '" data-desde="' + item.desde_ts + '" data-limites="1">' +
-            '<i aria-hidden="true">!</i><b>' + duracao(segundos) + '</b></span>';
+            '<i aria-hidden="true">!</i>espera <b>' + duracao(segundos) + '</b></span>';
     }
 
     function carga(item) {
@@ -158,34 +155,42 @@
 
     function patio(estado) {
         var dadosPatio = estado.patio;
+        var problemas = (estado.problemas || []).filter(function (p) { return p.area === 'patio'; });
         var maquinas = dadosPatio.maquinas.length
             ? dadosPatio.maquinas.map(function (m) {
                 var o = m.ordem;
-                if (!o) {
-                    return '<article class="tv-maquina livre"><strong>Livre</strong>' +
-                        '<p><span><b>' + esc(m.nome) + '</b></span></p></article>';
+                var problema = problemas.filter(function (p) { return p.maquina === m.nome; })[0];
+                if (o) {
+                    var inicio = o.inicio_ts || o.desde_ts;
+                    return '<article class="tv-maquina ocupada"><span class="tv-estado">' + esc(m.nome) + ' · carregando há ' + relogio(inicio) + '</span>' +
+                        '<strong>' + esc(o.cliente) + '</strong><p>' + carga(o) + (o.operador ? ' · ' + esc(o.operador) : '') + '</p></article>';
                 }
-                var inicio = o.inicio_ts || o.desde_ts;
-                return '<article class="tv-maquina ocupada"><strong>' + esc(o.cliente) + '</strong>' +
-                    '<p><span><b>' + esc(m.nome) + '</b> · ' + carga(o) + '</span>' +
-                    '<span class="tv-tempo" data-desde="' + inicio + '"><b>' + duracao(agoraServidor() - inicio) + '</b></span></p></article>';
+                if (problema) {
+                    return '<article class="tv-maquina parada"><span class="tv-estado">' + esc(m.nome) + ' · parada desde ' + esc(quando(problema.desde_ts)) + '</span>' +
+                        '<strong>' + esc(problema.descricao) + '</strong></article>';
+                }
+                return '<article class="tv-maquina livre"><span class="tv-estado">' + esc(m.nome) + ' · livre</span></article>';
             }).join('')
             : '<p class="tv-vazio">Nenhuma pá ativa.</p>';
         // A lista leva a fila toda; o que não couber na tela some e vira "+ N na fila" (ver caber()).
         var fila = dadosPatio.fila.length
-            ? '<ol class="tv-fila" data-um="na fila" data-varios="na fila">' + dadosPatio.fila.slice(0, 20).map(function (item) {
-                return '<li><strong>' + esc(item.cliente) + '</strong><span>' + carga(item) + '</span>' + espera(item) + '</li>';
+            ? '<ol class="tv-fila" data-um="na fila" data-varios="na fila">' + dadosPatio.fila.slice(0, 20).map(function (item, i) {
+                return '<li><span class="tv-ordem">' + (i + 1) + '</span><div><strong>' + esc(item.cliente) + '</strong><span>' + carga(item) + '</span></div>' + espera(item) + '</li>';
             }).join('') + '</ol><p class="tv-resto" data-total="' + dadosPatio.fila.length + '"></p>'
             : '<p class="tv-vazio">Ninguém na fila.</p>';
         var autorizar = dadosPatio.indicadores.sem_autorizacao;
-        return '<article class="tv-zona">' +
-            '<header><h2>Pátio</h2><span>' + (autorizar ? autorizar + ' aguardando autorização' : 'Expedição de clientes') + '</span></header>' +
+        var outrosProblemas = problemas.filter(function (p) {
+            return !dadosPatio.maquinas.some(function (m) { return m.nome === p.maquina; });
+        });
+        return '<article class="tv-zona tv-patio">' +
+            '<header><h2>Clientes · Pátio</h2><span>' + (autorizar ? autorizar + ' aguardando autorização' : '') + '</span></header>' +
+            avisos(outrosProblemas) +
             '<div class="tv-maquinas">' + maquinas + '</div>' +
-            '<h3>Fila <span>' + dadosPatio.fila.length + '</span></h3>' + fila +
+            '<h3>Na fila <span>' + dadosPatio.fila.length + '</span></h3>' + fila +
             '</article>';
     }
 
-    // ---- lavra: o circuito com os caminhões e a lista do que cada um está fazendo
+    // ---- lavra: o circuito com os caminhões e as máquinas em uso
 
     // Circuito em coordenadas de 1000 x 240; as posições saem em % para os nomes das placas ficarem por cima.
     function geometria(estrada) {
@@ -225,6 +230,9 @@
     function lavra(estado) {
         var geo = geometria(estado.estrada);
         var lista = estado.lavra.caminhoes;
+        var problemas = (estado.problemas || []).filter(function (p) { return p.area === 'lavra'; });
+        var comProblema = {};
+        problemas.forEach(function (p) { comProblema[p.maquina] = true; });
         var grupos = { lavra: [], ida: [], volta: [] };
         lista.forEach(function (c) { (grupos[c.faixa] || grupos.lavra).push(c); });
         var pontos = lista.map(function (c) {
@@ -244,14 +252,8 @@
         var marcas = pontos.map(function (item) {
             var c = item.c;
             var tipo = c.faixa === 'volta' ? 'volta' : (c.faixa === 'ida' ? 'carregado' : 'lavra');
-            return '<span class="tv-caminhao tv-cor-' + tipo + '" style="left:' + item.p.x + '%;top:' + item.p.y + '%">' + esc(c.placa) + '</span>';
+            return '<span class="tv-caminhao tv-cor-' + tipo + (comProblema[c.placa] ? ' tv-problema' : '') + '" data-id="' + c.id + '" style="left:' + item.p.x + '%;top:' + item.p.y + '%">' + esc(c.placa) + '</span>';
         }).join('');
-        var linhas = lista.length
-            ? '<ul class="tv-caminhoes" data-um="caminhão" data-varios="caminhões">' + lista.map(function (c) {
-                return '<li><strong>' + esc(c.placa) + '</strong><span>' + esc(c.estado) + (c.motorista ? ' · ' + esc(c.motorista) : '') + '</span>' +
-                    '<span class="tv-tempo" data-desde="' + c.desde_ts + '"><b>' + duracao(agoraServidor() - c.desde_ts) + '</b></span></li>';
-            }).join('') + '</ul><p class="tv-resto" data-total="' + lista.length + '"></p>'
-            : '<p class="tv-vazio">Nenhum caminhão em ciclo.</p>';
         // Escavadeira parada para limpar a lavra: explica por que os caminhões esperam na fila.
         // Uma linha só, mesmo com duas escavadeiras limpando; o tempo é o da limpeza mais antiga.
         var emLimpeza = estado.lavra.limpezas || [];
@@ -261,19 +263,72 @@
             limpezas = '<p class="tv-limpeza">' + esc(emLimpeza.map(function (l) { return l.retro; }).join(' e ')) + ' em limpeza da lavra' +
                 '<span class="tv-tempo" data-desde="' + desde + '"><b>' + duracao(agoraServidor() - desde) + '</b></span></p>';
         }
-        return '<article class="tv-zona">' +
-            '<header><h2>Lavra</h2><span class="tv-legenda">' +
-                '<span><i class="tv-cor-carregado"></i>Carregado</span><span><i class="tv-cor-volta"></i>Voltando</span><span><i class="tv-cor-lavra"></i>Na lavra</span>' +
-            '</span></header>' +
+        var emUso = estado.em_uso || [];
+        var maquinas = emUso.length
+            ? '<ul class="tv-em-uso" data-um="máquina" data-varios="máquinas">' + emUso.map(function (m) {
+                return '<li class="' + (m.ativo ? 'ativo' : '') + '"><strong>' + esc(m.nome) + ' · ' + esc(m.pessoa) + '</strong><span>' + esc(m.faz) + '</span></li>';
+            }).join('') + '</ul><p class="tv-resto" data-total="' + emUso.length + '"></p>'
+            : '<p class="tv-vazio">Nenhuma máquina com alguém agora.</p>';
+        return '<article class="tv-zona tv-lavra">' +
+            '<header><h2>Lavra → Britador Primário</h2></header>' +
+            avisos(problemas) +
             limpezas +
             '<div class="tv-circuito">' +
                 '<svg viewBox="0 0 1000 240" preserveAspectRatio="none" aria-hidden="true"><path d="' + geo.caminho + '"/></svg>' +
                 '<span class="tv-posto" style="left:' + geo.lavraRotulo + '%">Lavra</span>' +
-                '<span class="tv-posto direita" style="right:' + geo.britadorRotulo + '%">Britador</span>' +
+                '<span class="tv-posto direita" style="right:' + geo.britadorRotulo + '%">Britador<br>primário</span>' +
+                '<span class="tv-sentido ida">indo carregado →</span>' +
+                '<span class="tv-sentido volta">← voltando vazio</span>' +
                 marcas +
             '</div>' +
-            linhas +
+            '<p class="tv-legenda"><span><i class="tv-cor-lavra"></i>Na lavra</span><span><i class="tv-cor-carregado"></i>Carregado</span><span><i class="tv-cor-volta"></i>Voltando</span>' +
+                (lista.length ? '' : '<span>Nenhum caminhão em ciclo.</span>') + '</p>' +
+            '<h3>Máquinas em uso <span>' + emUso.length + '</span></h3>' + maquinas +
             '</article>';
+    }
+
+    // ---- britador secundário
+
+    function britador(estado) {
+        var b = estado.britador || { aberta: false, problemas: [] };
+        var situacao;
+        if (b.aberta && b.parado) {
+            situacao = '<div class="tv-situacao-britador parado"><strong>Parado por problema</strong></div>';
+        } else if (b.aberta) {
+            situacao = '<div class="tv-situacao-britador britando"><strong>Britando</strong>' +
+                (b.aberta_desde_ts ? '<span>há ' + relogio(b.aberta_desde_ts) + '</span>' : '') + '</div>';
+        } else if (b.fim) {
+            situacao = '<div class="tv-situacao-britador"><strong>Terminou às ' + esc(b.fim) + '</strong></div>';
+        } else {
+            situacao = '<div class="tv-situacao-britador"><strong>Sem britagem hoje</strong></div>';
+        }
+        var problemas = b.problemas.length
+            ? '<ul class="tv-britador-problemas" data-um="problema" data-varios="problemas">' + b.problemas.map(function (p) {
+                var detalhe = p.resolvido
+                    ? (p.parou ? 'parou de ' : 'de ') + esc(p.desde) + ' às ' + esc(p.ate) + ' · resolvido'
+                    : 'desde ' + esc(quando(p.desde_ts)) + ' · ' + (p.parou ? 'britador parado' : 'continua britando');
+                return '<li class="' + (p.resolvido ? 'resolvido' : 'aberto') + '"><strong>' + esc(p.descricao) + '</strong><span>' + detalhe + '</span></li>';
+            }).join('') + '</ul><p class="tv-resto" data-total="' + b.problemas.length + '"></p>'
+            : '<p class="tv-vazio">Nenhum problema hoje.</p>';
+        return '<article class="tv-zona tv-britador">' +
+            '<header><h2>Britador Secundário</h2></header>' +
+            situacao +
+            '<div class="tv-horarios">' +
+                '<div><span>Começou a britagem</span><strong>' + esc(b.inicio || '—') + '</strong></div>' +
+                '<div><span>Terminou a britagem</span><strong>' + (b.aberta ? 'ainda britando' : esc(b.fim || '—')) + '</strong></div>' +
+            '</div>' +
+            '<h3>Problemas hoje <span>' + b.problemas.length + '</span></h3>' + problemas +
+            '</article>';
+    }
+
+    function rodape(estado) {
+        var melhor = estado.melhor_hora || {};
+        var partes = [];
+        if (melhor.patio) partes.push('Melhor hora do pátio: ' + melhor.patio.hora + 'h, com ' + melhor.patio.quantidade + (melhor.patio.quantidade === 1 ? ' carga' : ' cargas'));
+        if (melhor.lavra) partes.push('Melhor hora da lavra: ' + melhor.lavra.hora + 'h, com ' + melhor.lavra.quantidade + (melhor.lavra.quantidade === 1 ? ' viagem' : ' viagens'));
+        // A situação fica à esquerda: o canto direito de baixo é do botão de sair da tela cheia.
+        return '<footer class="tv-rodape"><p class="tv-situacao" role="status"><span data-situacao>Atualizado às ' + esc(horaMinuto(estado.agora_ts)) + '</span></p>' +
+            '<span>' + esc(partes.join(' · ')) + '</span></footer>';
     }
 
     // Esconde as linhas que não cabem na altura da área e mostra quantas ficaram de fora.
@@ -302,48 +357,41 @@
         });
     }
 
-    // ---- por hora: uma série por gráfico, colunas finas, valor só na hora atual e na maior
-
-    function porHora(titulo, horas, unidade, chave) {
-        var horaAtual = Number(horaMinuto(agoraServidor()).slice(0, 2));
-        var mapa = {};
-        horas.forEach(function (h) { mapa[h.hora] = h; });
-        var inicio = 6, fim = Math.max(18, horaAtual);
-        horas.forEach(function (h) { inicio = Math.min(inicio, h.hora); fim = Math.max(fim, h.hora); });
-        var valores = [];
-        for (var h = inicio; h <= fim; h++) valores.push({ hora: h, valor: mapa[h] ? Number(mapa[h][chave] || 0) : 0 });
-        var maior = Math.max.apply(null, valores.map(function (v) { return v.valor; }));
-        var total = valores.reduce(function (s, v) { return s + v.valor; }, 0);
-        var colunas = valores.map(function (v) {
-            var altura = maior > 0 ? Math.round(v.valor / maior * 100) : 0;
-            var rotulo = v.valor > 0 && (v.valor === maior || v.hora === horaAtual) ? '<b>' + quantia(v.valor) + '</b>' : '';
-            return '<div class="tv-coluna' + (v.hora === horaAtual ? ' agora' : '') + (v.hora > horaAtual ? ' futuro' : '') + '" title="' + v.hora + 'h: ' + quantia(v.valor) + ' ' + unidade + '">' +
-                rotulo + '<i style="height:' + altura + '%"></i><small>' + v.hora + '</small></div>';
-        }).join('');
-        return '<article class="tv-hora"><header><h3>' + esc(titulo) + '</h3><span>' + quantia(total) + ' ' + esc(unidade) + ' hoje</span></header>' +
-            '<div class="tv-colunas">' + colunas + '</div></article>';
-    }
-
     // ---- montagem
 
     function desenhar(estado) {
         dados = estado;
         desvio = estado.agora_ts * 1000 - Date.now();
-        var mostrarVendas = lerOpcaoVendas();
+        // Onde cada caminhão estava: ele sai dali e desliza até o lugar novo, em vez de pular.
+        var antes = {};
+        raiz.querySelectorAll('.tv-caminhao[data-id]').forEach(function (el) {
+            antes[el.getAttribute('data-id')] = { left: el.style.left, top: el.style.top };
+        });
         raiz.innerHTML =
             '<header class="tv-topo">' +
-                '<div class="tv-marca"><strong>Próspera</strong><span>Pátio e lavra</span></div>' +
-                '<p class="tv-situacao" role="status"><span data-situacao>Atualizado às ' + esc(horaMinuto(estado.agora_ts)) + '</span></p>' +
+                '<div class="tv-marca"><strong>Próspera</strong><span>Operação de hoje</span></div>' +
                 '<div class="tv-relogio"><span>' + esc(estado.dia || '') + '</span><strong data-relogio>' + esc(horaMinuto(agoraServidor())) + '</strong></div>' +
             '</header>' +
-            numeros(estado, mostrarVendas) +
-            problemas(estado) +
-            '<section class="tv-zonas">' + patio(estado) + lavra(estado) + '</section>' +
-            '<section class="tv-horas">' +
-                porHora('Pátio por hora', estado.patio.horas, 'cargas', 'viagens') +
-                porHora('Lavra por hora', estado.lavra.horas, 'viagens', 'viagens') +
-            '</section>';
-        raiz.classList.toggle('com-problemas', (estado.problemas || []).length > 0);
+            numeros(estado) +
+            '<section class="tv-zonas">' + patio(estado) + lavra(estado) + britador(estado) + '</section>' +
+            rodape(estado);
+        var mover = [];
+        raiz.querySelectorAll('.tv-caminhao[data-id]').forEach(function (el) {
+            var velho = antes[el.getAttribute('data-id')];
+            if (!velho || (velho.left === el.style.left && velho.top === el.style.top)) return;
+            mover.push({ el: el, left: el.style.left, top: el.style.top });
+            el.style.transition = 'none';
+            el.style.left = velho.left;
+            el.style.top = velho.top;
+        });
+        if (mover.length) {
+            void raiz.offsetWidth;
+            mover.forEach(function (m) {
+                m.el.style.transition = '';
+                m.el.style.left = m.left;
+                m.el.style.top = m.top;
+            });
+        }
         caber();
         horaUltimoOk = horaMinuto(estado.agora_ts);
         situacao();
@@ -352,8 +400,8 @@
     // Relógios e tempos contam a cada segundo, sem pedir nada ao servidor.
     function contar() {
         var agora = agoraServidor();
-        var relogio = raiz.querySelector('[data-relogio]');
-        if (relogio) relogio.textContent = horaMinuto(agora);
+        var relogioTopo = raiz.querySelector('[data-relogio]');
+        if (relogioTopo) relogioTopo.textContent = horaMinuto(agora);
         raiz.querySelectorAll('[data-desde]').forEach(function (el) {
             var segundos = agora - Number(el.getAttribute('data-desde'));
             var alvo = el.querySelector('b') || el;
@@ -389,28 +437,6 @@
                 desenhar(estado);
             })
             .catch(function () { situacao(); });
-    }
-
-    // ---- opção do vendido (fica guardada neste aparelho)
-
-    var opcaoVendas = document.getElementById('mostrar-vendas');
-    function lerOpcaoVendas() {
-        try {
-            return window.localStorage.getItem('monitor-vendas') === '1';
-        } catch (e) {
-            return opcaoVendas ? opcaoVendas.checked : false;
-        }
-    }
-    if (opcaoVendas) {
-        opcaoVendas.checked = lerOpcaoVendas();
-        opcaoVendas.addEventListener('change', function () {
-            try {
-                window.localStorage.setItem('monitor-vendas', opcaoVendas.checked ? '1' : '0');
-            } catch (e) {
-                // Sem como guardar: vale só enquanto a página estiver aberta.
-            }
-            desenhar(dados);
-        });
     }
 
     // ---- tela cheia

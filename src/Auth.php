@@ -55,6 +55,9 @@ final class Auth
         if (self::escavadeira()) {
             return 'escavadeira';
         }
+        if (self::britador()) {
+            return 'britador';
+        }
 
         return '';
     }
@@ -74,6 +77,12 @@ final class Auth
     public static function escavadeira(): bool
     {
         return (int) (self::eu()['escavadeira'] ?? 0) === 1;
+    }
+
+    /** Operador do britador secundário: não usa máquina do cadastro, só marca a britagem. */
+    public static function britador(): bool
+    {
+        return (int) (self::eu()['britador'] ?? 0) === 1;
     }
 
     public static function motorista(): bool
@@ -139,6 +148,9 @@ final class Auth
             if ($papel === 'escavadeira' && self::escavadeira()) {
                 return true;
             }
+            if ($papel === 'britador' && self::britador()) {
+                return true;
+            }
         }
 
         return false;
@@ -166,6 +178,9 @@ final class Auth
         if (self::escavadeira()) {
             return '/lavra';
         }
+        if (self::britador()) {
+            return '/britador';
+        }
 
         return '/login';
     }
@@ -176,7 +191,9 @@ final class Auth
             return 'Administrativo';
         }
 
-        return Pessoas::rotuloFuncoes(self::motorista(), self::operador(), self::escavadeira());
+        return self::britador()
+            ? Pessoas::ROTULO_BRITADOR
+            : Pessoas::rotuloFuncoes(self::motorista(), self::operador(), self::escavadeira());
     }
 
     public static function exigir(): void
@@ -438,7 +455,7 @@ final class Auth
         if (!self::ok()) {
             return null;
         }
-        $sql = 'SELECT id, nome, administrador, motorista, operador, escavadeira, foto, ativo FROM usuarios';
+        $sql = 'SELECT id, nome, administrador, motorista, operador, escavadeira, britador, foto, ativo FROM usuarios';
         $id = (int) ($_SESSION['usuario_id'] ?? 0);
         if ($id > 0) {
             $busca = Db::pdo()->prepare($sql . ' WHERE id = ? LIMIT 1');

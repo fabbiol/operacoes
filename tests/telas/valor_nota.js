@@ -13,7 +13,6 @@ T.executar(async () => {
   const p = await T.entrar(b, 'Fabio', 'senha-forte-123', { largura: 1681, altura: 950 });
 
   await p.goto(BASE + '/dashboard'); await espera(500);
-  await p.check('#mostrar-vendas'); await espera(300);
   const tile = (await p.locator('.tv-numero').last().innerText()).replace(/\s+/g, ' ');
   ok(/Vendido hoje R\$ 0/i.test(tile) && /sem valor/.test(tile), 'Monitor avisa nota sem valor', tile);
   await T.capturar(p, 'valor_monitor');
