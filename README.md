@@ -205,6 +205,7 @@ O estoque de Brita 01, Pedrisco e outros materiais da pilha é contado pelas con
 - **Lançar** (operador da pá): no pátio, toque em **Estoque**. Escolha o material, digite quantas conchas colocou e toque em **Lançar no estoque**. Vale a pá do turno e a hora do lançamento.
 - **O que aparece**: para cada material, o total na pilha em m³, toneladas (1,45 t/m³) e conchas, o que entrou hoje e os últimos lançamentos com quem lançou.
 - **Corrigir** (só o administrativo): no menu **Estoque**, toque em **Corrigir** no lançamento errado para mudar o material, as conchas ou a data, ou apagar. O administrativo também lança com data passada, escolhendo a pá. O operador que errou avisa o administrativo.
+- A planilha antiga (de "até 05/10" a 21/10) entrou sozinha no estoque, dia por dia, com o usuário "Planilha".
 - Cada lançamento guarda a concha da pá naquela hora. Mudar a concha no cadastro depois não altera o que já entrou.
 
 ## Limpeza da lavra

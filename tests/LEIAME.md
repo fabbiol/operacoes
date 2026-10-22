@@ -81,6 +81,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `tv_dia_cheio` — Monitor num dia movimentado (pás, pista, problemas, limpeza, britador, vendas por forma): cada aviso na coluna certa e nada cortado.
 - `britador` — operador do britador secundário: cadastro, iniciar, problema, resolver, terminar e o que o Monitor recebe.
 - `forma_pagamento` — forma de pagamento obrigatória para liberar, corrigida na ficha e somada por forma no vendido.
+- `planilha_estoque` — a planilha do estoque entra uma vez, dia por dia, só com a pá 656, a Brita 01 e o Pedrisco no cadastro.
 - `estoque` — estoque das pilhas: concha da pá, lançamento do operador, saldo da planilha, correção e exclusão.
 - `som_aviso` — som do aviso sem AudioContext (não precisa de servidor).
 - `app_android` — página /app, faixa "Baixar o app" no Chrome do tablet autorizado, e o pedido de tela acesa ao Android dentro do app.
