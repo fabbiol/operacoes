@@ -61,16 +61,26 @@ O **valor da nota** vem sozinho ao ler o XML (valor total da nota) ou o PDF (VAL
 
 A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. Toque em **Tela cheia** na TV.
 
-- **No alto**: o carregado hoje (o número maior), a fila do pátio com a maior espera, quantas pás estão carregando, as viagens da lavra e os caminhões em ciclo.
-- **Pátio**: cada pá com o cliente e há quanto tempo está carregando; a fila com o tempo de espera de cada cliente. Espera de 30 minutos ou mais fica **amarela**, de 1 hora ou mais fica **vermelha**. O que não cabe na tela aparece como "+ N na fila".
-- **Lavra**: o circuito com os caminhões (azul = carregado indo para o britador, cinza = voltando vazio, contorno = na lavra) e a lista do que cada caminhão está fazendo. O motorista só marca a chegada no britador: 3 minutos depois o caminhão passa a aparecer voltando vazio.
-- **Problemas nas máquinas**: faixa vermelha entre os números e as áreas, com a máquina, o problema, quem avisou e quando (até 4; o resto aparece como "+ N"). Some sozinha quando o problema é marcado como resolvido na ficha da máquina.
-- **Limpeza da lavra**: o quadro "Caminhões na lavra" fica amarelo com "Retro 1 em limpeza", e a área da lavra mostra a faixa com o tempo.
-- **Por hora**: cargas do pátio e viagens da lavra em cada hora do dia; a hora atual em azul.
+- **No alto, três números**: o **entregue aos clientes hoje** (t, cargas e quantos na fila), as **viagens ao britador primário** (t levadas e o tempo da viagem completa) e o **vendido hoje** em R$, dividido por forma de pagamento (Pix, Dinheiro, Cartão, Cheque, Boleto, A prazo; "Sem forma" nas notas antigas). O vendido aparece sempre: quem estiver na frente da TV vê o valor.
+- **Clientes · Pátio**: cada pá com o que está fazendo, em palavras: **carregando** (amarelo, com o cliente, o tempo e quem opera), **parada** (vermelho, com o problema aberto da máquina) ou **livre**. Embaixo, a fila numerada com "espera N min": 30 minutos ou mais fica **amarelo**, 1 hora ou mais fica **vermelho**. O que não cabe aparece como "+ N na fila".
+- **Lavra → Britador Primário**: os problemas abertos das escavadeiras e dos caminhões no topo (até 2; o resto como "+ N"), a faixa amarela da limpeza da lavra e a pista com os caminhões: amarelo na lavra, azul carregado indo ao britador primário, cinza voltando vazio, contorno vermelho se o caminhão tem problema aberto. Os caminhões deslizam pela pista entre uma atualização e outra. O motorista só marca a chegada no britador: 3 minutos depois o caminhão passa a aparecer voltando vazio. Embaixo, **Máquinas em uso**: cada máquina que está com alguém, a pessoa e o que está fazendo.
+- **Britador Secundário**: a situação agora (Britando, Parado por problema, Terminou às, Sem britagem hoje), a hora em que **começou** e a que **terminou** a britagem e os **problemas do dia** (abertos em vermelho, resolvidos em cinza com o horário).
+- **Rodapé**: a hora da última atualização e a melhor hora do dia no pátio e na lavra.
 - Os relógios contam sozinhos e os números se atualizam a cada 8 segundos. Se a internet da TV cair, aparece **"Sem atualização desde ..."** em amarelo; depois de 3 minutos os números ficam apagados, para ninguém ler número velho como se fosse de agora.
-- **Vendido do dia (R$)**: fica escondido na TV, porque os motoristas também veem a tela. Para mostrar, marque **Mostrar o vendido do dia (R$) nesta tela** (vale só para aquele aparelho).
 - As letras são menores na página do Monitor (no computador do escritório) e um pouco maiores na **Tela cheia** da TV.
 - A imagem anda 2 pixels de tempos em tempos para não marcar a tela, e a página recarrega sozinha às 3h da manhã.
+
+## Britador secundário
+
+O operador do britador secundário tem uma função só para ele: em **Pessoas**, marque **Operador do britador secundário** (sem outra função). Ele não assume máquina: entra direto na tela **Britador**.
+
+- **Iniciar britagem** quando começa e **Terminar britagem** quando para. Pode haver mais de uma britagem no dia; o Monitor mostra o primeiro início e o último fim.
+- **Avisar problema**: o que aconteceu e se o britador parou. O problema fica aberto (no tablet e no Monitor) até ele tocar em **Resolvido**.
+- O administrativo também abre a tela pelo menu **Britador** e pode marcar no lugar do operador.
+
+## Forma de pagamento da nota
+
+Ao lançar a ordem, escolha a **Forma de pagamento** (Pix, Dinheiro, Cartão, Cheque, Boleto ou A prazo). O PDF da nota da Próspera não traz essa informação; quando a nota é lida pelo XML, o campo já vem preenchido. A ordem só é liberada para o pátio com a forma escolhida. Para corrigir depois, use o quadro do valor na ficha da ordem. O Monitor soma o vendido do dia por forma.
 
 ## Local no Windows
 

@@ -54,7 +54,7 @@ final class Britador
      * O dia do britador: primeiro início, último fim (null se ainda britando), se está parado por problema
      * e os problemas do dia (os abertos de dias anteriores também, até alguém resolver).
      *
-     * @return array{inicio: ?string, fim: ?string, aberta: bool, parado: bool, problemas: list<array<string, mixed>>}
+     * @return array{inicio: ?string, fim: ?string, aberta: bool, aberta_desde: ?string, parado: bool, problemas: list<array<string, mixed>>}
      */
     public static function doDia(string $dia): array
     {

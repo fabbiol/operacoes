@@ -12,6 +12,7 @@ O escritório precisa saber, em tempo real, quanto material saiu para cada clien
 - **Operador**: assume a pá carregadeira (pátio) ou a escavadeira hidráulica (lavra), inicia e finaliza cargas, informa o horímetro e como ficou a máquina.
 - **Motorista**: assume o caminhão, marca fila, ida ao britador e volta na lavra.
 - **Ambos**: a mesma pessoa pode operar e dirigir, um lugar por vez.
+- **Operador do britador secundário**: só essa função; marca o início e o fim da britagem e avisa os problemas do britador.
 - Uso no campo em tablets Android (Chrome ou o app da Próspera); a entrada pela foto só aparece em tablets autorizados.
 
 ## Fluxos principais
@@ -22,7 +23,8 @@ O escritório precisa saber, em tempo real, quanto material saiu para cada clien
 4. **Limpeza da lavra**: a escavadeira marca o início e o fim da limpeza; a espera dos caminhões nesse tempo não entra nas médias.
 5. **Máquinas**: assumir e soltar com o horímetro, responder "Como ficou a máquina?" e avisar problemas, que aparecem no Painel, na manutenção e na TV.
 6. **Estoque das pilhas**: o operador da pá lança as conchas que colocou na pilha (Brita 01, Pedrisco). O sistema mostra o total e o que entrou no dia, em m³ e toneladas. Só entra material: os clientes carregam direto da bica.
-7. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV.
+7. **Britador secundário**: o operador marca no tablet quando a britagem começa e termina e avisa os problemas (com ou sem parada), que ficam abertos até ele marcar resolvido.
+8. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV (pátio, lavra até o britador primário e britador secundário; vendido do dia por forma de pagamento, escolhida na nota).
 
 ## O que já existe
 
