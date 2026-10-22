@@ -1,6 +1,6 @@
 // Monitor da TV num dia cheio: pás carregando e parada, caminhões em todas as etapas da pista, máquinas com problema,
 // escavadeira limpando, britador secundário parado e vendas por forma. Em TV pequena e grande nada fica cortado
-// nem exige rolagem, e cada aviso aparece na coluna certa.
+// nem exige rolagem, cada aviso aparece na coluna certa e a máquina em uso fica verde.
 const T = require('../lib/teste');
 const { ok, sql, espera, BASE } = T;
 
@@ -43,12 +43,16 @@ T.executar(async () => {
         cortados, rolagem: document.documentElement.scrollHeight, janela: window.innerHeight,
         patio: texto('.tv-patio'), lavra: texto('.tv-lavra'), britador: texto('.tv-britador'), vendas: texto('.tv-vendas'),
         caminhoes: document.querySelectorAll('.tv-caminhao').length, problema: document.querySelectorAll('.tv-caminhao.tv-problema').length,
+        emUso: texto('.tv-em-uso'), verdes: document.querySelectorAll('.tv-em-uso li.ativo').length,
+        paCor: getComputedStyle(document.querySelector('.tv-maquina.ocupada')).borderTopColor,
       };
     });
     ok(info.cortados.length === 0 && info.rolagem <= info.janela + 1, t + ': tudo cabe, sem rolagem', JSON.stringify({ c: info.cortados, r: info.rolagem, j: info.janela }));
     ok(/Pá 1 · carregando/i.test(info.patio) && /Pá 2 · parada/i.test(info.patio) && /Pneu furado/.test(info.patio), t + ': pátio mostra a pá carregando e a parada', info.patio.slice(0, 200));
     ok(/Freio fazendo barulho/.test(info.lavra) && !/Pneu furado/.test(info.lavra) && /Retro 2 em limpeza da lavra/.test(info.lavra), t + ': lavra mostra o problema do caminhão e a limpeza', info.lavra.slice(0, 200));
     ok(info.caminhoes === 3 && info.problema === 1, t + ': três caminhões na pista, um marcado com problema', info.caminhoes + ' / ' + info.problema);
+    ok(!/Pá 1/.test(info.emUso) && /Retro 1 · Pedro/.test(info.emUso) && info.verdes === 3, t + ': máquinas em uso sem as pás, as 3 em uso em verde', info.emUso + ' / ' + info.verdes);
+    ok(info.paCor === 'rgb(47, 179, 107)', t + ': pá carregando em verde', info.paCor);
     ok(/Parado por problema/.test(info.britador) && /Correia transportadora rasgando/.test(info.britador) && /resolvido/.test(info.britador), t + ': britador parado, com o problema aberto e o resolvido', info.britador.slice(0, 200));
     ok(/Pix/.test(info.vendas) && /Dinheiro/.test(info.vendas), t + ': vendido dividido por forma', info.vendas);
   }

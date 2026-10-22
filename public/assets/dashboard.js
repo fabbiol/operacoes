@@ -1,6 +1,6 @@
 (function () {
     // Monitor da TV: lido de 3 a 6 metros. Três números no topo e três colunas (pátio, lavra e britador secundário),
-    // cada uma com os seus avisos; cor sempre com palavra (amarelo = carregando ou espera longa, vermelho = parado
+    // cada uma com os seus avisos; cor sempre com palavra (verde = máquina em uso, amarelo = espera longa, vermelho = parado
     // ou problema, azul = carregado ou britando). Os relógios contam sozinhos entre uma atualização e outra.
     var raiz = document.getElementById('monitor');
     var bruto = document.getElementById('monitor-dados');

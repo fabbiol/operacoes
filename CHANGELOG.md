@@ -1,5 +1,17 @@
 # O que mudou
 
+## Outubro de 2026: máquina em uso em verde no Monitor
+
+- **Monitor da TV**: a máquina que está sendo usada agora fica **verde**:
+  - a pá carregando, no pátio;
+  - a escavadeira carregando ou limpando a lavra;
+  - o caminhão em viagem.
+- As pás carregadeiras saíram da lista "Máquinas em uso" da lavra: aparecem só na coluna do pátio.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar**. A TV muda sozinha em alguns segundos.
+
 ## Outubro de 2026: Monitor novo, Britador Secundário e forma de pagamento
 
 - **Monitor da TV** redesenhado para quem olha de fora:

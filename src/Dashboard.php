@@ -76,27 +76,29 @@ final class Dashboard
         }
         $noPatio = [];
         foreach (Operacoes::patio() as $ordem) {
-            if ((string) $ordem['status'] !== 'carregando') {
-                continue;
+            if ((string) $ordem['status'] === 'carregando' && (int) ($ordem['retroescavadeira_id'] ?? 0) > 0) {
+                $noPatio[(int) $ordem['retroescavadeira_id']] = true;
             }
-            $chave = (int) ($ordem['pa_carregadeira_id'] ?? 0) > 0 ? 'pa:' . (int) $ordem['pa_carregadeira_id'] : 'retro:' . (int) ($ordem['retroescavadeira_id'] ?? 0);
-            $noPatio[$chave] = (string) $ordem['cliente'];
         }
 
         $lista = [];
         foreach (Posse::todas() as $posse) {
             $tipo = (string) $posse['tipo'];
             $id = (int) $posse['maquina_id'];
+            // As pás ficam só na coluna do pátio.
+            if ($tipo === 'pa') {
+                continue;
+            }
+            // "ativo": a máquina está sendo usada agora (fica verde no Monitor).
             [$faz, $ativo] = match ($tipo) {
                 'retro' => match (true) {
                     isset($carregandoRetro[$id]) => ['carregando ' . $carregandoRetro[$id], true],
-                    isset($limpando[$id]) => ['limpando a lavra', false],
-                    isset($noPatio['retro:' . $id]) => ['carregando no pátio', true],
+                    isset($limpando[$id]) => ['limpando a lavra', true],
+                    isset($noPatio[$id]) => ['carregando no pátio', true],
                     default => ['na lavra', false],
                 },
-                'pa' => isset($noPatio['pa:' . $id]) ? ['carregando ' . $noPatio['pa:' . $id], true] : ['livre no pátio', false],
                 default => isset($ciclos[$id])
-                    ? [mb_strtolower(self::estadoLavra((string) $ciclos[$id]['status']), 'UTF-8'), (string) $ciclos[$id]['status'] === 'carregando']
+                    ? [mb_strtolower(self::estadoLavra((string) $ciclos[$id]['status']), 'UTF-8'), true]
                     : ['sem viagem agora', false],
             };
             $lista[] = [
@@ -107,8 +109,8 @@ final class Dashboard
                 'ativo' => $ativo,
             ];
         }
-        // Escavadeiras e pás primeiro: são poucas e explicam a fila dos caminhões.
-        usort($lista, static fn (array $a, array $b): int => [array_search($a['tipo'], ['retro', 'pa', 'caminhao'], true), $a['nome']] <=> [array_search($b['tipo'], ['retro', 'pa', 'caminhao'], true), $b['nome']]);
+        // Escavadeiras primeiro: são poucas e explicam a fila dos caminhões.
+        usort($lista, static fn (array $a, array $b): int => [$a['tipo'] !== 'retro', $a['nome']] <=> [$b['tipo'] !== 'retro', $b['nome']]);
 
         return $lista;
     }

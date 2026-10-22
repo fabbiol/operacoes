@@ -76,12 +76,15 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 
 /* ---------- A tela da TV ----------
  * As medidas acompanham a largura da tela, vezes --k: menor na página do administrativo,
- * maior na tela cheia da TV (lida de longe). Três números no topo, três colunas e o rodapé. */
+ * maior na tela cheia da TV (lida de longe). Três números no topo, três colunas e o rodapé.
+ * Verde = máquina sendo usada agora; amarelo = espera longa ou na lavra; vermelho = parada ou problema. */
 .tv {
     --k: 0.7;
     --tv-amarelo-fundo: rgba(250, 178, 25, 0.16);
     --tv-vermelho-fundo: rgba(208, 59, 59, 0.18);
     --tv-azul-fundo: rgba(57, 135, 229, 0.18);
+    --tv-verde: #2fb36b;
+    --tv-verde-fundo: rgba(47, 179, 107, 0.18);
     --t-heroi: clamp(30px, calc(4.4vw * var(--k)), 110px);
     --t-valor: clamp(26px, calc(3.6vw * var(--k)), 88px);
     --t-rotulo: clamp(13px, calc(1.3vw * var(--k)), 32px);
@@ -180,7 +183,7 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
     background: var(--tv-elevado);
     border: 2px solid var(--tv-linha);
 }
-.tv-maquina.ocupada { border-color: var(--tv-atencao); background: var(--tv-amarelo-fundo); }
+.tv-maquina.ocupada { border-color: var(--tv-verde); background: var(--tv-verde-fundo); }
 .tv-maquina.parada { border-color: var(--tv-critico); background: var(--tv-vermelho-fundo); }
 .tv-estado { display: block; color: var(--tv-texto-2); font-size: var(--t-item-2); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tv-maquina.livre .tv-estado { color: var(--tv-apagado); }
@@ -296,7 +299,7 @@ body.dashboard.tela-cheia .tv-britador-problemas { flex: 1 1 0; min-height: 0; o
 /* Máquinas em uso: quem está com cada máquina e o que está fazendo. */
 .tv-em-uso { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: calc(var(--vao) * 0.5); }
 .tv-em-uso li { min-width: 0; padding: calc(var(--vao) * 0.4) calc(var(--vao) * 0.8); border-radius: clamp(6px, calc(0.6vw * var(--k)), 12px); background: var(--tv-elevado); border: 1px solid var(--tv-linha); }
-.tv-em-uso li.ativo { border-color: var(--tv-atencao); background: var(--tv-amarelo-fundo); }
+.tv-em-uso li.ativo { border-color: var(--tv-verde); background: var(--tv-verde-fundo); }
 .tv-em-uso strong, .tv-em-uso span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tv-em-uso strong { font-size: var(--t-item-2); }
 .tv-em-uso span { color: var(--tv-texto-2); font-size: calc(var(--t-item-2) * 0.92); font-weight: 600; }
