@@ -1,5 +1,19 @@
 # O que mudou
 
+## Outubro de 2026: máquina em uso em verde no Monitor
+
+- **Monitor da TV**: a máquina que está sendo usada agora fica **verde**:
+  - a pá carregando, no pátio;
+  - a escavadeira carregando ou limpando a lavra;
+  - o caminhão em viagem.
+- As pás carregadeiras saíram da lista "Máquinas em uso" da lavra: aparecem só na coluna do pátio.
+- **Vendido hoje** com o valor completo, com centavos (R$ 126.230,75), no total e em cada forma de pagamento. Antes arredondava para "R$ 126 mil".
+- **Estoque**: a planilha antiga entra sozinha no primeiro acesso depois de publicar (veja os passos do estoque abaixo).
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar**. A TV muda sozinha em alguns segundos.
+
 ## Outubro de 2026: Monitor novo, Britador Secundário e forma de pagamento
 
 - **Monitor da TV** redesenhado para quem olha de fora:
@@ -30,9 +44,9 @@
 ### Ao publicar esta versão
 1. Pode publicar com o turno rodando. O banco ganha sozinho a tabela do estoque e os dois campos novos.
 2. No Easypanel, toque em **Implantar** se não começar sozinho. Os tablets não precisam de app novo.
-3. Em **Cadastros › Pás carregadeiras**, abra a 656 e preencha **Concha** com 3,3.
-4. Em **Cadastros › Materiais**, marque **Tem estoque** na Brita 01 e no Pedrisco.
-5. Em **Estoque**, lance o saldo da planilha: Brita 01 com 640 conchas e Pedrisco com 350 conchas, pá 656, data de 21/10/2026 e a observação "saldo da planilha". O total fica em 2.112 m³ de Brita 01 e 1.155 m³ de Pedrisco. Se a planilha recebeu lançamentos depois de 21/10, some esses também.
+3. **A planilha entra sozinha** no primeiro acesso depois de publicar, dia por dia (de "até 05/10" a 21/10), com a concha da 656 em 3,3 m³ e a Brita 01 e o Pedrisco marcados com estoque. O total fica em 2.112 m³ de Brita 01 e 1.155 m³ de Pedrisco. Isso só acontece se o cadastro tiver uma pá com "656" no nome e os materiais "Brita 01" (ou "Brita 1") e "Pedrisco", e se o estoque ainda estiver vazio.
+4. Confira em **Estoque**. Se os totais não aparecerem, os nomes do cadastro são outros: preencha a concha da 656 e marque **Tem estoque** nos dois materiais, e lance a planilha à mão (Brita 01 com 640 conchas e Pedrisco com 350, pá 656, data de 21/10/2026).
+5. Se a planilha recebeu lançamentos depois de 21/10, lance esses no **Estoque**.
 
 ## Outubro de 2026: iniciar a carga com um toque
 

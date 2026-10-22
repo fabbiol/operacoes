@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-britador-pagamento';
+    private const MIGRACOES = '2026-10-planilha-estoque';
 
     private static ?PDO $pdo = null;
 
@@ -121,6 +121,8 @@ final class Db
             self::garantirRevisao($pdo);
             self::garantirEstoque($pdo);
             self::garantirBritadorEPagamento($pdo);
+            // A planilha do estoque entra uma vez, só num estoque ainda vazio.
+            Estoque::importarPlanilha($pdo);
 
             $pdo->prepare('REPLACE INTO schema_versao (id, hash, atualizado_em) VALUES (1, ?, NOW())')->execute([$hash]);
         } finally {

@@ -114,6 +114,65 @@ final class Estoque
         Db::pdo()->prepare('DELETE FROM estoque_entradas WHERE id = ?')->execute([$id]);
     }
 
+    /**
+     * A planilha que o estoque substituiu (conchas da pá 656, de 3,3 m³), lançada uma vez, dia por dia.
+     * Só entra num estoque ainda vazio, com a pá 656, a Brita 01 e o Pedrisco achados no cadastro.
+     *
+     * @return string o que aconteceu, para o teste
+     */
+    public static function importarPlanilha(PDO $pdo): string
+    {
+        // [dia, conchas de Brita 01, conchas de Pedrisco]; a primeira linha é o acumulado até 05/10.
+        $linhas = [
+            ['2026-10-05', 310, 170], ['2026-10-06', 0, 30], ['2026-10-07', 30, 0], ['2026-10-09', 60, 25],
+            ['2026-10-10', 35, 20], ['2026-10-13', 40, 50], ['2026-10-14', 40, 20], ['2026-10-15', 50, 0],
+            ['2026-10-19', 40, 0], ['2026-10-21', 35, 35],
+        ];
+        if ((int) $pdo->query('SELECT COUNT(*) FROM estoque_entradas')->fetchColumn() > 0) {
+            return 'o estoque já tem lançamentos';
+        }
+        $pas = $pdo->query("SELECT id FROM pas_carregadeiras WHERE maquina LIKE '%656%'")->fetchAll();
+        $brita = [];
+        $pedrisco = [];
+        foreach ($pdo->query('SELECT id, material FROM materiais')->fetchAll() as $material) {
+            $nome = NotaFiscal::normalizar((string) $material['material']);
+            $nome = str_replace(' ', '', $nome);
+            if (in_array($nome, ['brita01', 'brita1'], true)) {
+                $brita[] = (int) $material['id'];
+            } elseif (str_starts_with($nome, 'pedrisco')) {
+                $pedrisco[] = (int) $material['id'];
+            }
+        }
+        if (count($pas) !== 1 || count($brita) !== 1 || count($pedrisco) !== 1) {
+            return 'pá 656, Brita 01 ou Pedrisco não achados (ou repetidos) no cadastro';
+        }
+        $paId = (int) $pas[0]['id'];
+
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('UPDATE pas_carregadeiras SET concha_m3 = 3.30 WHERE id = ? AND concha_m3 IS NULL')->execute([$paId]);
+            $pdo->prepare('UPDATE materiais SET estoque = 1 WHERE id IN (?, ?)')->execute([$brita[0], $pedrisco[0]]);
+            $inserir = $pdo->prepare(
+                "INSERT INTO estoque_entradas (material_id, pa_carregadeira_id, conchas, concha_m3, colocado_em, usuario, observacoes)
+                 VALUES (?, ?, ?, 3.30, ?, 'Planilha', ?)"
+            );
+            foreach ($linhas as $i => [$dia, $conchasBrita, $conchasPedrisco]) {
+                $nota = $i === 0 ? 'Planilha: acumulado até 05/10' : 'Planilha';
+                foreach ([[$brita[0], $conchasBrita], [$pedrisco[0], $conchasPedrisco]] as [$materialId, $conchas]) {
+                    if ($conchas > 0) {
+                        $inserir->execute([$materialId, $paId, $conchas, $dia . ' 18:00:00', $nota]);
+                    }
+                }
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+
+        return 'importada';
+    }
+
     public static function toneladas(string|float|int $m3): float
     {
         return round((float) $m3 * densidade_brita(), 2);
