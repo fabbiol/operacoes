@@ -21,7 +21,8 @@ O escritório precisa saber, em tempo real, quanto material saiu para cada clien
 3. **Pusch (lavra → britador)**: o caminhão entra na fila, a escavadeira carrega, o motorista marca a ida, a chegada ao britador e a volta. O sistema calcula as médias de fila, carga, ida, volta e ciclo, fora das viagens encerradas, das idas à garagem e das etapas que atravessam a meia-noite.
 4. **Limpeza da lavra**: a escavadeira marca o início e o fim da limpeza; a espera dos caminhões nesse tempo não entra nas médias.
 5. **Máquinas**: assumir e soltar com o horímetro, responder "Como ficou a máquina?" e avisar problemas, que aparecem no Painel, na manutenção e na TV.
-6. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV.
+6. **Estoque das pilhas**: o operador da pá lança as conchas que colocou na pilha (Brita 01, Pedrisco). O sistema mostra o total e o que entrou no dia, em m³ e toneladas. Só entra material: os clientes carregam direto da bica.
+7. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV.
 
 ## O que já existe
 
@@ -35,7 +36,8 @@ Tudo o que está acima está em produção desde outubro de 2026, além de:
 ## Fora do escopo
 
 - Emitir nota fiscal (o sistema só lê a nota já emitida).
-- Financeiro, cobrança e estoque.
+- Financeiro e cobrança.
+- Saída de material do estoque das pilhas.
 - Publicar o app em loja; ele é instalado pelo endereço `/app`.
 
 ## Requisitos

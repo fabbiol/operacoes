@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-revisao-2';
+    private const MIGRACOES = '2026-10-estoque';
 
     private static ?PDO $pdo = null;
 
@@ -119,6 +119,7 @@ final class Db
             self::garantirToneladasDaViagem($pdo);
             self::garantirMaquinaOk($pdo);
             self::garantirRevisao($pdo);
+            self::garantirEstoque($pdo);
 
             $pdo->prepare('REPLACE INTO schema_versao (id, hash, atualizado_em) VALUES (1, ?, NOW())')->execute([$hash]);
         } finally {
@@ -535,6 +536,17 @@ final class Db
             $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_emitida_data DATE NULL AFTER nf_emitida_em');
             // atualizado_em = atualizado_em: o preenchimento não conta como mudança (notas canceladas antigas não viram "recentes").
             $pdo->exec('UPDATE fila_carregamentos SET nf_emitida_data = DATE(nf_emitida_em), atualizado_em = atualizado_em WHERE nf_emitida_em IS NOT NULL');
+        }
+    }
+
+    /** Estoque das pilhas: o material marcado para o estoque e o tamanho da concha de cada pá. */
+    private static function garantirEstoque(PDO $pdo): void
+    {
+        if (!in_array('estoque', self::colunasDe($pdo, 'materiais'), true)) {
+            $pdo->exec('ALTER TABLE materiais ADD COLUMN estoque TINYINT(1) NOT NULL DEFAULT 0 AFTER observacoes');
+        }
+        if (!in_array('concha_m3', self::colunasDe($pdo, 'pas_carregadeiras'), true)) {
+            $pdo->exec('ALTER TABLE pas_carregadeiras ADD COLUMN concha_m3 DECIMAL(5,2) NULL AFTER ano');
         }
     }
 

@@ -139,6 +139,26 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if ($path === 'estoque') {
+        exigir_papel('operador');
+        tela_estoque($method);
+        return;
+    }
+
+    if (preg_match('#^estoque/(\d+)$#', $path, $m)) {
+        exigir_admin();
+        tela_estoque_corrigir((int) $m[1], $method);
+        return;
+    }
+
+    if (preg_match('#^estoque/(\d+)/apagar$#', $path, $m) && $method === 'POST') {
+        exigir_admin();
+        csrf_check();
+        Estoque::apagar((int) $m[1]);
+        flash_set('Lançamento apagado.');
+        redirect('/estoque');
+    }
+
     if ($path === 'lavra') {
         exigir_papel('motorista', 'escavadeira');
         tela_lavra();
@@ -1068,6 +1088,70 @@ function tela_patio_resumo(): void
         'medias' => $bloco['medias'],
         'total' => $bloco['total'],
         'grupos' => $bloco['grupos'],
+    ]);
+}
+
+function tela_estoque(string $method): void
+{
+    $erro = null;
+    $form = [];
+    $paDoTurno = null;
+    if (!Auth::admin()) {
+        $maquina = maquina_escolhida();
+        if (($maquina['tipo'] ?? '') === 'pa') {
+            $paDoTurno = $maquina + ['concha_m3' => Cadastro::buscar('pas', (int) $maquina['id'])['concha_m3'] ?? null];
+        }
+    }
+    if ($method === 'POST') {
+        csrf_check();
+        try {
+            Estoque::lancar($_POST, $paDoTurno, Auth::usuario(), Auth::admin());
+            flash_set('Lançado no estoque.');
+            redirect('/estoque');
+        } catch (InvalidArgumentException $e) {
+            $erro = $e->getMessage();
+            $form = $_POST;
+        }
+    }
+
+    render('estoque', [
+        'titulo' => 'Estoque',
+        'erro' => $erro,
+        'form' => $form,
+        'paDoTurno' => $paDoTurno,
+        'saldos' => Estoque::saldos(),
+        'materiais' => Estoque::materiais(),
+        'pas' => Auth::admin() ? Cadastro::opcoes('pas') : [],
+        'lancamentos' => Estoque::recentes(),
+    ]);
+}
+
+function tela_estoque_corrigir(int $id, string $method): void
+{
+    $lancamento = Estoque::buscar($id);
+    if ($lancamento === null) {
+        http_response_code(404);
+        render('erro', ['titulo' => 'Não encontrado', 'mensagem' => 'Esse lançamento não existe.']);
+        return;
+    }
+    $erro = null;
+    if ($method === 'POST') {
+        csrf_check();
+        try {
+            Estoque::corrigir($id, $_POST);
+            flash_set('Lançamento corrigido.');
+            redirect('/estoque');
+        } catch (InvalidArgumentException $e) {
+            $erro = $e->getMessage();
+            $lancamento = array_merge($lancamento, array_intersect_key($_POST, array_flip(['material_id', 'conchas', 'colocado_em', 'observacoes'])));
+        }
+    }
+
+    render('estoque_corrigir', [
+        'titulo' => 'Corrigir lançamento',
+        'erro' => $erro,
+        'lancamento' => $lancamento,
+        'materiais' => Estoque::materiais((int) $lancamento['material_id']),
     ]);
 }
 
@@ -2123,6 +2207,8 @@ function tela_cadastro_form(string $chave, ?int $id, string $method): void
                 'modelo' => (string) ($_POST['modelo'] ?? ''),
                 'ano' => (string) ($_POST['ano'] ?? ''),
                 'capacidade_t' => (string) ($_POST['capacidade'] ?? ''),
+                'concha_m3' => (string) ($_POST['concha'] ?? ''),
+                'estoque' => isset($_POST['estoque']) ? 1 : 0,
                 'foto' => is_array($item) ? ($item['foto'] ?? null) : null,
             ];
         }

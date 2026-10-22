@@ -53,6 +53,7 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
                         <a class="link<?= $caminho === 'controle' ? ' ativo' : '' ?>" href="<?= e(url('controle')) ?>">Controle</a>
                     </div>
                     <a class="link<?= (str_starts_with($caminho, 'usuarios') || str_starts_with($caminho, 'tablets')) ? ' ativo' : '' ?>" href="<?= e(url('usuarios')) ?>">Pessoas</a>
+                    <a class="link<?= str_starts_with($caminho, 'estoque') ? ' ativo' : '' ?>" href="<?= e(url('estoque')) ?>">Estoque</a>
                     <a class="link<?= str_starts_with($caminho, 'cadastros') ? ' ativo' : '' ?>" href="<?= e(url('cadastros')) ?>">Cadastros</a>
                     <a class="link<?= $caminho === 'manutencao' ? ' ativo' : '' ?>" href="<?= e(url('manutencao')) ?>">Manutenção</a>
                 <?php else: ?>
@@ -60,7 +61,7 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
                         <a class="link<?= ($caminho === 'lavra' || str_starts_with($caminho, 'lavra/')) ? ' ativo' : '' ?>" href="<?= e(url('lavra')) ?>">Lavra</a>
                     <?php endif; ?>
                     <?php if (pode_patio()): ?>
-                        <a class="link<?= ($caminho === 'patio' || str_starts_with($caminho, 'carregamentos/')) ? ' ativo' : '' ?>" href="<?= e(url('patio')) ?>">Pátio</a>
+                        <a class="link<?= ($caminho === 'patio' || str_starts_with($caminho, 'carregamentos/') || $caminho === 'estoque') ? ' ativo' : '' ?>" href="<?= e(url('patio')) ?>">Pátio</a>
                     <?php endif; ?>
                     <a class="link<?= $caminho === 'trabalhos' ? ' ativo' : '' ?>" href="<?= e(url('trabalhos')) ?>">Meus</a>
                 <?php endif; ?>

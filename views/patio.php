@@ -3,7 +3,12 @@
         <p class="olho">Operador do pátio</p>
         <h1>Ordens liberadas</h1>
     </div>
-    <a class="btn secundario" href="<?= e(url('patio/resumo')) ?>">Tempos de hoje</a>
+    <div class="acoes">
+        <?php if (Auth::pode('operador')): ?>
+            <a class="btn secundario" href="<?= e(url('estoque')) ?>">Estoque</a>
+        <?php endif; ?>
+        <a class="btn secundario" href="<?= e(url('patio/resumo')) ?>">Tempos de hoje</a>
+    </div>
 </section>
 <p class="nota ajuda">A fila começa na liberação e a carga no toque de iniciar. Finalize quando a carga estiver no caminhão.</p>
 

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS materiais (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     material VARCHAR(120) NOT NULL,
     observacoes TEXT NULL,
+    estoque TINYINT(1) NOT NULL DEFAULT 0,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -33,12 +34,32 @@ CREATE TABLE IF NOT EXISTS pas_carregadeiras (
     marca VARCHAR(80) NULL,
     modelo VARCHAR(80) NULL,
     ano SMALLINT UNSIGNED NULL,
+    concha_m3 DECIMAL(5,2) NULL,
     foto VARCHAR(80) NULL,
     observacoes TEXT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uniq_pa_maquina (maquina)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Material que a pá colocou na pilha do estoque, contado em conchas.
+-- A concha fica gravada como era no lançamento: mudar a concha da pá depois não altera o que já entrou.
+CREATE TABLE IF NOT EXISTS estoque_entradas (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    material_id INT UNSIGNED NOT NULL,
+    pa_carregadeira_id INT UNSIGNED NOT NULL,
+    conchas SMALLINT UNSIGNED NOT NULL,
+    concha_m3 DECIMAL(5,2) NOT NULL,
+    colocado_em DATETIME NOT NULL,
+    usuario VARCHAR(40) NOT NULL,
+    observacoes VARCHAR(200) NULL,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_estoque_material (material_id, colocado_em),
+    KEY idx_estoque_quando (colocado_em),
+    CONSTRAINT fk_estoque_material FOREIGN KEY (material_id) REFERENCES materiais (id),
+    CONSTRAINT fk_estoque_pa FOREIGN KEY (pa_carregadeira_id) REFERENCES pas_carregadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS fila_carregamentos (

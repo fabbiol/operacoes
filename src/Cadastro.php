@@ -13,6 +13,7 @@ final class Cadastro
                 'titulo' => 'Materiais',
                 'rotulo' => 'Material',
                 'singular' => 'material',
+                'estoque' => true,
             ],
             'pas' => [
                 'tabela' => 'pas_carregadeiras',
@@ -22,6 +23,7 @@ final class Cadastro
                 'singular' => 'pá carregadeira',
                 'artigo' => 'Nova',
                 'ficha' => true,
+                'concha' => true,
             ],
             'retros' => [
                 'tabela' => 'retroescavadeiras',
@@ -89,6 +91,12 @@ final class Cadastro
         if (!empty($tipo['capacidade'])) {
             $extra .= ', capacidade_t';
         }
+        if (!empty($tipo['concha'])) {
+            $extra .= ', concha_m3';
+        }
+        if (!empty($tipo['estoque'])) {
+            $extra .= ', estoque';
+        }
         $sql = sprintf(
             'SELECT id, %s AS nome, ativo' . $extra . ' FROM %s WHERE ativo = 1 OR id = ? ORDER BY nome ASC',
             $tipo['campo'],
@@ -114,11 +122,13 @@ final class Cadastro
         $observacoes = limpar_longo((string) ($post['observacoes'] ?? ''), 4000);
         $ativo = isset($post['ativo']) ? 1 : 0;
         $ficha = !empty($tipo['ficha']) ? self::lerFicha($post, !empty($tipo['capacidade'])) : null;
+        $estoque = self::lerEstoque($tipo, $post);
         $pendente = !empty($tipo['ficha']) ? self::prepararFoto() : null;
 
         try {
             if ($id === null) {
                 $idSalvo = self::inserir($tipo, $nome, $observacoes, $ativo, $ficha);
+                self::gravarEstoque($tipo, $idSalvo, $estoque);
                 if ($pendente !== null) {
                     try {
                         self::gravarFoto($chave, $idSalvo, $pendente);
@@ -147,6 +157,7 @@ final class Cadastro
                     self::congelarToneladas($id, $atual['capacidade_t'] ?? null, $ficha['capacidade_t']);
                 }
                 self::atualizar($tipo, $id, $nome, $observacoes, $ativo, $ficha);
+                self::gravarEstoque($tipo, $id, $estoque);
                 $pdo->commit();
             } catch (Throwable $e) {
                 $pdo->rollBack();
@@ -271,6 +282,12 @@ final class Cadastro
         if (!empty($tipo['capacidade'])) {
             $sql .= ', capacidade_t';
         }
+        if (!empty($tipo['concha'])) {
+            $sql .= ', concha_m3';
+        }
+        if (!empty($tipo['estoque'])) {
+            $sql .= ', estoque';
+        }
 
         return $sql;
     }
@@ -324,6 +341,38 @@ final class Cadastro
         }
 
         return number_format($numero, 2, '.', '');
+    }
+
+    /** Campos do estoque das pilhas: a concha da pá (m³) e a marcação "Tem estoque" do material. */
+    private static function lerEstoque(array $tipo, array $post): array
+    {
+        if (!empty($tipo['estoque'])) {
+            return ['estoque' => isset($post['estoque']) ? 1 : 0];
+        }
+        if (empty($tipo['concha'])) {
+            return [];
+        }
+        $bruto = str_replace(',', '.', trim((string) ($post['concha'] ?? '')));
+        if ($bruto === '') {
+            return ['concha_m3' => null];
+        }
+        if (!preg_match('/^\d+(\.\d+)?$/', $bruto)) {
+            throw new InvalidArgumentException('A concha precisa ser um número, em m³.');
+        }
+        $numero = round((float) $bruto, 2);
+        if ($numero < 0.1 || $numero > 50) {
+            throw new InvalidArgumentException('A concha precisa ficar entre 0,10 e 50 m³.');
+        }
+
+        return ['concha_m3' => number_format($numero, 2, '.', '')];
+    }
+
+    private static function gravarEstoque(array $tipo, int $id, array $campos): void
+    {
+        foreach ($campos as $coluna => $valor) {
+            // A coluna vem de lerEstoque, nunca do formulário.
+            Db::pdo()->prepare(sprintf('UPDATE %s SET %s = ? WHERE id = ?', $tipo['tabela'], $coluna))->execute([$valor, $id]);
+        }
     }
 
     /** @return array{tmp: string, ext: string}|null */
