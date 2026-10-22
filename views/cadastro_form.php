@@ -55,6 +55,25 @@
                 <small class="dica">Em toneladas. Na brita, a densidade é 1,45 t/m³: 10 t correspondem a 6,90 m³.</small>
             </label>
         <?php endif; ?>
+        <?php if (!empty($tipo['concha'])): ?>
+            <?php
+            $concha = (string) ($item['concha_m3'] ?? '');
+            if ($concha !== '' && preg_match('/^\d+(\.\d+)?$/', $concha)) {
+                $concha = formatar_quantidade($concha);
+            }
+            ?>
+            <label class="campo">
+                <span>Concha</span>
+                <input type="text" name="concha" inputmode="decimal" maxlength="6" value="<?= e($concha) ?>" placeholder="m³">
+                <small class="dica">Em m³. É com ela que o estoque conta as conchas colocadas na pilha.</small>
+            </label>
+        <?php endif; ?>
+    <?php endif; ?>
+    <?php if (!empty($tipo['estoque'])): ?>
+        <label class="check">
+            <input type="checkbox" name="estoque" value="1" <?= (int) ($item['estoque'] ?? 0) === 1 ? 'checked' : '' ?>>
+            <span>Tem estoque (aparece para o operador da pá lançar na pilha)</span>
+        </label>
     <?php endif; ?>
     <label class="campo">
         <span>Observações</span>
