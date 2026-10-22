@@ -107,6 +107,7 @@ T.executar(async () => {
   await adm.fill(F + ' [name=quantidade_autorizada]', '1,5');
   await adm.selectOption('select[name=unidade]', 'm3');
   await adm.check(F + ' [name=fracionado]');
+  await adm.selectOption(F + ' [name=nf_pagamento]', 'pix');
   await adm.check(F + ' [name=liberar]');
   await clicar(adm, F + ' button[type=submit]');
   const id3 = sql("SELECT id FROM fila_carregamentos WHERE nf='8001'");

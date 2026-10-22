@@ -129,7 +129,31 @@ final class NotaFiscal
             'emitida_em' => self::horaLocal($emissao),
             'data_emissao' => $soData,
             'valor' => self::texto($nota, './*[local-name()="total"]/*[local-name()="ICMSTot"]/*[local-name()="vNF"]'),
+            'pagamento' => self::pagamentoDoXml($nota),
         ], $itens);
+    }
+
+    /** Forma de pagamento do grupo <pag> (código tPag da NF-e); sem uma forma conhecida, a pessoa escolhe. */
+    private static function pagamentoDoXml(SimpleXMLElement $nota): ?string
+    {
+        $formas = [
+            '01' => 'dinheiro',
+            '02' => 'cheque',
+            '03' => 'cartao',
+            '04' => 'cartao',
+            '05' => 'prazo',
+            '14' => 'prazo',
+            '15' => 'boleto',
+            '17' => 'pix',
+        ];
+        foreach (self::nos($nota, './*[local-name()="pag"]/*[local-name()="detPag"]/*[local-name()="tPag"]') as $codigo) {
+            $forma = $formas[trim((string) $codigo)] ?? null;
+            if ($forma !== null) {
+                return $forma;
+            }
+        }
+
+        return null;
     }
 
     /** @return list<SimpleXMLElement> */
@@ -599,6 +623,8 @@ final class NotaFiscal
             'emitida_em' => $dados['emitida_em'] ?? null,
             'valor' => isset($dados['valor']) && is_numeric($dados['valor']) && (float) $dados['valor'] > 0 ? round((float) $dados['valor'], 2) : null,
             'data_emissao' => $dados['data_emissao'] ?? (isset($dados['emitida_em']) ? substr((string) $dados['emitida_em'], 0, 10) : null),
+            // O PDF da Próspera não traz a forma de pagamento: só o XML.
+            'pagamento' => $dados['pagamento'] ?? null,
         ];
     }
 

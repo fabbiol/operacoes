@@ -260,6 +260,9 @@ final class Operacoes
             }
         }
         $liberar = isset($post['liberar']);
+        if ($liberar && $dados['nf_pagamento'] === null) {
+            throw new InvalidArgumentException('Escolha a forma de pagamento da nota antes de liberar.');
+        }
         $pdo = Db::pdo();
 
         for ($tentativa = 0; $tentativa < 5; $tentativa++) {
@@ -271,9 +274,9 @@ final class Operacoes
                 $ordem = sprintf('CAR-%03d', ((int) $ultimo) + 1);
                 $comando = $pdo->prepare(
                     'INSERT INTO fila_carregamentos (
-                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, material_id, quantidade_autorizada, unidade,
+                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, nf_pagamento, material_id, quantidade_autorizada, unidade,
                         fracionado, observacoes, status, autorizado_por, autorizado_em
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 $status = $liberar ? 'liberado' : 'aguardando_autorizacao';
                 $comando->execute([
@@ -286,6 +289,7 @@ final class Operacoes
                     $dados['nf_emitida_data'],
                     $dados['nf_chave'],
                     $dados['nf_valor'],
+                    $dados['nf_pagamento'],
                     $dados['material_id'],
                     $dados['quantidade_autorizada'],
                     $dados['unidade'],
@@ -344,6 +348,9 @@ final class Operacoes
         }
 
         $dados = self::lerOrdem($post, $ordem);
+        if ($ordem['status'] === 'liberado' && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $dados['nf_pagamento'] === null) {
+            throw new InvalidArgumentException('Escolha a forma de pagamento da nota: a ordem já está liberada.');
+        }
         if ($dados['nf_chave'] !== null) {
             $repetida = self::ordemComNota($dados['nf_chave'], null, self::grupo($ordem));
             if ($repetida !== null) {
@@ -352,7 +359,7 @@ final class Operacoes
         }
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
-             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, material_id = ?,
+             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, nf_pagamento = ?, material_id = ?,
                  quantidade_autorizada = ?, unidade = ?, fracionado = ?, observacoes = ?
              WHERE id = ? AND status IN ('aguardando_autorizacao', 'liberado', 'saldo')"
         );
@@ -365,6 +372,7 @@ final class Operacoes
             $dados['nf_emitida_data'],
             $dados['nf_chave'],
             $dados['nf_valor'],
+            $dados['nf_pagamento'],
             $dados['material_id'],
             $dados['quantidade_autorizada'],
             $dados['unidade'],
@@ -385,6 +393,10 @@ final class Operacoes
             if ($ordem[$campo] === null || $ordem[$campo] === '') {
                 throw new InvalidArgumentException('Confira cliente, pedido, nota, material e quantidade antes de liberar.');
             }
+        }
+        // A forma é da nota: a viagem seguinte do fracionado usa a da primeira.
+        if ((int) ($ordem['ordem_principal_id'] ?? 0) === 0 && ($ordem['nf_pagamento'] ?? null) === null) {
+            throw new InvalidArgumentException('Escolha a forma de pagamento da nota antes de liberar.');
         }
 
         $comando = Db::pdo()->prepare(
@@ -413,6 +425,21 @@ final class Operacoes
 
         $comando = Db::pdo()->prepare("UPDATE fila_carregamentos SET nf_valor = ? WHERE id = ? AND status <> 'cancelado'");
         $comando->execute([$preco, (int) $principal['id']]);
+    }
+
+    /** Forma de pagamento corrigida na ficha; como o valor, vai para a viagem 1 da nota. */
+    public static function definirPagamento(int $id, string $forma): void
+    {
+        $principal = self::exigir(self::grupo(self::exigir($id)));
+        if ($principal['status'] === 'cancelado') {
+            throw new InvalidArgumentException('Esta nota foi cancelada e não entra no vendido.');
+        }
+        $valor = self::pagamentoDaNota(['nf_pagamento' => $forma], null);
+        if ($valor === null) {
+            throw new InvalidArgumentException('Escolha a forma de pagamento.');
+        }
+        Db::pdo()->prepare("UPDATE fila_carregamentos SET nf_pagamento = ? WHERE id = ? AND status <> 'cancelado'")
+            ->execute([$valor, (int) $principal['id']]);
     }
 
     public static function iniciar(int $id, int $paId, string $operador): void
@@ -683,10 +710,25 @@ final class Operacoes
         $comando->execute([$dia]);
         $linha = $comando->fetch() ?: [];
 
+        // O mesmo vendido, dividido pela forma de pagamento da nota ("sem_forma" nas notas lançadas antes do campo).
+        $formas = Db::pdo()->prepare(
+            "SELECT COALESCE(nf_pagamento, 'sem_forma') AS forma, COALESCE(SUM(nf_valor), 0) AS valor
+             FROM fila_carregamentos
+             WHERE ordem_principal_id IS NULL AND status <> 'cancelado'
+               AND COALESCE(DATE(nf_emitida_em), nf_emitida_data, DATE(data)) = ?
+             GROUP BY COALESCE(nf_pagamento, 'sem_forma')"
+        );
+        $formas->execute([$dia]);
+        $porForma = [];
+        foreach ($formas->fetchAll() as $forma) {
+            $porForma[(string) $forma['forma']] = round((float) $forma['valor'], 2);
+        }
+
         return [
             'valor' => round((float) ($linha['valor'] ?? 0), 2),
             'notas' => (int) ($linha['notas'] ?? 0),
             'sem_valor' => (int) ($linha['sem_valor'] ?? 0),
+            'por_forma' => $porForma,
         ];
     }
 
@@ -957,6 +999,7 @@ final class Operacoes
             'nf_emitida_data' => self::dataDaNota($post, $atual, $emitidaEm),
             'nf_chave' => self::chaveDaNota($post, $atual),
             'nf_valor' => self::valorDaNota($post, $atual),
+            'nf_pagamento' => self::pagamentoDaNota($post, $atual),
             'fracionado' => self::fracionadoDoFormulario($post, $atual),
             'material_id' => $materialId,
             'quantidade_autorizada' => parse_quantidade((string) ($post['quantidade_autorizada'] ?? '')),
@@ -1037,6 +1080,23 @@ final class Operacoes
         }
 
         return number_format((float) $bruto, 2, '.', '');
+    }
+
+    /** Forma de pagamento (opcional ao lançar, obrigatória para liberar). Formulário sem o campo: fica a que estava. */
+    private static function pagamentoDaNota(array $post, ?array $atual): ?string
+    {
+        if (!array_key_exists('nf_pagamento', $post)) {
+            return $atual['nf_pagamento'] ?? null;
+        }
+        $forma = trim((string) $post['nf_pagamento']);
+        if ($forma === '') {
+            return null;
+        }
+        if (!isset(formas_pagamento()[$forma])) {
+            throw new InvalidArgumentException('Escolha a forma de pagamento da lista.');
+        }
+
+        return $forma;
     }
 
     /** Fracionado: marcado no formulário. As viagens seguintes de uma nota fracionada continuam fracionadas. */

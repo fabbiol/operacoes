@@ -57,6 +57,8 @@ T.executar(async () => {
   ok(await p.inputValue('select[name=unidade]') === 'm3' && await campo(p, 'pedido') === '7788', 'XML: m³ e pedido nas informações complementares');
   ok(await p.inputValue('select[name=material_id]') === sql("SELECT id FROM materiais WHERE material='Pó de pedra'"), 'PO DE PEDRA encontra "Pó de pedra" no cadastro');
   await espera(1300);
+  ok(await p.inputValue('select[name=nf_pagamento]') === 'boleto', 'XML: forma de pagamento lida da nota (boleto)', await p.inputValue('select[name=nf_pagamento]'));
+  await p.selectOption('select[name=nf_pagamento]', 'pix');
   await p.check('input[name=liberar]');
   await Promise.all([p.waitForNavigation(), p.click('form[action$="/ordens/nova"] button[type=submit]')]);
   const id2 = sql("SELECT id FROM fila_carregamentos WHERE nf='12346'");

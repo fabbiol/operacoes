@@ -67,6 +67,7 @@ T.executar(async () => {
   ok(new RegExp('mostra só a data da emissão \\(' + T.brData(esperado.dia).replace(/\//g, '\\/') + '\\), sem a hora').test(d.avisos), 'PDF real: avisa que o PDF não tem a hora');
   ok(/conta no vendido desse dia/.test(await txt(p)), 'formulário explica que a nota conta no dia da emissão');
   await T.capturar(p, 'nota_real_pdf', { fullPage: true });
+  await p.selectOption(`${F} [name=nf_pagamento]`, 'pix');
   await p.check(`${F} [name=liberar]`);
   await T.enviar(p, `${F} button[type=submit]`);
   const idPdf = sql(`SELECT id FROM fila_carregamentos WHERE nf='${esperado.nf}'`);
@@ -82,6 +83,7 @@ T.executar(async () => {
   ok(/Já existe o carregamento CAR-\d+ com esta nota/.test(repetida.avisos), 'XML da mesma nota: avisa que já foi lançada');
   sql(`DELETE FROM fila_carregamentos WHERE id=${idPdf}`);
   await ler(arqXml);
+  await p.selectOption(`${F} [name=nf_pagamento]`, 'pix');
   await p.check(`${F} [name=liberar]`);
   await T.enviar(p, `${F} button[type=submit]`);
   const linha = sql(`SELECT CONCAT(nf,'|',nf_emitida_em,'|',nf_chave,'|',status) FROM fila_carregamentos WHERE nf_chave='${esperado.chave}'`);

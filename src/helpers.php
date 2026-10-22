@@ -931,6 +931,19 @@ function unidade_rotulo(string $unidade): string
     return unidades()[$unidade] ?? $unidade;
 }
 
+/** Formas de pagamento da nota, na ordem em que aparecem na tela. */
+function formas_pagamento(): array
+{
+    return [
+        'pix' => 'Pix',
+        'dinheiro' => 'Dinheiro',
+        'cartao' => 'Cartão',
+        'cheque' => 'Cheque',
+        'boleto' => 'Boleto',
+        'prazo' => 'A prazo',
+    ];
+}
+
 function densidade_brita(): float
 {
     return 1.45;

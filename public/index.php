@@ -605,6 +605,9 @@ function despachar(string $path, string $method): void
         csrf_check();
         try {
             Operacoes::definirValor((int) $m[1], (string) ($_POST['nf_valor'] ?? ''));
+            if (trim((string) ($_POST['nf_pagamento'] ?? '')) !== '') {
+                Operacoes::definirPagamento((int) $m[1], (string) $_POST['nf_pagamento']);
+            }
             flash_set('Valor da nota salvo.');
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
@@ -1823,6 +1826,7 @@ function tela_ler_nota(string $method): void
         'nf_emitida_data' => (string) ($nota['data_emissao'] ?? ''),
         'nf_chave' => (string) ($nota['chave'] ?? ''),
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
+        'nf_pagamento' => (string) ($nota['pagamento'] ?? ''),
     ]);
     $dados['leitura'] = leitura_da_nota($nota, $materialId);
     render('ordem_form', $dados);
@@ -1874,6 +1878,9 @@ function leitura_da_nota(array $nota, ?int $materialId): array
         $avisos[] = !empty($nota['data_emissao'])
             ? 'O ' . ($nota['origem'] === 'xml' ? 'XML' : 'PDF') . ' desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. A nota conta no vendido desse dia. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
             : 'Não achei a hora em que a nota foi emitida. Preencha "Nota emitida em", se souber.';
+    }
+    if (($nota['pagamento'] ?? null) === null) {
+        $avisos[] = 'Escolha a forma de pagamento: ' . ($nota['origem'] === 'xml' ? 'o XML' : 'o PDF') . ' da nota não traz essa informação.';
     }
     $repetida = Operacoes::ordemComNota($nota['chave'], $nota['nf']);
     if ($repetida !== null) {
@@ -2268,6 +2275,7 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                 'nf_valor' => $post !== null
                     ? (string) ($post['nf_valor'] ?? '')
                     : (is_array($ordem) && $ordem['nf_valor'] !== null ? formatar_quantidade((string) $ordem['nf_valor']) : ''),
+                'nf_pagamento' => (string) ($fonte['nf_pagamento'] ?? ''),
                 'fracionado' => $post !== null ? isset($post['fracionado']) : (is_array($ordem) && (int) ($ordem['fracionado'] ?? 0) === 1),
             ],
             'materiais' => Cadastro::opcoes('materiais', $materialId > 0 ? $materialId : null),
