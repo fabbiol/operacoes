@@ -190,16 +190,9 @@
     // ---- lavra: o circuito com os caminhões e as máquinas em uso
 
     // Circuito em coordenadas de 1000 x 240; as posições saem em % para os nomes das placas ficarem por cima.
-    function geometria(estrada) {
-        var ida = estrada && estrada.ida_km > 0 ? estrada.ida_km : 0;
-        var retorno = estrada && estrada.retorno_km > 0 ? estrada.retorno_km : 0;
+    function geometria() {
         var x0 = 200, topo = 45, base = 195, largura = 600;
         var idaFim = x0 + largura, retFim = idaFim;
-        if (ida > 0 && retorno > 0) {
-            var escala = largura / Math.max(ida, retorno);
-            idaFim = x0 + ida * escala;
-            retFim = x0 + retorno * escala;
-        }
         var direita = Math.max(idaFim, retFim) + 90;
         var esquerda = x0 - 90;
         return {
@@ -225,7 +218,7 @@
     }
 
     function lavra(estado) {
-        var geo = geometria(estado.estrada);
+        var geo = geometria();
         var lista = estado.lavra.caminhoes;
         var problemas = (estado.problemas || []).filter(function (p) { return p.area === 'lavra'; });
         var comProblema = {};

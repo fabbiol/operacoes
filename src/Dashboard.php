@@ -165,15 +165,6 @@ final class Dashboard
         ];
     }
 
-    public static function salvarEstrada(?float $ida, ?float $retorno): void
-    {
-        self::estrada();
-        Db::pdo()->prepare('UPDATE estrada SET ida_km = ?, retorno_km = ? WHERE id = 1')->execute([
-            $ida,
-            $retorno,
-        ]);
-    }
-
     private static function caminhao(array $ciclo, array $medias, array $viagensHoje, array $estrada): array
     {
         $status = (string) $ciclo['status'];

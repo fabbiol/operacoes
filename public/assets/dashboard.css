@@ -41,39 +41,6 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
     cursor: pointer;
 }
 .ampliar:hover { border-color: var(--tv-texto-2); }
-.estrada-medidas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    align-items: end;
-    margin: 0 0 14px;
-    padding: 12px 14px;
-    border-radius: 14px;
-    background: var(--tv-superficie);
-    border: 1px solid var(--tv-linha);
-}
-.estrada-medidas label { display: grid; gap: 4px; color: var(--tv-apagado); font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
-.estrada-medidas input {
-    width: 120px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--tv-linha);
-    background: var(--tv-fundo);
-    color: var(--tv-texto);
-    font: inherit;
-}
-.estrada-medidas button {
-    padding: 8px 14px;
-    border: 1px solid var(--tv-texto-2);
-    border-radius: 8px;
-    background: var(--tv-elevado);
-    color: var(--tv-texto);
-    font: inherit;
-    font-weight: 800;
-    cursor: pointer;
-}
-.estrada-medidas p { flex-basis: 100%; margin: 0; color: var(--tv-apagado); font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 600; }
-
 /* ---------- A tela da TV ----------
  * As medidas acompanham a largura da tela, vezes --k: menor na página do administrativo,
  * maior na tela cheia da TV (lida de longe). Três números no topo, três colunas e o rodapé.
@@ -346,8 +313,7 @@ body.dashboard.tela-cheia .tv-britador-problemas { flex: 1 1 0; min-height: 0; o
 /* Tela cheia: só o monitor, do tamanho da TV. */
 body.dashboard.tela-cheia { overflow: hidden; }
 body.dashboard.tela-cheia .site,
-body.dashboard.tela-cheia .monitor-nota,
-body.dashboard.tela-cheia .estrada-medidas { display: none; }
+body.dashboard.tela-cheia .monitor-nota { display: none; }
 body.dashboard.tela-cheia .folha { width: 100%; max-width: none; margin: 0; padding: clamp(10px, 1.2vw, 28px); }
 body.dashboard.tela-cheia .monitor-topo { position: fixed; right: 8px; bottom: 8px; z-index: 5; margin: 0; }
 body.dashboard.tela-cheia .ampliar { opacity: 0.25; min-height: 32px; padding: 4px 10px; font-size: 12px; }

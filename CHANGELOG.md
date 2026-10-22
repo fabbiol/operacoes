@@ -1,5 +1,13 @@
 # O que mudou
 
+## Outubro de 2026: Monitor sem as distâncias da estrada
+
+- **Monitor**: saiu o quadro "Ida até o britador / Retorno até a lavra" (quilômetros). A pista mostra a ida e a volta sempre do mesmo tamanho.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar**.
+
 ## Outubro de 2026: máquina em uso em verde no Monitor
 
 - **Monitor da TV**: a máquina que está sendo usada agora fica **verde**:
