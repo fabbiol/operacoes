@@ -129,6 +129,8 @@ body.dashboard .folha { width: min(1600px, calc(100% - 28px)); padding-bottom: 4
 .tv-heroi .tv-valor { font-size: var(--t-heroi); }
 .tv-detalhe { color: var(--tv-texto-2); font-size: var(--t-detalhe); font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tv-vendas header { display: flex; justify-content: space-between; align-items: baseline; gap: var(--vao); }
+.tv-vendas header .tv-rotulo { flex: none; }
+.tv-vendas .tv-valor { font-size: calc(var(--t-valor) * 0.82); }
 .tv-vendas ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 calc(var(--vao) * 2); list-style: none; padding: 0; }
 .tv-vendas li { display: flex; justify-content: space-between; gap: 0.5em; font-size: var(--t-detalhe); font-weight: 600; line-height: 1.3; color: var(--tv-texto-2); }
 .tv-vendas li b { color: var(--tv-texto); font-variant-numeric: tabular-nums; }

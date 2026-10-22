@@ -34,12 +34,9 @@
         return numero(v, v >= 100 || v === Math.round(v) ? 0 : 1);
     }
 
-    // Valor curto para caber no quadro: R$ 48 mil; o valor exato fica na tela Controle de carga.
+    // Valor completo, com os centavos, como na nota.
     function dinheiro(valor) {
-        var v = Number(valor || 0);
-        if (v >= 1000000) return '<small>R$ </small>' + numero(v / 1000000, 1) + '<small> mi</small>';
-        if (v >= 10000) return '<small>R$ </small>' + numero(Math.round(v / 1000), 0) + '<small> mil</small>';
-        return '<small>R$ </small>' + numero(v, 0);
+        return '<small>R$ </small>' + numero(Number(valor || 0), 2);
     }
 
     function duracao(segundos) {
