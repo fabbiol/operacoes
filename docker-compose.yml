@@ -18,6 +18,9 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_WAIT: "1"
+      # Integração com o Fin Pro (notas Pix e Transferência). Sem as duas, nada é enviado.
+      FINPRO_URL: ${FINPRO_URL:-}
+      FINPRO_TOKEN: ${FINPRO_TOKEN:-}
     volumes:
       # Fotos e sessões ficam num volume: sobrevivem a cada nova versão.
       - operacoes_storage:/var/www/html/storage
