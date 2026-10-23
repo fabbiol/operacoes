@@ -250,6 +250,21 @@ Onde aparece:
 - **Escolher máquina**: quem vai pegar a máquina vê o problema aberto embaixo do nome dela.
 - **Liberar máquina** (quando alguém foi embora sem soltar) também tem o campo **Problema na máquina**.
 
+## Peças e pedido ao Compras
+
+Cada máquina (pá, escavadeira e caminhão) tem a lista **Peças** na ficha (Cadastros → a máquina). Cadastre uma vez cada peça que costuma ser trocada: a função ("Filtro de óleo do motor"), a marca, o código e quantas vão na troca. A foto é opcional. **Editar** muda a peça e **Desativar peça** tira da lista (as desativadas ficam guardadas embaixo e podem voltar).
+
+Para pedir peças:
+
+1. Na ficha da máquina, toque em **Novo pedido de peças**.
+2. Marque as peças que vão ser trocadas e, se precisar, mude a quantidade.
+3. Em **Confirmado com**, escolha o operador com quem você conferiu (ou "Ninguém"). Escreva uma observação se quiser e toque em **Gravar pedido**.
+4. Na página do pedido, toque em **Enviar para o Compras**. O WhatsApp abre com a mensagem pronta; escolha o contato ou o grupo do Compras e envie.
+
+A mensagem leva a máquina, o horímetro, com quem foi confirmado, as peças e um link com as fotos. Esse link abre sem senha, só mostra aquele pedido e não expira: não encaminhe para quem não é da empresa.
+
+Quando as peças forem colocadas, abra o pedido e toque em **Peças trocadas**: fica gravado o dia, o horímetro e quem marcou, e cada peça mostra a última troca na ficha. Se o pedido não for adiante, toque em **Cancelar pedido**. Os pedidos de cada máquina aparecem na ficha, e todos juntos em **Manutenção → Pedidos de peças**. Só o administrativo cadastra peças e faz pedidos.
+
 ## Docker
 
 No computador, com as portas abertas:

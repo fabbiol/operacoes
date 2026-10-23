@@ -20,6 +20,7 @@ require OPERACOES_ROOT . '/src/NotaFiscal.php';
 require OPERACOES_ROOT . '/src/Problemas.php';
 require OPERACOES_ROOT . '/src/Estoque.php';
 require OPERACOES_ROOT . '/src/Britador.php';
+require OPERACOES_ROOT . '/src/Pecas.php';
 
 carregar_env(OPERACOES_ROOT . '/.env');
 

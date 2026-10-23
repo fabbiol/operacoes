@@ -3,6 +3,7 @@
         <p class="olho">Máquinas</p>
         <h1>Manutenção</h1>
     </div>
+    <a class="btn secundario" href="<?= e(url('pedidos-pecas')) ?>">Pedidos de peças</a>
 </section>
 <p class="nota">O prazo usa a última leitura do horímetro. Próxima significa que faltam <?= (int) Horimetro::PROXIMA_H ?> h ou menos. Sem leitura, o prazo não aparece. Os problemas são os que os operadores avisaram ao soltar a máquina: marque como resolvido na ficha.</p>
 

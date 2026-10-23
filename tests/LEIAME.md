@@ -82,6 +82,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `britador` — operador do britador secundário: cadastro, iniciar, problema, resolver, terminar e o que o Monitor recebe.
 - `forma_pagamento` — forma de pagamento obrigatória para liberar, corrigida na ficha e somada por forma no vendido.
 - `planilha_estoque` — a planilha do estoque entra uma vez, dia por dia, só com a pá 656, a Brita 01 e o Pedrisco no cadastro.
+- `pecas` — peças da máquina (com foto), pedido ao Compras confirmado com o operador, mensagem do WhatsApp, página pública sem login (e 404 sem código válido), 403 para o operador, trocado com horímetro e última troca, cópia do item no pedido.
 - `estoque` — estoque das pilhas: concha da pá, lançamento do operador, saldo da planilha, correção e exclusão.
 - `som_aviso` — som do aviso sem AudioContext (não precisa de servidor).
 - `app_android` — página /app, faixa "Baixar o app" no Chrome do tablet autorizado, e o pedido de tela acesa ao Android dentro do app.

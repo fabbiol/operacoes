@@ -234,6 +234,7 @@ h2 { margin: 0 0 10px; font-size: 18px; }
 }
 
 .nota { color: var(--muted); }
+pre.nota { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; }
 .vazio {
     padding: 28px 16px;
     border: 1px dashed var(--line);

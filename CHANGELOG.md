@@ -1,5 +1,16 @@
 # O que mudou
 
+## Outubro de 2026: peças das máquinas e pedido ao Compras
+
+- **Peças** na ficha de cada máquina: função, marca, código, quantidade e foto. Cada peça mostra a última troca (dia e horímetro).
+- **Novo pedido de peças**: marque as peças, escolha com qual operador confirmou e toque em **Enviar para o Compras**. O WhatsApp abre com a mensagem pronta e um link com as fotos, que o Compras abre sem senha.
+- O pedido fica no histórico como **Enviado**, **Trocado** ou **Cancelado**. Lista de todos em **Manutenção → Pedidos de peças**.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho as tabelas das peças e dos pedidos.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+3. Cadastre as peças de cada máquina na ficha (Cadastros → a máquina → Peças).
+
 ## Outubro de 2026: Monitor sem as distâncias da estrada
 
 - **Monitor**: saiu o quadro "Ida até o britador / Retorno até a lavra" (quilômetros). A pista mostra a ida e a volta sempre do mesmo tamanho.

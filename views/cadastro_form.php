@@ -91,3 +91,6 @@
 <?php if (!$novo && $ficha && isset($horimetro)): ?>
     <?php require __DIR__ . '/trecho_horimetro.php'; ?>
 <?php endif; ?>
+<?php if (!$novo && $ficha && isset($pecas) && is_array($pecas)): ?>
+    <?php require __DIR__ . '/trecho_pecas.php'; ?>
+<?php endif; ?>
