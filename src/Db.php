@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-planilha-estoque';
+    private const MIGRACOES = '2026-10-oficina';
 
     private static ?PDO $pdo = null;
 

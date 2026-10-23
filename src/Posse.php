@@ -131,11 +131,18 @@ final class Posse
     }
 
     /**
-     * Antes de começar um trabalho com a máquina: ela não pode estar com outra pessoa,
+     * Antes de começar um trabalho com a máquina: ela não pode estar na oficina nem com outra pessoa,
      * e quem vai trabalhar não pode estar com outra máquina.
      */
     public static function exigirCompativel(string $tipo, int $maquinaId, string $operador): void
     {
+        $oficina = Oficina::atual($tipo, $maquinaId);
+        if ($oficina !== null) {
+            throw new InvalidArgumentException(
+                self::nomeDaMaquina($tipo, $maquinaId) . ' está na oficina desde ' . quando((string) $oficina['entrada'])
+                . '. O administrativo libera da oficina na ficha dela.'
+            );
+        }
         $dono = self::daMaquina($tipo, $maquinaId);
         if ($dono !== null && (string) $dono['usuario'] !== $operador) {
             throw new InvalidArgumentException(

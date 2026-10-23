@@ -63,6 +63,12 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    // Página do pedido de peças para o Compras: aberta sem entrar, só com o código secreto do pedido.
+    if (str_starts_with($path, 'compras/')) {
+        tela_compras($path);
+        return;
+    }
+
     Auth::exigir();
 
     if ($path === 'sair' && $method === 'POST') {
@@ -480,6 +486,17 @@ function despachar(string $path, string $method): void
         return;
     }
 
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/pecas/(\d+)/foto$#', $path, $m)) {
+        $peca = Pecas::buscar((int) $m[3]);
+        $arquivo = $peca !== null && $peca['tipo'] === Horimetro::tipoDaChave($m[1]) && (int) $peca['maquina_id'] === (int) $m[2]
+            ? Pecas::arquivoFoto((int) $m[3]) : null;
+        if ($arquivo === null) {
+            http_response_code(404);
+            exit;
+        }
+        Fotos::servir($arquivo['caminho'], $arquivo['tipo'], Fotos::LADO_MAQUINA);
+    }
+
     if (preg_match('#^cadastros/([a-z]+)/(\d+)/ativo$#', $path, $m) && $method === 'POST') {
         exigir_cadastro($m[1]);
         csrf_check();
@@ -507,6 +524,77 @@ function despachar(string $path, string $method): void
     }
 
     exigir_admin();
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/pecas(?:/(\d+)(/ativo)?)?$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        $tipo = Horimetro::tipoDaChave($m[1]);
+        try {
+            if (($m[3] ?? '') === '') {
+                Pecas::incluir($tipo, (int) $m[2], $_POST);
+                flash_set('Peça incluída.');
+            } elseif (($m[4] ?? '') !== '') {
+                Pecas::alternarAtivo($tipo, (int) $m[2], (int) $m[3]);
+                flash_set('Peça atualizada.');
+            } else {
+                Pecas::editar($tipo, (int) $m[2], (int) $m[3], $_POST);
+                flash_set('Peça salva.');
+            }
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2] . '#pecas');
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/oficina(/liberar)?$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        $tipo = Horimetro::tipoDaChave($m[1]);
+        try {
+            if (($m[3] ?? '') === '') {
+                Oficina::mandar($tipo, (int) $m[2], (string) ($_POST['motivo'] ?? ''), (int) ($_POST['problema_id'] ?? 0), Auth::usuario());
+                flash_set('Máquina na oficina. Ninguém consegue assumi-la até ser liberada.');
+            } else {
+                Oficina::liberar($tipo, (int) $m[2], $_POST, Auth::usuario());
+                flash_set('Máquina liberada da oficina. A ordem de serviço ficou gravada.');
+            }
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2] . '#oficina');
+    }
+
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/pedidos/novo$#', $path, $m)) {
+        tela_pedido_novo($m[1], (int) $m[2], $method);
+        return;
+    }
+
+    if ($path === 'pedidos-pecas') {
+        render('pedidos_pecas', [
+            'titulo' => 'Pedidos de peças',
+            'pedidos' => Pecas::pedidosRecentes(),
+        ]);
+        return;
+    }
+
+    if (preg_match('#^pedidos-pecas/(\d+)/(trocado|cancelar)$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            if ($m[2] === 'trocado') {
+                Pecas::marcarTrocado((int) $m[1], Auth::usuario());
+                flash_set('Pedido marcado como trocado.');
+            } else {
+                Pecas::cancelar((int) $m[1]);
+                flash_set('Pedido cancelado.');
+            }
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/pedidos-pecas/' . $m[1]);
+    }
+
+    if (preg_match('#^pedidos-pecas/(\d+)$#', $path, $m)) {
+        tela_pedido_pecas((int) $m[1]);
+        return;
+    }
 
     if (preg_match('#^lavra/limpezas/(\d+)/terminar$#', $path, $m) && $method === 'POST') {
         csrf_check();
@@ -1243,6 +1331,7 @@ function tela_iniciar(int $id, string $method): void
         'pas' => $pas,
         'retros' => $semPa ? Cadastro::opcoes('retros') : [],
         'emUso' => Operacoes::pasEmUso($id),
+        'oficina' => Oficina::abertas(),
         'operador' => $operador,
         'operadores' => $operadores,
         'paId' => $paId,
@@ -2044,6 +2133,8 @@ function tela_manutencao(): void
     render('manutencao', [
         'titulo' => 'Manutenção',
         'grupos' => Horimetro::painel(),
+        'oficina' => Oficina::abertas(),
+        'disponibilidade' => array_map(Oficina::textoDisponibilidade(...), Oficina::disponibilidades()),
     ]);
 }
 
@@ -2221,6 +2312,95 @@ function tela_cadastro_form(string $chave, ?int $id, string $method): void
         'item' => $item,
         'erro' => $erro,
         'horimetro' => ($id !== null && !empty($tipo['ficha'])) ? Horimetro::ficha(Horimetro::tipoDaChave($chave), $id) : null,
+        'pecas' => ($id !== null && !empty($tipo['ficha'])) ? Pecas::daMaquina(Horimetro::tipoDaChave($chave), $id) : null,
+        'pedidosPecas' => ($id !== null && !empty($tipo['ficha'])) ? Pecas::pedidosDaMaquina(Horimetro::tipoDaChave($chave), $id) : [],
+        'oficina' => ($id !== null && !empty($tipo['ficha'])) ? ficha_oficina(Horimetro::tipoDaChave($chave), $id) : null,
+    ]);
+}
+
+/** Oficina na ficha da máquina: a estadia aberta, os problemas para ligar, a disponibilidade do mês e as ordens de serviço. */
+function ficha_oficina(string $tipo, int $id): array
+{
+    return [
+        'atual' => Oficina::atual($tipo, $id),
+        'problemas' => Problemas::abertosDa($tipo, $id),
+        'disponibilidade' => Oficina::textoDisponibilidade(Oficina::disponibilidades()[$tipo . ':' . $id] ?? 100.0),
+        'historico' => Oficina::historico($tipo, $id),
+    ];
+}
+
+function tela_pedido_novo(string $chave, int $id, string $method): void
+{
+    $item = Cadastro::buscar($chave, $id);
+    if ($item === null) {
+        http_response_code(404);
+        render('erro', ['titulo' => 'Não encontrado', 'mensagem' => 'Esse cadastro não existe.']);
+        return;
+    }
+    $tipo = Horimetro::tipoDaChave($chave);
+    $erro = null;
+    if ($method === 'POST') {
+        csrf_check();
+        try {
+            $pedido = Pecas::criarPedido($tipo, $id, $_POST, Auth::usuario());
+            flash_set('Pedido gravado. Toque em Enviar para o Compras.');
+            redirect('/pedidos-pecas/' . $pedido);
+        } catch (InvalidArgumentException $e) {
+            $erro = $e->getMessage();
+        }
+    }
+    render('pedido_pecas_form', [
+        'titulo' => 'Novo pedido de peças',
+        'chave' => $chave,
+        'maquina' => $item,
+        'pecas' => array_values(array_filter(Pecas::daMaquina($tipo, $id), static fn (array $p): bool => (int) $p['ativo'] === 1)),
+        'confirmadores' => Pecas::confirmadores($tipo),
+        'erro' => $erro,
+    ]);
+}
+
+function tela_pedido_pecas(int $id): void
+{
+    $pedido = Pecas::pedido($id);
+    if ($pedido === null) {
+        http_response_code(404);
+        render('erro', ['titulo' => 'Não encontrado', 'mensagem' => 'Esse pedido não existe.']);
+        return;
+    }
+    $link = (requisicao_https() ? 'https' : 'http') . '://' . (string) ($_SERVER['HTTP_HOST'] ?? '') . url('compras/' . $pedido['codigo_publico']);
+    render('pedido_pecas', [
+        'titulo' => 'Pedido de peças',
+        'pedido' => $pedido,
+        'chave' => Horimetro::chaveDoTipo((string) $pedido['tipo']),
+        'mensagem' => Pecas::mensagem($pedido, $link),
+    ]);
+}
+
+/** Página pública do pedido para o Compras (/compras/<código>) e as fotos das peças dele. */
+function tela_compras(string $path): void
+{
+    $pedido = preg_match('#^compras/([0-9a-f]{32})(?:/fotos/(\d+))?$#', $path, $m) ? Pecas::pedidoPorCodigo($m[1]) : null;
+    if ($pedido !== null && ($m[2] ?? '') !== '') {
+        $arquivo = null;
+        foreach ($pedido['itens'] as $item) {
+            if ((int) $item['id'] === (int) $m[2] && $item['peca_id'] !== null) {
+                $arquivo = Pecas::arquivoFoto((int) $item['peca_id']);
+            }
+        }
+        if ($arquivo === null) {
+            http_response_code(404);
+            exit;
+        }
+        Fotos::servir($arquivo['caminho'], $arquivo['tipo'], Fotos::LADO_MAQUINA);
+    }
+    if ($pedido === null) {
+        http_response_code(404);
+        render('erro', ['titulo' => 'Não encontrado', 'mensagem' => 'Esse pedido não foi encontrado.']);
+        return;
+    }
+    render('compras', [
+        'titulo' => 'Pedido de peças',
+        'pedido' => $pedido,
     ]);
 }
 

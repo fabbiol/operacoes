@@ -26,6 +26,8 @@ src/               classes de domínio, uma por assunto
   Horimetro.php    leituras, turnos, manutenção preventiva
   Posse.php        quem está com cada máquina
   Problemas.php    problemas das máquinas
+  Pecas.php        peças das máquinas e pedidos ao Compras (mensagem do WhatsApp, página pública /compras/<código>)
+  Oficina.php      máquina na oficina (bloqueia assumir e começar trabalho), ordem de serviço e disponibilidade do mês
   Estoque.php      estoque das pilhas (conchas lançadas pela pá)
   Britador.php     britador secundário: britagens e problemas
   NotaFiscal.php   leitura da NF-e (XML e PDF)
@@ -44,7 +46,7 @@ Tamanho em linhas (19/10/2026): `public/index.php` 2.177, `src/Lavra.php` 1.244,
 ## Fronteiras e fluxo
 
 1. A requisição chega em `public/index.php`, que chama `despachar($path, $method)`.
-2. Algumas rotas funcionam sem login (`login`, `health`, `app`, foto da entrada). As outras exigem login. Antes da linha `exigir_admin();` (por volta da linha 458), cada rota confere o próprio acesso: `exigir_papel(...)` para operador, motorista ou escavadeira, `exigir_cadastro(...)` nas fichas das máquinas e `exigir_admin()` em rotas pontuais. Quem está no campo e não assumiu máquina é mandado para `/maquina` antes (`exigir_maquina()`). Depois dessa linha, tudo é só do administrativo. Rota nova precisa da sua checagem ou ficar depois da linha.
+2. Algumas rotas funcionam sem login (`login`, `health`, `app`, foto da entrada e `compras/<código>`, a página do pedido de peças que só abre com o código secreto de 32 caracteres). As outras exigem login. Antes da linha `exigir_admin();` (por volta da linha 458), cada rota confere o próprio acesso: `exigir_papel(...)` para operador, motorista ou escavadeira, `exigir_cadastro(...)` nas fichas das máquinas e `exigir_admin()` em rotas pontuais. Quem está no campo e não assumiu máquina é mandado para `/maquina` antes (`exigir_maquina()`). Depois dessa linha, tudo é só do administrativo. Rota nova precisa da sua checagem ou ficar depois da linha.
 3. Todo POST chama `csrf_check()`. Envios repetidos (toque duplo) são barrados por `TOQUE_REPETIDO_MS` em `src/helpers.php` e por `public/assets/envio.js`.
 4. As funções `tela_*()` validam a entrada e chamam as classes de `src/`. As classes lançam `InvalidArgumentException` com a mensagem para o usuário; a tela mostra o erro ao lado do formulário ou num aviso (`flash_set`).
 5. As classes falam com o banco por `Db::pdo()`, sempre com consultas preparadas. Checagens do tipo "a máquina está livre?" seguidas de gravação usam `Db::comTrava()` ou condições no próprio `UPDATE`.

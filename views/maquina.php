@@ -131,13 +131,13 @@
 
 <?php if (($comOutros ?? []) !== []): ?>
     <section class="bloco com-outros">
-        <h2>Com outras pessoas</h2>
+        <h2>Com outras pessoas ou na oficina</h2>
         <ul class="cadastro">
             <?php foreach ($comOutros as $outra): ?>
                 <li>
                     <span class="cadastro-texto">
                         <strong><?= e((string) $outra['nome']) ?></strong>
-                        <small>Com <?= e((string) $outra['usuario']) ?> desde <?= e(quando((string) $outra['desde'])) ?></small>
+                        <small><?= !empty($outra['oficina']) ? 'Na oficina' : 'Com ' . e((string) $outra['usuario']) ?> desde <?= e(quando((string) $outra['desde'])) ?></small>
                     </span>
                 </li>
             <?php endforeach; ?>

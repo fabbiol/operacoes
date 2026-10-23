@@ -1,5 +1,35 @@
 # O que mudou
 
+## Outubro de 2026: previsão de vencimento da manutenção
+
+- Em cada serviço de manutenção (troca de óleo, graxa...), a **Manutenção** e a ficha da máquina mostram o dia em que ele deve vencer: "vence por volta de quinta, 30/10". A conta usa a média de horas que a máquina trabalhou por dia nos turnos dos últimos 14 dias. Máquina sem turno nesse período fica sem previsão; serviço vencido continua com o selo **Vencida**.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+
+## Outubro de 2026: máquina na oficina e ordem de serviço
+
+- Na ficha de cada máquina, **Mandar para a oficina** com o motivo (e, se quiser, o problema avisado). Enquanto estiver na oficina, ninguém consegue assumir a máquina nem começar carga ou viagem com ela.
+- **Liberar da oficina** grava a ordem de serviço: o que foi feito, quem fez, o pedido de peças, o custo e quanto tempo a máquina ficou parada. O problema ligado fica resolvido.
+- A ficha e a Manutenção mostram o selo **Na oficina** e a **disponibilidade no mês**. O Monitor da TV mostra a pá na oficina no quadro dela e a escavadeira ou o caminhão num selo vermelho ao lado de "Máquinas em uso", na lavra.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a tabela da oficina.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+3. A disponibilidade começa a contar a partir das máquinas mandadas para a oficina depois da publicação.
+
+## Outubro de 2026: peças das máquinas e pedido ao Compras
+
+- **Peças** na ficha de cada máquina: função, marca, código, quantidade e foto. Cada peça mostra a última troca (dia e horímetro).
+- **Novo pedido de peças**: marque as peças, escolha com qual operador confirmou e toque em **Enviar para o Compras**. O WhatsApp abre com a mensagem pronta e um link com as fotos, que o Compras abre sem senha.
+- O pedido fica no histórico como **Enviado**, **Trocado** ou **Cancelado**. Lista de todos em **Manutenção → Pedidos de peças**.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho as tabelas das peças e dos pedidos.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+3. Cadastre as peças de cada máquina na ficha (Cadastros → a máquina → Peças).
+
 ## Outubro de 2026: Monitor sem as distâncias da estrada
 
 - **Monitor**: saiu o quadro "Ida até o britador / Retorno até a lavra" (quilômetros). A pista mostra a ida e a volta sempre do mesmo tamanho.

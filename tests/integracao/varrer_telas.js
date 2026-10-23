@@ -28,7 +28,7 @@ async function entrar(usuario, senha) {
 }
 
 const TELAS = ['/', '/painel', '/fila', '/fila?situacao=saldo', '/controle', '/controle?dia=' + T.hoje(-3), '/dashboard',
-  '/dashboard/dados', '/manutencao', '/cadastros', '/cadastros/pas/1', '/cadastros/caminhoes/1', '/cadastros/retros/1',
+  '/dashboard/dados', '/manutencao', '/pedidos-pecas', '/cadastros', '/cadastros/pas/1', '/cadastros/caminhoes/1', '/cadastros/retros/1',
   '/ordens/1', '/ordens/nova', '/patio', '/patio/resumo', '/lavra', '/lavra/resumo', '/maquina', '/trabalhos',
   '/pessoas', '/app', '/health'];
 const ERRO_PHP = /(Fatal error|Warning:|Notice:|Deprecated:|Uncaught|TypeError)/;

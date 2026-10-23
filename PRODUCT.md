@@ -21,10 +21,12 @@ O escritório precisa saber, em tempo real, quanto material saiu para cada clien
 2. **Fracionado**: o cliente leva a nota em várias viagens. O que sobra fica em **Saldo a buscar** até o administrativo liberar a próxima viagem ou encerrar o saldo.
 3. **Pusch (lavra → britador)**: o caminhão entra na fila, a escavadeira carrega, o motorista marca a ida, a chegada ao britador e a volta. O sistema calcula as médias de fila, carga, ida, volta e ciclo, fora das viagens encerradas, das idas à garagem e das etapas que atravessam a meia-noite.
 4. **Limpeza da lavra**: a escavadeira marca o início e o fim da limpeza; a espera dos caminhões nesse tempo não entra nas médias.
-5. **Máquinas**: assumir e soltar com o horímetro, responder "Como ficou a máquina?" e avisar problemas, que aparecem no Painel, na manutenção e na TV.
+5. **Máquinas**: assumir e soltar com o horímetro, responder "Como ficou a máquina?" e avisar problemas, que aparecem no Painel, na manutenção e na TV. Cada serviço de manutenção preventiva mostra o dia previsto em que vence, pela média de horas por dia dos turnos dos últimos 14 dias.
 6. **Estoque das pilhas**: o operador da pá lança as conchas que colocou na pilha (Brita 01, Pedrisco). O sistema mostra o total e o que entrou no dia, em m³ e toneladas. Só entra material: os clientes carregam direto da bica.
 7. **Britador secundário**: o operador marca no tablet quando a britagem começa e termina e avisa os problemas (com ou sem parada), que ficam abertos até ele marcar resolvido.
-8. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV (pátio, lavra até o britador primário e britador secundário; vendido do dia por forma de pagamento, escolhida na nota).
+8. **Peças e pedido ao Compras**: o administrativo cadastra as peças de cada máquina (com foto), marca as que vão ser trocadas, escolhe com qual operador confirmou e envia a mensagem pronta pelo WhatsApp, com um link público das fotos. O pedido passa de enviado a trocado (com o horímetro) ou cancelado, e cada peça guarda a última troca.
+9. **Máquina na oficina e ordem de serviço**: o administrativo manda a máquina para a oficina (com o motivo e, se houver, o problema aberto); ninguém assume a máquina até ela ser liberada. Ao liberar, fica a ordem de serviço (o que foi feito, quem fez, pedido de peças e custo) e o problema ligado é resolvido. Ficha e Manutenção mostram a disponibilidade do mês; o Monitor mostra a máquina na oficina.
+10. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV (pátio, lavra até o britador primário e britador secundário; vendido do dia por forma de pagamento, escolhida na nota).
 
 ## O que já existe
 

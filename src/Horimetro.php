@@ -238,6 +238,7 @@ final class Horimetro
     public static function ficha(string $tipo, int $id): array
     {
         $atual = self::atual($tipo, $id);
+        $media = self::mediaPorDia($tipo, $id);
         $planos = [];
         $pior = $atual === null ? 'sem_leitura' : 'sem_plano';
         $busca = Db::pdo()->prepare(
@@ -249,6 +250,7 @@ final class Horimetro
         foreach ($busca as $plano) {
             $ultima = self::ultimaFeita((int) $plano['id']);
             $situacao = self::situacao($atual, $ultima, (float) $plano['intervalo_h'], (int) $plano['ativo'] === 1);
+            $situacao['previsao'] = self::previsao($situacao['falta'], $media);
             $planos[] = [
                 'id' => (int) $plano['id'],
                 'nome' => (string) $plano['nome'],
@@ -384,6 +386,35 @@ final class Horimetro
         }
 
         return $saida;
+    }
+
+    /** Horas de uso por dia com turno, nos últimos 14 dias. Sem turno no período: null. */
+    public static function mediaPorDia(string $tipo, int $id): ?float
+    {
+        $busca = Db::pdo()->prepare(
+            'SELECT SUM(horas), COUNT(DISTINCT DATE(encerrado_em)) FROM horimetro_turnos
+             WHERE tipo = ? AND maquina_id = ? AND encerrado_em >= ?'
+        );
+        $busca->execute([$tipo, $id, date('Y-m-d H:i:s', time() - 14 * 86400)]);
+        [$horas, $dias] = $busca->fetch(PDO::FETCH_NUM);
+
+        return (int) $dias > 0 && (float) $horas > 0 ? (float) $horas / (int) $dias : null;
+    }
+
+    /** "vence por volta de quinta, 30/10": o dia em que as horas que faltam acabam, na média de uso. */
+    public static function previsao(?float $falta, ?float $media, ?DateTimeImmutable $hoje = null): ?string
+    {
+        if ($falta === null || $falta <= 0 || $media === null || $media <= 0) {
+            return null;
+        }
+        $dias = (int) round($falta / $media);
+        if ($dias === 0) {
+            return 'vence por volta de hoje';
+        }
+        $dia = ($hoje ?? new DateTimeImmutable('today'))->modify('+' . $dias . ' days');
+        $semana = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+        return 'vence por volta de ' . $semana[(int) $dia->format('w')] . ', ' . $dia->format('d/m');
     }
 
     public static function texto(?float $horas): string

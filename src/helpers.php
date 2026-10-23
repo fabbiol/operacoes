@@ -302,12 +302,12 @@ function maquina_adotar(string $tipo, int $id): void
     });
 }
 
-/** Máquinas que a pessoa pode usar: sem trabalho em andamento e sem estar com outra pessoa. */
+/** Máquinas que a pessoa pode usar: sem trabalho em andamento, sem estar com outra pessoa e fora da oficina. */
 function maquinas_livres(): array
 {
     $lista = [];
     $tipos = maquina_tipos_do_usuario();
-    $tomadas = array_filter(Posse::todas(), static fn (array $posse): bool => (int) $posse['usuario_id'] !== Auth::id());
+    $tomadas = array_filter(Posse::todas(), static fn (array $posse): bool => (int) $posse['usuario_id'] !== Auth::id()) + Oficina::abertas();
     if (in_array('caminhao', $tipos, true)) {
         $ocupados = [];
         foreach (Lavra::abertos() as $ciclo) {
@@ -342,11 +342,16 @@ function maquinas_livres(): array
     return $lista;
 }
 
-/** Máquinas do tipo da pessoa que estão com outra pessoa, para ela saber com quem falar. */
+/** Máquinas do tipo da pessoa que estão com outra pessoa ou na oficina, para ela saber por que não aparecem. */
 function maquinas_com_outros(): array
 {
     $tipos = maquina_tipos_do_usuario();
     $lista = [];
+    foreach (Oficina::abertas() as $estadia) {
+        if (in_array((string) $estadia['tipo'], $tipos, true)) {
+            $lista[] = ['nome' => (string) $estadia['nome'], 'usuario' => '', 'desde' => (string) $estadia['entrada'], 'oficina' => true];
+        }
+    }
     foreach (Posse::todas() as $posse) {
         $tipo = (string) $posse['tipo'];
         if (!in_array($tipo, $tipos, true) || (int) $posse['usuario_id'] === Auth::id()) {
@@ -441,11 +446,11 @@ function horimetro_assumir(string $tipo, int $id, string $leitura): void
         }
         if (!maquina_esta_livre($tipo, $id)) {
             $dono = Posse::daMaquina($tipo, $id);
-            throw new InvalidArgumentException(
-                $dono !== null
-                    ? 'Essa máquina acabou de ser assumida por ' . $dono['usuario'] . '. Escolha outra.'
-                    : 'Essa máquina não está livre agora. Escolha outra.'
-            );
+            throw new InvalidArgumentException(match (true) {
+                $dono !== null => 'Essa máquina acabou de ser assumida por ' . $dono['usuario'] . '. Escolha outra.',
+                Oficina::atual($tipo, $id) !== null => 'Essa máquina está na oficina. Escolha outra.',
+                default => 'Essa máquina não está livre agora. Escolha outra.',
+            });
         }
         $pdo = Db::pdo();
         $pdo->beginTransaction();

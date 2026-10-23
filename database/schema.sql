@@ -336,3 +336,74 @@ CREATE TABLE IF NOT EXISTS britagem_problemas (
     KEY idx_britagem_problema_inicio (inicio),
     KEY idx_britagem_problema_aberto (resolvido_em)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Peças de cada máquina (filtros etc.) e os pedidos ao Compras. O item do pedido é uma cópia da peça
+-- na hora do pedido: editar a peça depois não muda o histórico.
+CREATE TABLE IF NOT EXISTS maquina_pecas (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    funcao VARCHAR(120) NOT NULL,
+    marca VARCHAR(80) NULL,
+    codigo VARCHAR(80) NOT NULL,
+    quantidade SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    foto VARCHAR(80) NULL,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_peca_maquina (tipo, maquina_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS pecas_pedidos (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    codigo_publico CHAR(32) NOT NULL,
+    horimetro DECIMAL(10,1) NULL,
+    pedido_por VARCHAR(40) NOT NULL,
+    confirmado_com VARCHAR(40) NULL,
+    observacoes VARCHAR(500) NULL,
+    criado_em DATETIME NOT NULL,
+    situacao ENUM('enviado', 'trocado', 'cancelado') NOT NULL DEFAULT 'enviado',
+    trocado_em DATETIME NULL,
+    trocado_horimetro DECIMAL(10,1) NULL,
+    trocado_por VARCHAR(40) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_pedido_codigo (codigo_publico),
+    KEY idx_pedido_maquina (tipo, maquina_id, criado_em),
+    KEY idx_pedido_criado (criado_em)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS pecas_pedido_itens (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    pedido_id INT UNSIGNED NOT NULL,
+    peca_id INT UNSIGNED NULL,
+    funcao VARCHAR(120) NOT NULL,
+    marca VARCHAR(80) NULL,
+    codigo VARCHAR(80) NOT NULL,
+    quantidade SMALLINT UNSIGNED NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_item_peca (peca_id),
+    CONSTRAINT fk_item_pedido FOREIGN KEY (pedido_id) REFERENCES pecas_pedidos (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Máquina na oficina: cada estadia vira a ordem de serviço ao liberar (o que foi feito, quem fez, peças e custo).
+-- Sem saída, a máquina está na oficina e ninguém pode assumi-la.
+CREATE TABLE IF NOT EXISTS maquina_oficina (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    motivo VARCHAR(500) NOT NULL,
+    problema_id INT UNSIGNED NULL,
+    entrada DATETIME NOT NULL,
+    entrada_por VARCHAR(40) NOT NULL,
+    saida DATETIME NULL,
+    saida_por VARCHAR(40) NULL,
+    servico TEXT NULL,
+    executor VARCHAR(120) NULL,
+    pedido_id INT UNSIGNED NULL,
+    custo DECIMAL(12,2) NULL,
+    PRIMARY KEY (id),
+    KEY idx_oficina_maquina (tipo, maquina_id, entrada),
+    KEY idx_oficina_saida (saida)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
