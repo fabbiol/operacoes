@@ -22,6 +22,7 @@ require OPERACOES_ROOT . '/src/Estoque.php';
 require OPERACOES_ROOT . '/src/Britador.php';
 require OPERACOES_ROOT . '/src/Pecas.php';
 require OPERACOES_ROOT . '/src/Oficina.php';
+require OPERACOES_ROOT . '/src/FinPro.php';
 
 carregar_env(OPERACOES_ROOT . '/.env');
 

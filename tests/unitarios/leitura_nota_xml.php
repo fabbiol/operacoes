@@ -26,6 +26,7 @@ ok($n['pagamento'] === null, 'nota sem o grupo de pagamento fica sem forma');
 
 $comPag = static fn (string $codigos): string => str_replace('<total>', '<pag>' . $codigos . '</pag><total>', nota([['BRITA 1', '1', 't']], '<dEmi>2026-10-14</dEmi>'));
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>17</tPag><vPag>100.00</vPag></detPag>'))['pagamento'] === 'pix', 'tPag 17 é Pix');
+ok(NotaFiscal::lerXml($comPag('<detPag><tPag>18</tPag></detPag>'))['pagamento'] === 'transferencia', 'tPag 18 (transferência bancária) é Transferência');
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>04</tPag></detPag>'))['pagamento'] === 'cartao', 'tPag 04 (débito) é Cartão');
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>99</tPag></detPag><detPag><tPag>01</tPag></detPag>'))['pagamento'] === 'dinheiro', 'pula o "outros" e pega a forma conhecida');
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>90</tPag></detPag>'))['pagamento'] === null, '"sem pagamento" fica para escolher');

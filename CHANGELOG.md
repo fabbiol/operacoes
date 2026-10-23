@@ -1,5 +1,17 @@
 # O que mudou
 
+## Outubro de 2026: notas por transferência vão para o Fin Pro
+
+- Forma de pagamento nova: **Transferência (TED/DOC)**. No XML da nota, a transferência bancária já vem marcada.
+- O PDF lido em **Ler a nota fiscal** fica guardado com a ordem. Na ficha, o link **PDF da nota** abre o arquivo.
+- As notas pagas por **Pix** ou **Transferência** vão sozinhas para o Fin Pro ao lançar, ao corrigir a forma na ficha e pelo botão **Reenviar ao Fin Pro**. A ficha mostra se foi enviada ou o motivo da espera; se o Fin Pro não responder, o sistema tenta de novo enquanto o Monitor ou o Painel estiverem abertos.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a fila de envio e o lugar do PDF da nota.
+2. No Easypanel, em **Ambiente**, acrescente `FINPRO_URL` (endereço do Fin Pro) e `FINPRO_TOKEN` (a mesma senha da `OPERACOES_TOKEN` do Fin Pro). Sem as duas, nada é enviado e a ficha diz "Fin Pro não configurado".
+3. Toque em **Implantar**. Os tablets não precisam de app novo.
+4. Só vão as notas lançadas ou corrigidas depois da publicação. Uma nota Pix antiga pode ser mandada pelo botão **Reenviar ao Fin Pro** na ficha.
+
 ## Outubro de 2026: previsão de vencimento da manutenção
 
 - Em cada serviço de manutenção (troca de óleo, graxa...), a **Manutenção** e a ficha da máquina mostram o dia em que ele deve vencer: "vence por volta de quinta, 30/10". A conta usa a média de horas que a máquina trabalhou por dia nos turnos dos últimos 14 dias. Máquina sem turno nesse período fica sem previsão; serviço vencido continua com o selo **Vencida**.

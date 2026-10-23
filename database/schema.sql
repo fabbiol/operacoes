@@ -74,7 +74,8 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     nf_emitida_data DATE NULL,
     nf_chave CHAR(44) NULL,
     nf_valor DECIMAL(12,2) NULL,
-    nf_pagamento VARCHAR(12) NULL,
+    nf_pagamento VARCHAR(16) NULL,
+    nf_arquivo VARCHAR(80) NULL,
     material_id INT UNSIGNED NOT NULL,
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,
@@ -406,4 +407,26 @@ CREATE TABLE IF NOT EXISTS maquina_oficina (
     PRIMARY KEY (id),
     KEY idx_oficina_maquina (tipo, maquina_id, entrada),
     KEY idx_oficina_saida (saida)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Envio das notas Pix e Transferência ao Fin Pro (src/FinPro.php): um registro por ordem, tentado de novo se falhar.
+CREATE TABLE IF NOT EXISTS finpro_envios (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    ordem_id INT UNSIGNED NOT NULL,
+    situacao ENUM('pendente', 'enviado', 'erro') NOT NULL DEFAULT 'pendente',
+    tentativas SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    ultimo_erro VARCHAR(300) NULL,
+    enviado_em DATETIME NULL,
+    proxima_tentativa DATETIME NULL,
+    atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_finpro_ordem (ordem_id),
+    KEY idx_finpro_pendente (situacao, proxima_tentativa)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A hora da última rodada de reenvio ao Fin Pro (uma linha só): no máximo uma rodada a cada 5 minutos.
+CREATE TABLE IF NOT EXISTS finpro_rodada (
+    id TINYINT UNSIGNED NOT NULL,
+    rodada_em DATETIME NOT NULL,
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -651,6 +651,7 @@ function despachar(string $path, string $method): void
 
     if ($path === 'painel/situacao') {
         exigir_admin();
+        finpro_tentar_pendentes();
         fluxo_json(painel_marca());
     }
 
@@ -662,6 +663,7 @@ function despachar(string $path, string $method): void
 
     if ($path === 'dashboard/dados') {
         exigir_admin();
+        finpro_tentar_pendentes();
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
         echo json_encode(Dashboard::instantaneo(), JSON_UNESCAPED_UNICODE);
@@ -722,6 +724,7 @@ function despachar(string $path, string $method): void
                 Operacoes::definirPagamento((int) $m[1], (string) $_POST['nf_pagamento']);
             }
             flash_set('Valor da nota salvo.');
+            finpro_enviar((int) $m[1]);
         } catch (InvalidArgumentException $e) {
             flash_set($e->getMessage(), 'erro');
         }
@@ -729,6 +732,37 @@ function despachar(string $path, string $method): void
         redirect(($_POST['voltar'] ?? '') === 'controle'
             ? '/controle' . (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) ? '?dia=' . $dia : '')
             : '/ordens/' . $m[1]);
+    }
+
+    if (preg_match('#^ordens/(\d+)/nota$#', $path, $m)) {
+        $arquivo = NotaFiscal::arquivoPdf(Operacoes::buscar((int) $m[1]) ?? []);
+        if ($arquivo === null) {
+            http_response_code(404);
+            exit;
+        }
+        session_write_close();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="nota-' . $m[1] . '.pdf"');
+        header('Content-Length: ' . (string) filesize($arquivo));
+        header('Cache-Control: private, no-store');
+        readfile($arquivo);
+        exit;
+    }
+
+    if (preg_match('#^ordens/(\d+)/finpro$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        $id = (int) $m[1];
+        try {
+            if (!FinPro::enfileirar($id)) {
+                flash_set('Só vai para o Fin Pro a nota Pix ou Transferência que não foi cancelada.', 'erro');
+            } else {
+                $enviada = FinPro::enviar($id);
+                flash_set((string) FinPro::situacaoDa($id), $enviada ? 'ok' : 'erro');
+            }
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/ordens/' . $id);
     }
 
     if (preg_match('#^ordens/(\d+)/carregado$#', $path, $m) && $method === 'POST') {
@@ -1843,6 +1877,7 @@ function tela_ordem(int $id, string $method): void
         try {
             Operacoes::atualizar($id, $_POST);
             flash_set('Ordem atualizada.');
+            finpro_enviar($id);
             redirect('/ordens/' . $id);
         } catch (InvalidArgumentException $e) {
             $ordem = ordem_ou_404($id);
@@ -1853,13 +1888,39 @@ function tela_ordem(int $id, string $method): void
 
     $ordem = ordem_ou_404($id);
     $editavel = in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true);
+    $finpro = FinPro::situacaoDa($id);
     render('ordem', [
         'titulo' => $ordem['ordem'],
         'ordem' => $ordem,
         'grupo' => (int) ($ordem['fracionado'] ?? 0) === 1 ? Operacoes::viagensDe(Operacoes::grupo($ordem)) : null,
         'editavel' => $editavel,
         'formulario' => $editavel ? dados_formulario($ordem, null, null) : null,
+        'finpro' => $finpro !== null ? ['texto' => $finpro, 'reenviar' => FinPro::elegivel($ordem)] : null,
     ]);
+}
+
+/** Manda a nota ao Fin Pro na hora, se for Pix ou Transferência; se falhar, ela fica na fila. Nunca impede a tela de seguir. */
+function finpro_enviar(int $ordemId): void
+{
+    try {
+        if (FinPro::enfileirar($ordemId)) {
+            FinPro::enviar($ordemId);
+        }
+    } catch (Throwable $e) {
+        error_log('Fin Pro: ' . $e->getMessage());
+    }
+}
+
+/** As telas que se atualizam sozinhas (Monitor e Painel) aproveitam a consulta para tentar de novo as notas da fila. */
+function finpro_tentar_pendentes(): void
+{
+    // A sessão fica livre enquanto espera o Fin Pro: as outras telas do mesmo aparelho não ficam presas.
+    session_write_close();
+    try {
+        FinPro::tentarPendentes();
+    } catch (Throwable $e) {
+        error_log('Fin Pro: ' . $e->getMessage());
+    }
 }
 
 function tela_ordem_form(?int $id, string $method): void
@@ -1871,6 +1932,8 @@ function tela_ordem_form(?int $id, string $method): void
         try {
             $novo = Operacoes::criar($_POST, Auth::usuario());
             flash_set(isset($_POST['liberar']) ? 'Ordem lançada e liberada para o pátio.' : 'Ordem lançada. Falta liberar para o pátio.');
+            NotaFiscal::ligarPdf($novo, (string) ($_POST['nota_arquivo'] ?? ''));
+            finpro_enviar($novo);
             redirect('/ordens/' . $novo);
         } catch (InvalidArgumentException $e) {
             $erro = $e->getMessage();
@@ -1911,6 +1974,9 @@ function tela_ler_nota(string $method): void
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
         'nf_pagamento' => (string) ($nota['pagamento'] ?? ''),
     ]);
+    if ($nota['origem'] === 'pdf') {
+        $dados['valor']['nota_arquivo'] = NotaFiscal::guardarPdf() ?? '';
+    }
     $dados['leitura'] = leitura_da_nota($nota, $materialId);
     render('ordem_form', $dados);
 }
@@ -2451,6 +2517,7 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     : (is_array($ordem) && $ordem['nf_valor'] !== null ? formatar_quantidade((string) $ordem['nf_valor']) : ''),
                 'nf_pagamento' => (string) ($fonte['nf_pagamento'] ?? ''),
                 'fracionado' => $post !== null ? isset($post['fracionado']) : (is_array($ordem) && (int) ($ordem['fracionado'] ?? 0) === 1),
+                'nota_arquivo' => (string) ($post['nota_arquivo'] ?? ''),
             ],
             'materiais' => Cadastro::opcoes('materiais', $materialId > 0 ? $materialId : null),
             'travado' => $ordem !== null && !in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'saldo'], true),

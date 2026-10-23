@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-oficina';
+    private const MIGRACOES = '2026-10-finpro';
 
     private static ?PDO $pdo = null;
 
@@ -121,6 +121,7 @@ final class Db
             self::garantirRevisao($pdo);
             self::garantirEstoque($pdo);
             self::garantirBritadorEPagamento($pdo);
+            self::garantirFinPro($pdo);
             // A planilha do estoque entra uma vez, só num estoque ainda vazio.
             Estoque::importarPlanilha($pdo);
 
@@ -564,6 +565,21 @@ final class Db
         }
         if (!in_array('britador', self::colunasDe($pdo, 'usuarios'), true)) {
             $pdo->exec('ALTER TABLE usuarios ADD COLUMN britador TINYINT(1) NOT NULL DEFAULT 0 AFTER escavadeira');
+        }
+    }
+
+    /**
+     * Integração com o Fin Pro: o PDF da nota guardado no lançamento (nf_arquivo) e espaço para a forma
+     * "transferencia", que não cabia nos 12 caracteres.
+     */
+    private static function garantirFinPro(PDO $pdo): void
+    {
+        if (!in_array('nf_arquivo', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_arquivo VARCHAR(80) NULL AFTER nf_pagamento');
+        }
+        $forma = $pdo->query("SHOW COLUMNS FROM fila_carregamentos LIKE 'nf_pagamento'")->fetch();
+        if ($forma && strtolower((string) ($forma['Type'] ?? $forma['type'])) === 'varchar(12)') {
+            $pdo->exec('ALTER TABLE fila_carregamentos MODIFY COLUMN nf_pagamento VARCHAR(16) NULL');
         }
     }
 

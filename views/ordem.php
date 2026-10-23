@@ -9,7 +9,7 @@
 <dl class="ficha">
     <div><dt>Cliente</dt><dd><?= e($ordem['cliente']) ?></dd></div>
     <div><dt>Pedido</dt><dd><?= e($ordem['pedido']) ?></dd></div>
-    <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php elseif (!empty($ordem['nf_emitida_data'])): ?> · emitida em <?= e(date('d/m/Y', (int) strtotime((string) $ordem['nf_emitida_data']))) ?><?php endif; ?></dd></div>
+    <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php elseif (!empty($ordem['nf_emitida_data'])): ?> · emitida em <?= e(date('d/m/Y', (int) strtotime((string) $ordem['nf_emitida_data']))) ?><?php endif; ?><?php if (!empty($ordem['nf_arquivo'])): ?> · <a href="<?= e(url('ordens/' . $ordem['id'] . '/nota')) ?>" target="_blank" rel="noopener">PDF da nota</a><?php endif; ?></dd></div>
     <div><dt>Material</dt><dd><?php
         $fracionado = (int) ($ordem['fracionado'] ?? 0) === 1;
         $rotuloQuantidade = $fracionado && (int) ($ordem['ordem_principal_id'] ?? 0) > 0 ? 'saldo ' : '';
@@ -152,6 +152,18 @@ if (!empty($grupo) && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $grupo[
         <button type="submit" class="btn secundario"><?= $ordem['nf_valor'] !== null ? 'Corrigir valor' : 'Salvar valor' ?></button>
         <p class="nota"><?= $ordem['nf_valor'] !== null ? 'Se o valor estiver errado, corrija aqui.' : 'Esta nota está sem valor e não entra no vendido do dia. Preencha o valor total da nota.' ?></p>
     </form>
+<?php endif; ?>
+
+<?php if (!empty($finpro)): ?>
+    <section class="bloco finpro">
+        <p class="nota"><?= e($finpro['texto']) ?></p>
+        <?php if ($finpro['reenviar']): ?>
+            <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/finpro')) ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn secundario">Reenviar ao Fin Pro</button>
+            </form>
+        <?php endif; ?>
+    </section>
 <?php endif; ?>
 
 <?php if (in_array($ordem['status'], ['aguardando_conferencia', 'concluido'], true)): ?>

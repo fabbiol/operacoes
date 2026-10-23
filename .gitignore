@@ -3,6 +3,7 @@
 storage/*.log
 storage/.schema-ok
 storage/fotos/
+storage/notas/
 .DS_Store
 Thumbs.db
 storage/sessoes/

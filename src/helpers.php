@@ -941,6 +941,7 @@ function formas_pagamento(): array
 {
     return [
         'pix' => 'Pix',
+        'transferencia' => 'Transferência (TED/DOC)',
         'dinheiro' => 'Dinheiro',
         'cartao' => 'Cartão',
         'cheque' => 'Cheque',
