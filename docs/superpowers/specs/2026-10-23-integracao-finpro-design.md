@@ -50,6 +50,8 @@ isso, as notas pagas por Pix ou TED/DOC precisam chegar sozinhas ao Fin Pro, num
   - `emitida_em`: `AAAA-MM-DD` ou `AAAA-MM-DD HH:MM:SS`;
   - `forma`: `pix` ou `transferencia`;
   - `chave`: chave de acesso de 44 dígitos (pode vir vazia);
+  - `documento`: CNPJ (14) ou CPF (11) do cliente, só dígitos, com os dígitos verificadores conferidos (opcional; vazio
+    quando a ordem não tem);
   - `arquivo`: o PDF da nota (opcional; só `application/pdf`, até 10 MB).
 - Respostas JSON: `201 {"ok": true, "id": N, "situacao": "criada"}`; reenvio da mesma `origem_id`:
   `200 {"ok": true, "id": N, "situacao": "atualizada"}` (atualiza os dados e o PDF, sem duplicar); `401`, `422` (com

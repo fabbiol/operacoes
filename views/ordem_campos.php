@@ -58,6 +58,10 @@ $travado = !empty($travado);
             <input type="text" name="cliente" maxlength="160" required value="<?= e($valor['cliente'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
         </label>
         <label class="campo">
+            <span>CNPJ/CPF do cliente</span>
+            <input type="text" name="nf_documento" inputmode="numeric" maxlength="18" autocomplete="off" value="<?= e($valor['nf_documento'] ?? '') ?>" placeholder="Opcional" <?= $travado ? 'disabled' : '' ?>>
+        </label>
+        <label class="campo">
             <span>Pedido</span>
             <input type="text" name="pedido" maxlength="60" required value="<?= e($valor['pedido'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
         </label>

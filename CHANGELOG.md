@@ -1,5 +1,17 @@
 # O que mudou
 
+## Outubro de 2026: CNPJ/CPF do cliente
+
+- **Ler a nota fiscal** agora lê também o CNPJ ou CPF do cliente, no PDF e no XML. Se a nota não trouxer (ou os números não conferirem), a tela avisa.
+- O formulário da ordem tem o campo **CNPJ/CPF do cliente**, para conferir ou corrigir. Pode digitar com ou sem pontos; número errado é recusado, e em branco também vale. A ficha mostra o número com pontos.
+- O CNPJ/CPF vai junto com a nota para o Fin Pro.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho o lugar do CNPJ/CPF; as ordens antigas ficam sem ele.
+2. Publique antes (ou junto) a versão do Fin Pro que recebe o CNPJ/CPF.
+3. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+4. Para mandar o CNPJ/CPF de uma nota Pix antiga, preencha na ficha e salve, ou toque em **Reenviar ao Fin Pro**.
+
 ## Outubro de 2026: notas por transferência vão para o Fin Pro
 
 - Forma de pagamento nova: **Transferência (TED/DOC)**. No XML da nota, a transferência bancária já vem marcada.
