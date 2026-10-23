@@ -46,6 +46,13 @@ final class Dashboard
                 'usuario' => (string) $problema['usuario'],
                 'desde_ts' => (int) strtotime((string) $problema['relatado_em']),
             ], Problemas::abertos()),
+            // Máquinas na oficina: a pá aparece no cartão dela no pátio; escavadeira e caminhão, no título das máquinas da lavra.
+            'oficina' => array_values(array_map(static fn (array $estadia): array => [
+                'tipo' => (string) $estadia['tipo'],
+                'nome' => (string) $estadia['nome'],
+                'desde_ts' => (int) strtotime((string) $estadia['entrada']),
+                'motivo' => (string) $estadia['motivo'],
+            ], Oficina::abertas())),
             'em_uso' => self::emUso($abertos),
             'britador' => self::britador($dia),
             'melhor_hora' => [

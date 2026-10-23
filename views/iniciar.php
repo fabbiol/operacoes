@@ -95,8 +95,9 @@
                     }
                 }
                 ?>
+                <?php $naOficina = isset($oficina['pa:' . (int) $pa['id']]); ?>
                 <label class="escolha escolha-maquina">
-                    <input type="radio" name="pa_carregadeira_id" value="<?= (int) $pa['id'] ?>" required <?= (int) $paId === (int) $pa['id'] ? 'checked' : '' ?>>
+                    <input type="radio" name="pa_carregadeira_id" value="<?= (int) $pa['id'] ?>" required <?= $naOficina ? 'disabled' : ((int) $paId === (int) $pa['id'] ? 'checked' : '') ?>>
                     <span>
                         <?php if (!empty($pa['foto'])): ?>
                             <img class="foto-equipamento" src="<?= e(url('cadastros/pas/' . $pa['id'] . '/foto')) ?>" alt="" loading="lazy" decoding="async">
@@ -108,6 +109,9 @@
                             <?php endif; ?>
                             <?php if (isset($emUso[(int) $pa['id']])): ?>
                                 <small>Em uso na <?= e($emUso[(int) $pa['id']]) ?></small>
+                            <?php endif; ?>
+                            <?php if ($naOficina): ?>
+                                <small>Na oficina</small>
                             <?php endif; ?>
                         </span>
                     </span>

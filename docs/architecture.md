@@ -27,6 +27,7 @@ src/               classes de domínio, uma por assunto
   Posse.php        quem está com cada máquina
   Problemas.php    problemas das máquinas
   Pecas.php        peças das máquinas e pedidos ao Compras (mensagem do WhatsApp, página pública /compras/<código>)
+  Oficina.php      máquina na oficina (bloqueia assumir e começar trabalho), ordem de serviço e disponibilidade do mês
   Estoque.php      estoque das pilhas (conchas lançadas pela pá)
   Britador.php     britador secundário: britagens e problemas
   NotaFiscal.php   leitura da NF-e (XML e PDF)

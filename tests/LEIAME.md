@@ -78,10 +78,11 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `nota_leitura`, `nota_m3`, `nota_unidade_desconhecida` — leitura de XML e PDF (notas **sintéticas** de `tests/notas/`), nota repetida, material fora do cadastro, m³, unidades desconhecidas.
 - `nota_real` — a mesma leitura com a nota real do cliente (só com `NOTA_REAL_DIR`; nada dela está escrito nos testes).
 - `tv_tela_cheia`, `tv_toque`, `tv_tamanhos` — Monitor da TV em tela cheia, com mouse e com toque, e em vários tamanhos de televisão.
-- `tv_dia_cheio` — Monitor num dia movimentado (pás, pista, problemas, limpeza, britador, vendas por forma): cada aviso na coluna certa e nada cortado.
+- `tv_dia_cheio` — Monitor num dia movimentado (pás, pista, problemas, limpeza, escavadeira na oficina, britador, vendas por forma): cada aviso na coluna certa e nada cortado.
 - `britador` — operador do britador secundário: cadastro, iniciar, problema, resolver, terminar e o que o Monitor recebe.
 - `forma_pagamento` — forma de pagamento obrigatória para liberar, corrigida na ficha e somada por forma no vendido.
 - `planilha_estoque` — a planilha do estoque entra uma vez, dia por dia, só com a pá 656, a Brita 01 e o Pedrisco no cadastro.
+- `oficina` — máquina com alguém não vai para a oficina; na oficina, some da escolha de máquina e o servidor recusa assumir e iniciar carga com ela; Monitor e Manutenção mostram; liberar exige o que foi feito, grava a ordem de serviço com o custo e resolve o problema ligado; disponibilidade do mês; 403 para o operador.
 - `pecas` — peças da máquina (com foto), pedido ao Compras confirmado com o operador, mensagem do WhatsApp, página pública sem login (e 404 sem código válido), 403 para o operador, trocado com horímetro e última troca, cópia do item no pedido.
 - `estoque` — estoque das pilhas: concha da pá, lançamento do operador, saldo da planilha, correção e exclusão.
 - `som_aviso` — som do aviso sem AudioContext (não precisa de servidor).

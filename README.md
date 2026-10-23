@@ -62,8 +62,8 @@ O **valor da nota** vem sozinho ao ler o XML (valor total da nota) ou o PDF (VAL
 A aba **Monitor** foi feita para ser lida de longe, numa TV ligada o dia todo. Toque em **Tela cheia** na TV.
 
 - **No alto, três números**: o **entregue aos clientes hoje** (t, cargas e quantos na fila), as **viagens ao britador primário** (t levadas e o tempo da viagem completa) e o **vendido hoje** em R$, dividido por forma de pagamento (Pix, Dinheiro, Cartão, Cheque, Boleto, A prazo; "Sem forma" nas notas antigas). O vendido aparece sempre: quem estiver na frente da TV vê o valor.
-- **Clientes · Pátio**: cada pá com o que está fazendo, em palavras: **carregando** (verde, com o cliente, o tempo e quem opera), **parada** (vermelho, com o problema aberto da máquina) ou **livre**. Embaixo, a fila numerada com "espera N min": 30 minutos ou mais fica **amarelo**, 1 hora ou mais fica **vermelho**. O que não cabe aparece como "+ N na fila".
-- **Lavra → Britador Primário**: os problemas abertos das escavadeiras e dos caminhões no topo (até 2; o resto como "+ N"), a faixa amarela da limpeza da lavra e a pista com os caminhões: amarelo na lavra, azul carregado indo ao britador primário, cinza voltando vazio, contorno vermelho se o caminhão tem problema aberto. Os caminhões deslizam pela pista entre uma atualização e outra. O motorista só marca a chegada no britador: 3 minutos depois o caminhão passa a aparecer voltando vazio. Embaixo, **Máquinas em uso**: cada escavadeira e caminhão que está com alguém, a pessoa e o que está fazendo; fica **verde** quando está sendo usada (carregando, limpando a lavra ou em viagem). As pás aparecem só na coluna do pátio.
+- **Clientes · Pátio**: cada pá com o que está fazendo, em palavras: **carregando** (verde, com o cliente, o tempo e quem opera), **parada** (vermelho, com o problema aberto da máquina), **na oficina** (vermelho, desde quando e o motivo) ou **livre**. Embaixo, a fila numerada com "espera N min": 30 minutos ou mais fica **amarelo**, 1 hora ou mais fica **vermelho**. O que não cabe aparece como "+ N na fila".
+- **Lavra → Britador Primário**: os problemas abertos das escavadeiras e dos caminhões no topo (até 2; o resto como "+ N"), a faixa amarela da limpeza da lavra e a pista com os caminhões: amarelo na lavra, azul carregado indo ao britador primário, cinza voltando vazio, contorno vermelho se o caminhão tem problema aberto. Os caminhões deslizam pela pista entre uma atualização e outra. O motorista só marca a chegada no britador: 3 minutos depois o caminhão passa a aparecer voltando vazio. Embaixo, **Máquinas em uso**: cada escavadeira e caminhão que está com alguém, a pessoa e o que está fazendo; fica **verde** quando está sendo usada (carregando, limpando a lavra ou em viagem). As pás aparecem só na coluna do pátio. Escavadeira ou caminhão na oficina aparece num selo vermelho ao lado de **Máquinas em uso**.
 - **Britador Secundário**: a situação agora (Britando, Parado por problema, Terminou às, Sem britagem hoje), a hora em que **começou** e a que **terminou** a britagem e os **problemas do dia** (abertos em vermelho, resolvidos em cinza com o horário).
 - **Rodapé**: a hora da última atualização e a melhor hora do dia no pátio e na lavra.
 - Os relógios contam sozinhos e os números se atualizam a cada 8 segundos. Se a internet da TV cair, aparece **"Sem atualização desde ..."** em amarelo; depois de 3 minutos os números ficam apagados, para ninguém ler número velho como se fosse de agora.
@@ -249,6 +249,20 @@ Onde aparece:
 - **Ficha da máquina** (Cadastros): os problemas abertos, **Marcar resolvido** (com o que foi feito, se quiser), **Registrar problema** (quando o aviso chega por telefone) e os últimos resolvidos. Os turnos mostram se a pessoa entregou tudo certo ou avisou problema.
 - **Escolher máquina**: quem vai pegar a máquina vê o problema aberto embaixo do nome dela.
 - **Liberar máquina** (quando alguém foi embora sem soltar) também tem o campo **Problema na máquina**.
+
+## Máquina na oficina e ordem de serviço
+
+Quando uma máquina vai para a oficina, abra a ficha dela (Cadastros → a máquina) e, em **Oficina**, toque em **Mandar para a oficina**. Escreva o motivo e, se a máquina tem um problema avisado, escolha o problema na lista. Se alguém estiver com a máquina, ela precisa ser solta antes (ou liberada na ficha, como para desativar).
+
+Enquanto a máquina está na oficina:
+
+- ninguém consegue assumir a máquina nem começar carga ou viagem com ela; no tablet, ela aparece embaixo, em **Com outras pessoas ou na oficina**;
+- a ficha e a **Manutenção** mostram o selo **Na oficina**;
+- o **Monitor da TV** mostra a pá no quadro dela no pátio, em vermelho, "na oficina desde" a hora; a escavadeira e o caminhão aparecem na lavra, num selo vermelho **Na oficina** ao lado de "Máquinas em uso".
+
+Quando a máquina voltar, toque em **Liberar da oficina** e informe o que foi feito (obrigatório), quem fez, o pedido de peças usado (se houver) e o custo em reais. Fica gravada a **ordem de serviço**, com a entrada, a saída e quanto tempo a máquina ficou parada. O problema escolhido ao mandar para a oficina é marcado como resolvido. As ordens de serviço aparecem na ficha, embaixo.
+
+A **disponibilidade no mês**, na ficha e na Manutenção, é 100% menos o tempo que a máquina passou na oficina desde o dia 1 até agora. Uma máquina que não foi para a oficina no mês fica com 100%. Só o administrativo manda para a oficina e libera.
 
 ## Peças e pedido ao Compras
 

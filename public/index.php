@@ -545,6 +545,23 @@ function despachar(string $path, string $method): void
         redirect('/cadastros/' . $m[1] . '/' . $m[2] . '#pecas');
     }
 
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/oficina(/liberar)?$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        $tipo = Horimetro::tipoDaChave($m[1]);
+        try {
+            if (($m[3] ?? '') === '') {
+                Oficina::mandar($tipo, (int) $m[2], (string) ($_POST['motivo'] ?? ''), (int) ($_POST['problema_id'] ?? 0), Auth::usuario());
+                flash_set('Máquina na oficina. Ninguém consegue assumi-la até ser liberada.');
+            } else {
+                Oficina::liberar($tipo, (int) $m[2], $_POST, Auth::usuario());
+                flash_set('Máquina liberada da oficina. A ordem de serviço ficou gravada.');
+            }
+        } catch (InvalidArgumentException $e) {
+            flash_set($e->getMessage(), 'erro');
+        }
+        redirect('/cadastros/' . $m[1] . '/' . $m[2] . '#oficina');
+    }
+
     if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/pedidos/novo$#', $path, $m)) {
         tela_pedido_novo($m[1], (int) $m[2], $method);
         return;
@@ -1314,6 +1331,7 @@ function tela_iniciar(int $id, string $method): void
         'pas' => $pas,
         'retros' => $semPa ? Cadastro::opcoes('retros') : [],
         'emUso' => Operacoes::pasEmUso($id),
+        'oficina' => Oficina::abertas(),
         'operador' => $operador,
         'operadores' => $operadores,
         'paId' => $paId,
@@ -2115,6 +2133,8 @@ function tela_manutencao(): void
     render('manutencao', [
         'titulo' => 'Manutenção',
         'grupos' => Horimetro::painel(),
+        'oficina' => Oficina::abertas(),
+        'disponibilidade' => array_map(Oficina::textoDisponibilidade(...), Oficina::disponibilidades()),
     ]);
 }
 
@@ -2294,7 +2314,19 @@ function tela_cadastro_form(string $chave, ?int $id, string $method): void
         'horimetro' => ($id !== null && !empty($tipo['ficha'])) ? Horimetro::ficha(Horimetro::tipoDaChave($chave), $id) : null,
         'pecas' => ($id !== null && !empty($tipo['ficha'])) ? Pecas::daMaquina(Horimetro::tipoDaChave($chave), $id) : null,
         'pedidosPecas' => ($id !== null && !empty($tipo['ficha'])) ? Pecas::pedidosDaMaquina(Horimetro::tipoDaChave($chave), $id) : [],
+        'oficina' => ($id !== null && !empty($tipo['ficha'])) ? ficha_oficina(Horimetro::tipoDaChave($chave), $id) : null,
     ]);
+}
+
+/** Oficina na ficha da máquina: a estadia aberta, os problemas para ligar, a disponibilidade do mês e as ordens de serviço. */
+function ficha_oficina(string $tipo, int $id): array
+{
+    return [
+        'atual' => Oficina::atual($tipo, $id),
+        'problemas' => Problemas::abertosDa($tipo, $id),
+        'disponibilidade' => Oficina::textoDisponibilidade(Oficina::disponibilidades()[$tipo . ':' . $id] ?? 100.0),
+        'historico' => Oficina::historico($tipo, $id),
+    ];
 }
 
 function tela_pedido_novo(string $chave, int $id, string $method): void

@@ -5,7 +5,7 @@
     </div>
     <a class="btn secundario" href="<?= e(url('pedidos-pecas')) ?>">Pedidos de peças</a>
 </section>
-<p class="nota">O prazo usa a última leitura do horímetro. Próxima significa que faltam <?= (int) Horimetro::PROXIMA_H ?> h ou menos. Sem leitura, o prazo não aparece. Os problemas são os que os operadores avisaram ao soltar a máquina: marque como resolvido na ficha.</p>
+<p class="nota">O prazo usa a última leitura do horímetro. Próxima significa que faltam <?= (int) Horimetro::PROXIMA_H ?> h ou menos. Sem leitura, o prazo não aparece. Os problemas são os que os operadores avisaram ao soltar a máquina: marque como resolvido na ficha. A disponibilidade é 100% menos o tempo que a máquina passou na oficina neste mês.</p>
 
 <?php foreach ($grupos as $grupo): ?>
     <h2><?= e($grupo['titulo']) ?></h2>
@@ -19,7 +19,14 @@
                         <strong><?= e($item['nome']) ?></strong>
                         <?php $situacao = ['estado' => $item['estado'], 'rotulo' => $item['rotulo'], 'falta' => null, 'proxima' => null]; require __DIR__ . '/trecho_situacao.php'; ?>
                     </header>
-                    <p class="meta">Horímetro <?= e(Horimetro::texto($item['atual'])) ?><?php if (!empty($item['posse'])): ?> · com <?= e((string) $item['posse']['usuario']) ?> desde <?= e(quando((string) $item['posse']['iniciado_em'])) ?><?php endif; ?></p>
+                    <?php
+                    $chaveOficina = Horimetro::tipoDaChave($item['chave']) . ':' . $item['id'];
+                    $estadia = ($oficina ?? [])[$chaveOficina] ?? null;
+                    ?>
+                    <?php if ($estadia !== null): ?>
+                        <p><span class="selo status-problema">Na oficina</span> desde <?= e(quando((string) $estadia['entrada'])) ?> · <?= e((string) $estadia['motivo']) ?></p>
+                    <?php endif; ?>
+                    <p class="meta">Horímetro <?= e(Horimetro::texto($item['atual'])) ?><?php if (!empty($item['posse'])): ?> · com <?= e((string) $item['posse']['usuario']) ?> desde <?= e(quando((string) $item['posse']['iniciado_em'])) ?><?php endif; ?> · disponibilidade no mês <?= e(($disponibilidade ?? [])[$chaveOficina] ?? '100%') ?></p>
                     <?php if (($item['problemas'] ?? []) !== []): ?>
                         <ul class="problemas-lista">
                             <?php foreach ($item['problemas'] as $problema): ?>

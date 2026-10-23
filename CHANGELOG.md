@@ -1,5 +1,16 @@
 # O que mudou
 
+## Outubro de 2026: máquina na oficina e ordem de serviço
+
+- Na ficha de cada máquina, **Mandar para a oficina** com o motivo (e, se quiser, o problema avisado). Enquanto estiver na oficina, ninguém consegue assumir a máquina nem começar carga ou viagem com ela.
+- **Liberar da oficina** grava a ordem de serviço: o que foi feito, quem fez, o pedido de peças, o custo e quanto tempo a máquina ficou parada. O problema ligado fica resolvido.
+- A ficha e a Manutenção mostram o selo **Na oficina** e a **disponibilidade no mês**. O Monitor da TV mostra a pá na oficina no quadro dela e a escavadeira ou o caminhão num selo vermelho ao lado de "Máquinas em uso", na lavra.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho a tabela da oficina.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+3. A disponibilidade começa a contar a partir das máquinas mandadas para a oficina depois da publicação.
+
 ## Outubro de 2026: peças das máquinas e pedido ao Compras
 
 - **Peças** na ficha de cada máquina: função, marca, código, quantidade e foto. Cada peça mostra a última troca (dia e horímetro).

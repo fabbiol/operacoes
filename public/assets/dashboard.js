@@ -157,10 +157,15 @@
             ? dadosPatio.maquinas.map(function (m) {
                 var o = m.ordem;
                 var problema = problemas.filter(function (p) { return p.maquina === m.nome; })[0];
+                var oficina = (estado.oficina || []).filter(function (x) { return x.tipo === 'pa' && x.nome === m.nome; })[0];
                 if (o) {
                     var inicio = o.inicio_ts || o.desde_ts;
                     return '<article class="tv-maquina ocupada"><span class="tv-estado">' + esc(m.nome) + ' · carregando há ' + relogio(inicio) + '</span>' +
                         '<strong>' + esc(o.cliente) + '</strong><p>' + carga(o) + (o.operador ? ' · ' + esc(o.operador) : '') + '</p></article>';
+                }
+                if (oficina) {
+                    return '<article class="tv-maquina parada"><span class="tv-estado">' + esc(m.nome) + ' · na oficina desde ' + esc(quando(oficina.desde_ts)) + '</span>' +
+                        '<strong>' + esc(oficina.motivo) + '</strong></article>';
                 }
                 if (problema) {
                     return '<article class="tv-maquina parada"><span class="tv-estado">' + esc(m.nome) + ' · parada desde ' + esc(quando(problema.desde_ts)) + '</span>' +
@@ -253,6 +258,14 @@
             limpezas = '<p class="tv-limpeza">' + esc(emLimpeza.map(function (l) { return l.retro; }).join(' e ')) + ' em limpeza da lavra' +
                 '<span class="tv-tempo" data-desde="' + desde + '"><b>' + duracao(agoraServidor() - desde) + '</b></span></p>';
         }
+        // Escavadeira e caminhão na oficina: em vermelho, na mesma linha do título das máquinas, para não tirar altura
+        // da lista na TV pequena (o que não couber termina em "...").
+        var naOficina = (estado.oficina || []).filter(function (x) { return x.tipo !== 'pa'; });
+        var oficina = naOficina.length
+            ? '<b class="tv-na-oficina">Na oficina: ' + naOficina.map(function (x) {
+                return esc(x.nome) + ' (' + esc(x.motivo) + ')';
+            }).join(' · ') + '</b>'
+            : '';
         var emUso = estado.em_uso || [];
         var maquinas = emUso.length
             ? '<ul class="tv-em-uso" data-um="máquina" data-varios="máquinas">' + emUso.map(function (m) {
@@ -273,7 +286,7 @@
             '</div>' +
             '<p class="tv-legenda"><span><i class="tv-cor-lavra"></i>Na lavra</span><span><i class="tv-cor-carregado"></i>Carregado</span><span><i class="tv-cor-volta"></i>Voltando</span>' +
                 (lista.length ? '' : '<span>Nenhum caminhão em ciclo.</span>') + '</p>' +
-            '<h3>Máquinas em uso <span>' + emUso.length + '</span></h3>' + maquinas +
+            '<h3 class="tv-com-oficina">Máquinas em uso <span>' + emUso.length + '</span>' + oficina + '</h3>' + maquinas +
             '</article>';
     }
 

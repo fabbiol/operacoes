@@ -21,6 +21,7 @@ require OPERACOES_ROOT . '/src/Problemas.php';
 require OPERACOES_ROOT . '/src/Estoque.php';
 require OPERACOES_ROOT . '/src/Britador.php';
 require OPERACOES_ROOT . '/src/Pecas.php';
+require OPERACOES_ROOT . '/src/Oficina.php';
 
 carregar_env(OPERACOES_ROOT . '/.env');
 

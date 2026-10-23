@@ -1,5 +1,5 @@
 // Monitor da TV num dia cheio: pás carregando e parada, caminhões em todas as etapas da pista, máquinas com problema,
-// escavadeira limpando, britador secundário parado e vendas por forma. Em TV pequena e grande nada fica cortado
+// escavadeira limpando, escavadeira na oficina, britador secundário parado e vendas por forma. Em TV pequena e grande nada fica cortado
 // nem exige rolagem, cada aviso aparece na coluna certa e a máquina em uso fica verde.
 const T = require('../lib/teste');
 const { ok, sql, espera, BASE } = T;
@@ -19,6 +19,8 @@ T.executar(async () => {
   sql(`INSERT INTO ciclos_lavra (caminhao_id, status, inicio_fila, inicio_carga, fim_carga, chegada_britador, inicio_retorno, operador, retroescavadeira_id, operador_carga, capacidade_t) VALUES (3, 'retornando', NOW() - INTERVAL 40 MINUTE, NOW() - INTERVAL 35 MINUTE, NOW() - INTERVAL 30 MINUTE, NOW() - INTERVAL 15 MINUTE, NOW() - INTERVAL 5 MINUTE, 'Pedro', 1, 'Pedro', 25)`);
   sql("INSERT INTO maquina_problemas (tipo, maquina_id, usuario, descricao, relatado_em) VALUES ('caminhao', 3, 'Pedro', 'Freio fazendo barulho', NOW() - INTERVAL 2 HOUR)");
   sql("INSERT INTO lavra_limpezas (retroescavadeira_id, operador, inicio) VALUES (2, 'Pedro', NOW() - INTERVAL 12 MINUTE)");
+  sql("INSERT INTO retroescavadeiras (maquina, marca, modelo, ano) VALUES ('Retro 3', 'Komatsu', 'PC200', 2017)");
+  sql("INSERT INTO maquina_oficina (tipo, maquina_id, motivo, entrada, entrada_por) SELECT 'retro', id, 'Esteira quebrada', NOW() - INTERVAL 5 HOUR, 'Fabio' FROM retroescavadeiras WHERE maquina = 'Retro 3'");
   sql(`INSERT INTO maquina_posse (tipo, maquina_id, usuario_id, usuario, iniciado_em) VALUES
     ('pa', 1, ${id('Maria')}, 'Maria', NOW() - INTERVAL 3 HOUR), ('caminhao', 1, ${id('Joao')}, 'Joao', NOW() - INTERVAL 3 HOUR),
     ('caminhao', 2, ${id('Ana')}, 'Ana', NOW() - INTERVAL 3 HOUR), ('retro', 1, ${id('Pedro')}, 'Pedro', NOW() - INTERVAL 3 HOUR)`);
@@ -51,6 +53,7 @@ T.executar(async () => {
     ok(info.cortados.length === 0 && info.rolagem <= info.janela + 1, t + ': tudo cabe, sem rolagem', JSON.stringify({ c: info.cortados, r: info.rolagem, j: info.janela }));
     ok(/Pá 1 · carregando/i.test(info.patio) && /Pá 2 · parada/i.test(info.patio) && /Pneu furado/.test(info.patio), t + ': pátio mostra a pá carregando e a parada', info.patio.slice(0, 200));
     ok(/Freio fazendo barulho/.test(info.lavra) && !/Pneu furado/.test(info.lavra) && /Retro 2 em limpeza da lavra/.test(info.lavra), t + ': lavra mostra o problema do caminhão e a limpeza', info.lavra.slice(0, 200));
+    ok(/Na oficina: Retro 3 \(Esteira quebrada\)/.test(info.lavra) && !/Retro 3/.test(info.patio), t + ': lavra mostra a escavadeira na oficina', info.lavra.slice(0, 300));
     ok(info.caminhoes === 3 && info.problema === 1, t + ': três caminhões na pista, um marcado com problema', info.caminhoes + ' / ' + info.problema);
     ok(!/Pá 1/.test(info.emUso) && /Retro 1 · Pedro/.test(info.emUso) && info.verdes === 3, t + ': máquinas em uso sem as pás, as 3 em uso em verde', info.emUso + ' / ' + info.verdes);
     ok(info.paCor === 'rgb(47, 179, 107)', t + ': pá carregando em verde', info.paCor);

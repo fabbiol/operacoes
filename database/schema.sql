@@ -386,3 +386,24 @@ CREATE TABLE IF NOT EXISTS pecas_pedido_itens (
     KEY idx_item_peca (peca_id),
     CONSTRAINT fk_item_pedido FOREIGN KEY (pedido_id) REFERENCES pecas_pedidos (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Máquina na oficina: cada estadia vira a ordem de serviço ao liberar (o que foi feito, quem fez, peças e custo).
+-- Sem saída, a máquina está na oficina e ninguém pode assumi-la.
+CREATE TABLE IF NOT EXISTS maquina_oficina (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,
+    maquina_id INT UNSIGNED NOT NULL,
+    motivo VARCHAR(500) NOT NULL,
+    problema_id INT UNSIGNED NULL,
+    entrada DATETIME NOT NULL,
+    entrada_por VARCHAR(40) NOT NULL,
+    saida DATETIME NULL,
+    saida_por VARCHAR(40) NULL,
+    servico TEXT NULL,
+    executor VARCHAR(120) NULL,
+    pedido_id INT UNSIGNED NULL,
+    custo DECIMAL(12,2) NULL,
+    PRIMARY KEY (id),
+    KEY idx_oficina_maquina (tipo, maquina_id, entrada),
+    KEY idx_oficina_saida (saida)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
