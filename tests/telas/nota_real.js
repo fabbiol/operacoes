@@ -46,6 +46,7 @@ T.executar(async () => {
       nf: await campo('nf'), pedido: await campo('pedido'), cliente: await campo('cliente'), material: await p.inputValue('select[name=material_id]'),
       quantidade: await campo('quantidade_autorizada'), unidade: await p.inputValue('select[name=unidade]'), valor: await campo('nf_valor'),
       emitidaEm: await campo('nf_emitida_em'), emitidaData: await campo('nf_emitida_data'),
+      documento: await campo('nf_documento'),
       avisos: (await p.locator('.leitura-nota li').allInnerTexts()).join(' | '),
     };
   }
@@ -55,11 +56,12 @@ T.executar(async () => {
   ok(x.nf === esperado.nf && x.valor === esperado.valor, 'XML real: número e valor da nota');
   ok(x.emitidaEm === esperado.emitidaEm, 'XML real: hora da emissão no horário de Cuiaba');
   ok(x.material !== '', 'XML real: o material foi achado no cadastro');
+  ok(/^(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})$/.test(x.documento), 'XML real: CNPJ/CPF do cliente lido');
   ok(x.avisos === '', 'XML real: nada a conferir', x.avisos === '' ? '' : x.avisos.length + ' aviso(s)');
 
   // 2. PDF da mesma nota: mesmos dados, mas sem a hora (só a data da emissão).
   const d = await ler(arqPdf);
-  for (const k of ['nf', 'pedido', 'material', 'quantidade', 'unidade', 'valor']) {
+  for (const k of ['nf', 'pedido', 'material', 'quantidade', 'unidade', 'valor', 'documento']) {
     ok(d[k] === x[k], `PDF real e XML real dão o mesmo ${k}`);
   }
   ok(d.cliente.length >= 20 && x.cliente.startsWith(d.cliente), 'PDF real: o cliente é o começo do nome do XML (o PDF corta nomes compridos)');

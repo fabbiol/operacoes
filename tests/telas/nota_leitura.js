@@ -1,5 +1,5 @@
 // Leitura da nota fiscal na tela "Nova ordem": XML e PDF (DANFE) sintéticos de tests/notas/ (CNPJ e clientes fictícios).
-// Confere os campos preenchidos, os avisos, a nota repetida, material fora do cadastro, m³, edição e arquivos que não são nota.
+// Confere os campos preenchidos (inclusive o CNPJ/CPF do cliente), os avisos, a nota repetida, material fora do cadastro, m³, edição e arquivos que não são nota.
 const T = require('../lib/teste');
 const path = require('path');
 const { ok, sql, espera, BASE } = T;
@@ -21,6 +21,7 @@ T.executar(async () => {
   await ler(p, 'nota1.xml');
   ok(/Nota 12345 lida do XML/.test(await p.textContent('.leitura-nota .aviso')), 'XML: mensagem de nota lida', await p.textContent('.leitura-nota .aviso'));
   ok(await campo(p, 'cliente') === 'CONSTRUTORA BOA OBRA LTDA', 'XML: cliente', await campo(p, 'cliente'));
+  ok(await campo(p, 'nf_documento') === '98.765.432/0001-98', 'XML: CNPJ do cliente', await campo(p, 'nf_documento'));
   ok(await campo(p, 'pedido') === 'PV-4521', 'XML: pedido', await campo(p, 'pedido'));
   ok(await campo(p, 'nf') === '12345', 'XML: número da nota', await campo(p, 'nf'));
   ok(await p.inputValue('select[name=material_id]') === sql("SELECT id FROM materiais WHERE material='Brita 1'"), 'XML: material Brita 1 escolhido no cadastro');
@@ -50,11 +51,13 @@ T.executar(async () => {
   ok(/Nota 98 \(série 2\) lida do PDF/.test(await p.textContent('.leitura-nota .aviso')), 'PDF série 2', await p.textContent('.leitura-nota .aviso'));
   ok(/"BRITA 0 \(PEDRISCO\)", que não está no cadastro/.test(await avisos(p)), 'material fora do cadastro: pede para escolher', await avisos(p));
   ok(/pedido/.test(await avisos(p)), 'pedido não achado: pede para preencher');
+  ok(await campo(p, 'nf_documento') === '' && /CNPJ\/CPF/.test(await avisos(p)), 'CNPJ com dígito errado: campo vazio e aviso', await campo(p, 'nf_documento'));
   ok(await campo(p, 'quantidade_autorizada') === '15,50', 'soma as linhas do mesmo material', await campo(p, 'quantidade_autorizada'));
 
   // 4. m³ e pedido no texto.
   await ler(p, 'nota2.xml');
   ok(await p.inputValue('select[name=unidade]') === 'm3' && await campo(p, 'pedido') === '7788', 'XML: m³ e pedido nas informações complementares');
+  ok(await campo(p, 'nf_documento') === '529.982.247-25', 'XML: CPF do cliente', await campo(p, 'nf_documento'));
   ok(await p.inputValue('select[name=material_id]') === sql("SELECT id FROM materiais WHERE material='Pó de pedra'"), 'PO DE PEDRA encontra "Pó de pedra" no cadastro');
   await espera(1300);
   ok(await p.inputValue('select[name=nf_pagamento]') === 'boleto', 'XML: forma de pagamento lida da nota (boleto)', await p.inputValue('select[name=nf_pagamento]'));
@@ -63,6 +66,7 @@ T.executar(async () => {
   await Promise.all([p.waitForNavigation(), p.click('form[action$="/ordens/nova"] button[type=submit]')]);
   const id2 = sql("SELECT id FROM fila_carregamentos WHERE nf='12346'");
   ok(sql(`SELECT status FROM fila_carregamentos WHERE id=${id2}`) === 'liberado', 'nota 2 lançada e liberada');
+  ok(sql(`SELECT nf_documento FROM fila_carregamentos WHERE id=${id2}`) === '52998224725', 'o CPF fica gravado só com os números');
 
   // 5. Editar a ordem mantém a chave e a hora.
   await p.goto(BASE + '/ordens/' + id2);
@@ -70,6 +74,8 @@ T.executar(async () => {
   await p.fill('textarea[name=observacoes]', 'Conferido');
   await Promise.all([p.waitForNavigation(), p.click('form[action$="/ordens/' + id2 + '"] button[type=submit]')]);
   ok(sql(`SELECT CONCAT(IFNULL(nf_chave,'-'),'|',IFNULL(nf_emitida_em,'-'),'|',IFNULL(observacoes,'')) FROM fila_carregamentos WHERE id=${id2}`) === '51261012345678000190550010000123461123456787|2026-10-15 08:12:40|Conferido', 'editar mantém a chave e a hora da nota', sql(`SELECT CONCAT(IFNULL(nf_chave,'-'),'|',IFNULL(nf_emitida_em,'-'),'|',IFNULL(observacoes,'')) FROM fila_carregamentos WHERE id=${id2}`));
+
+  ok(sql(`SELECT nf_documento FROM fila_carregamentos WHERE id=${id2}`) === '52998224725' && /CNPJ\/CPF do cliente\s*529\.982\.247-25/.test(await T.txt(p)), 'editar mantém o CPF e a ficha mostra formatado');
 
   // 6. Arquivos que não são nota.
   await ler(p, 'texto.txt');
