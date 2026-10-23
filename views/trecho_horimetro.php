@@ -149,6 +149,7 @@
                     </header>
                     <p class="meta">A cada <?= e(Horimetro::texto($plano['intervalo_h'])) ?>
                         <?php if ($plano['ultima'] !== null): ?> · última em <?= e(Horimetro::texto($plano['ultima'])) ?><?php endif; ?>
+                        <?php if (($plano['situacao']['previsao'] ?? null) !== null): ?> · <?= e($plano['situacao']['previsao']) ?><?php endif; ?>
                     </p>
                     <?php if ((int) $plano['ativo'] === 1 && $horimetro['atual'] !== null): ?>
                         <form method="post" action="<?= e(url('cadastros/' . $tipo['chave'] . '/' . $item['id'] . '/planos/' . $plano['id'] . '/feito')) ?>" class="formulario">

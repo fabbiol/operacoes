@@ -279,6 +279,10 @@ A mensagem leva a máquina, o horímetro, com quem foi confirmado, as peças e u
 
 Quando as peças forem colocadas, abra o pedido e toque em **Peças trocadas**: fica gravado o dia, o horímetro e quem marcou, e cada peça mostra a última troca na ficha. Se o pedido não for adiante, toque em **Cancelar pedido**. Os pedidos de cada máquina aparecem na ficha, e todos juntos em **Manutenção → Pedidos de peças**. Só o administrativo cadastra peças e faz pedidos.
 
+## Previsão de vencimento da manutenção
+
+Na **Manutenção** e na ficha da máquina, cada serviço que ainda não venceu mostra "vence por volta de quinta, 30/10": é o dia em que as horas que faltam acabam, se a máquina continuar trabalhando a média de horas por dia dos turnos dos últimos 14 dias (só contam os dias com turno). Sem turno nesse período, não aparece previsão; serviço vencido continua com o selo **Vencida**.
+
 ## Docker
 
 No computador, com as portas abertas:

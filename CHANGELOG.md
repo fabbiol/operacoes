@@ -1,5 +1,13 @@
 # O que mudou
 
+## Outubro de 2026: previsão de vencimento da manutenção
+
+- Em cada serviço de manutenção (troca de óleo, graxa...), a **Manutenção** e a ficha da máquina mostram o dia em que ele deve vencer: "vence por volta de quinta, 30/10". A conta usa a média de horas que a máquina trabalhou por dia nos turnos dos últimos 14 dias. Máquina sem turno nesse período fica sem previsão; serviço vencido continua com o selo **Vencida**.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. Nada muda no banco.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: máquina na oficina e ordem de serviço
 
 - Na ficha de cada máquina, **Mandar para a oficina** com o motivo (e, se quiser, o problema avisado). Enquanto estiver na oficina, ninguém consegue assumir a máquina nem começar carga ou viagem com ela.

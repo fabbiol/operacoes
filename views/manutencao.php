@@ -43,6 +43,7 @@
                                     <span class="cadastro-texto">
                                         <strong><?= e($plano['nome']) ?></strong>
                                         <small>A cada <?= e(Horimetro::texto($plano['intervalo_h'])) ?></small>
+                                        <?php if (($plano['situacao']['previsao'] ?? null) !== null): ?><small><?= e($plano['situacao']['previsao']) ?></small><?php endif; ?>
                                     </span>
                                     <?php $situacao = $plano['situacao']; require __DIR__ . '/trecho_situacao.php'; ?>
                                 </li>
