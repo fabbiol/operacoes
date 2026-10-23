@@ -82,6 +82,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `tv_dia_cheio` — Monitor num dia movimentado (pás, pista, problemas, limpeza, escavadeira na oficina, britador, vendas por forma): cada aviso na coluna certa e nada cortado.
 - `britador` — operador do britador secundário: cadastro, iniciar, problema, resolver, terminar e o que o Monitor recebe.
 - `forma_pagamento` — forma de pagamento obrigatória para liberar, corrigida na ficha e somada por forma no vendido.
+- `finpro` — integração com o Fin Pro contra um servidor falso (Node, no próprio teste): nota lida do PDF e lançada com Pix vai na hora com o PDF e a chave Bearer; Dinheiro não vai; resposta 500 deixa esperando com o motivo e a consulta do Monitor tenta de novo na hora certa; Reenviar; forma corrigida para Transferência (formulário e quadro do valor); o PDF abre na ficha.
 - `planilha_estoque` — a planilha do estoque entra uma vez, dia por dia, só com a pá 656, a Brita 01 e o Pedrisco no cadastro.
 - `oficina` — máquina com alguém não vai para a oficina; na oficina, some da escolha de máquina e o servidor recusa assumir e iniciar carga com ela; Monitor e Manutenção mostram; liberar exige o que foi feito, grava a ordem de serviço com o custo e resolve o problema ligado; disponibilidade do mês; 403 para o operador.
 - `pecas` — peças da máquina (com foto), pedido ao Compras confirmado com o operador, mensagem do WhatsApp, página pública sem login (e 404 sem código válido), 403 para o operador, trocado com horímetro e última troca, cópia do item no pedido.

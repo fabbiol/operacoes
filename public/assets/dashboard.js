@@ -11,7 +11,7 @@
     var ESPERA_CRITICA = 60 * 60;
     var SEM_ATUALIZAR_AVISO = 60 * 1000;
     var SEM_ATUALIZAR_VELHO = 3 * 60 * 1000;
-    var FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão', cheque: 'Cheque', boleto: 'Boleto', prazo: 'A prazo', sem_forma: 'Sem forma' };
+    var FORMAS = { pix: 'Pix', transferencia: 'Transferência', dinheiro: 'Dinheiro', cartao: 'Cartão', cheque: 'Cheque', boleto: 'Boleto', prazo: 'A prazo', sem_forma: 'Sem forma' };
     var desvio = 0;
     var ultimoOk = Date.now();
     var horaUltimoOk = '';

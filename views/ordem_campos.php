@@ -45,6 +45,9 @@ $travado = !empty($travado);
     <?= csrf_field() ?>
     <input type="hidden" name="nf_chave" value="<?= e($valor['nf_chave'] ?? '') ?>">
     <input type="hidden" name="nf_emitida_data" value="<?= e($valor['nf_emitida_data'] ?? '') ?>">
+    <?php if ($ordem === null): ?>
+        <input type="hidden" name="nota_arquivo" value="<?= e($valor['nota_arquivo'] ?? '') ?>">
+    <?php endif; ?>
     <div class="grade">
         <label class="campo">
             <span>Data</span>

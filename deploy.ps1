@@ -311,7 +311,7 @@ $lista.Add([pscustomobject]@{
     Arquivo    = $schema
 })
 # O Posse.php vai depois do bootstrap.php: ele usa a classe Oficina, que só o bootstrap novo carrega.
-$classesNovas = @('Fotos.php', 'NotaFiscal.php', 'Problemas.php', 'Pecas.php', 'Oficina.php', 'bootstrap.php', 'Posse.php')
+$classesNovas = @('Fotos.php', 'NotaFiscal.php', 'Problemas.php', 'Pecas.php', 'Oficina.php', 'FinPro.php', 'bootstrap.php', 'Posse.php')
 foreach ($nome in $classesNovas) {
     $lista.Add([pscustomobject]@{
         Credencial = 'pai'

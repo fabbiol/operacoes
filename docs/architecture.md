@@ -30,7 +30,8 @@ src/               classes de domínio, uma por assunto
   Oficina.php      máquina na oficina (bloqueia assumir e começar trabalho), ordem de serviço e disponibilidade do mês
   Estoque.php      estoque das pilhas (conchas lançadas pela pá)
   Britador.php     britador secundário: britagens e problemas
-  NotaFiscal.php   leitura da NF-e (XML e PDF)
+  NotaFiscal.php   leitura da NF-e (XML e PDF) e o PDF guardado com a ordem (storage/notas/)
+  FinPro.php       envio das notas Pix e Transferência ao Fin Pro (fila finpro_envios, cURL com prazo de 8 s)
   Dashboard.php    dados do Monitor da TV
   Cadastro.php, Pessoas.php, Fotos.php, Tablets.php
 views/             templates PHP; trecho_*.php são pedaços reaproveitados
@@ -58,7 +59,7 @@ Tamanho em linhas (19/10/2026): `public/index.php` 2.177, `src/Lavra.php` 1.244,
 - O esquema está em `database/schema.sql`. As colunas acrescentadas depois que a tabela já existia são criadas pelas funções `garantir*()` de `src/Db.php`.
 - No primeiro acesso depois de uma publicação, `Db::migrar()` roda o schema e as `garantir*()`, protegido por `GET_LOCK`. A marca da versão fica na tabela `schema_versao` (hash do schema + `Db::MIGRACOES`). Ao criar ou mudar uma `garantir*()`, troque `Db::MIGRACOES`.
 - As `garantir*()` precisam poder rodar mais de uma vez, e o código precisa aceitar linhas antigas (colunas novas com NULL ou valor padrão).
-- Arquivos fora do banco: fotos em `storage/fotos/` e sessões em `storage/sessoes/`. Em produção ficam num volume do Docker.
+- Arquivos fora do banco: fotos em `storage/fotos/`, PDFs das notas em `storage/notas/` (os lidos e ainda não lançados em `storage/notas/pendentes/`, apagados depois de um dia) e sessões em `storage/sessoes/`. Em produção ficam num volume do Docker.
 - Fuso: PHP em `America/Cuiaba` e conexão MySQL com `time_zone = '-04:00'`.
 
 ## Decisões
@@ -68,6 +69,7 @@ Tamanho em linhas (19/10/2026): `public/index.php` 2.177, `src/Lavra.php` 1.244,
 | Sem framework e sem Composer | Sistema pequeno, publicado também em hospedagem compartilhada; menos peças para o dono manter | Laravel/Slim com Composer | Se a hospedagem compartilhada sair e o código crescer muito |
 | Migração automática no primeiro acesso | O dono só toca em **Implantar**; não há etapa manual | Ferramenta de migração rodada no deploy | Se houver mudança de dados destrutiva ou demorada |
 | Marca da migração na tabela `schema_versao` (out/2026) | Banco novo ou zerado é montado de novo mesmo com a pasta `storage` antiga | Arquivo em `storage/` (usado até out/2026) | — |
+| Fila do Fin Pro tentada nas consultas do Monitor e do Painel (out/2026) | Sem cron nem processo a mais no contêiner; o envio na hora resolve quase tudo | Cron no contêiner ou fila externa | Se as notas passarem a esperar demais sem ninguém com o Monitor ou o Painel aberto |
 | App Android como WebView | As telas vêm do sistema; o app só cuida de som, tela acesa e arquivos | App nativo | Se precisar funcionar sem sinal |
 | Testes em `tests/` sem dependência no projeto | Rodam na nuvem com o PHP, o MariaDB e o Playwright do ambiente | PHPUnit via Composer | Se o projeto adotar Composer |
 

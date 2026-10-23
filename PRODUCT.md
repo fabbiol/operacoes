@@ -26,7 +26,8 @@ O escritório precisa saber, em tempo real, quanto material saiu para cada clien
 7. **Britador secundário**: o operador marca no tablet quando a britagem começa e termina e avisa os problemas (com ou sem parada), que ficam abertos até ele marcar resolvido.
 8. **Peças e pedido ao Compras**: o administrativo cadastra as peças de cada máquina (com foto), marca as que vão ser trocadas, escolhe com qual operador confirmou e envia a mensagem pronta pelo WhatsApp, com um link público das fotos. O pedido passa de enviado a trocado (com o horímetro) ou cancelado, e cada peça guarda a última troca.
 9. **Máquina na oficina e ordem de serviço**: o administrativo manda a máquina para a oficina (com o motivo e, se houver, o problema aberto); ninguém assume a máquina até ela ser liberada. Ao liberar, fica a ordem de serviço (o que foi feito, quem fez, pedido de peças e custo) e o problema ligado é resolvido. Ficha e Manutenção mostram a disponibilidade do mês; o Monitor mostra a máquina na oficina.
-10. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV (pátio, lavra até o britador primário e britador secundário; vendido do dia por forma de pagamento, escolhida na nota).
+10. **Notas por transferência no Fin Pro**: a nota principal paga por Pix ou Transferência (TED/DOC), não cancelada, vai sozinha para o Fin Pro (outro sistema do dono) com o PDF lido, ao lançar, ao corrigir a forma e pelo botão **Reenviar**. Se o Fin Pro não responder, fica na fila e é tentada de novo; a ficha mostra a situação.
+11. **Acompanhamento**: Painel do administrativo, Controle de carga (vendido no dia, carregado, saldos) e Monitor da TV (pátio, lavra até o britador primário e britador secundário; vendido do dia por forma de pagamento, escolhida na nota).
 
 ## O que já existe
 
@@ -40,7 +41,7 @@ Tudo o que está acima está em produção desde outubro de 2026, além de:
 ## Fora do escopo
 
 - Emitir nota fiscal (o sistema só lê a nota já emitida).
-- Financeiro e cobrança.
+- Financeiro e cobrança (a conferência do pagamento por transferência fica no Fin Pro).
 - Saída de material do estoque das pilhas.
 - Publicar o app em loja; ele é instalado pelo endereço `/app`.
 

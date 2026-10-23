@@ -80,7 +80,24 @@ O operador do britador secundário tem uma função só para ele: em **Pessoas**
 
 ## Forma de pagamento da nota
 
-Ao lançar a ordem, escolha a **Forma de pagamento** (Pix, Dinheiro, Cartão, Cheque, Boleto ou A prazo). O PDF da nota da Próspera não traz essa informação; quando a nota é lida pelo XML, o campo já vem preenchido. A ordem só é liberada para o pátio com a forma escolhida. Para corrigir depois, use o quadro do valor na ficha da ordem. O Monitor soma o vendido do dia por forma.
+Ao lançar a ordem, escolha a **Forma de pagamento** (Pix, Transferência (TED/DOC), Dinheiro, Cartão, Cheque, Boleto ou A prazo). O PDF da nota da Próspera não traz essa informação; quando a nota é lida pelo XML, o campo já vem preenchido. A ordem só é liberada para o pátio com a forma escolhida. Para corrigir depois, use o quadro do valor na ficha da ordem. O Monitor soma o vendido do dia por forma.
+
+## Integração com o Fin Pro
+
+As notas pagas por **Pix** ou **Transferência (TED/DOC)** vão sozinhas para o Fin Pro, na aba "Transferências de clientes", para conferir com o extrato do banco. Vai a nota quando é lançada, quando a forma é corrigida na ficha e quando você toca em **Reenviar ao Fin Pro** na ficha da ordem. As outras formas e as notas canceladas não vão.
+
+- O PDF lido em **Ler a nota fiscal** fica guardado com a ordem e vai junto. Na ficha, o link **PDF da nota** abre o arquivo. Ordem lançada à mão fica sem PDF.
+- A ficha mostra "Enviada ao Fin Pro em ...", "Esperando envio ao Fin Pro: <motivo>" ou "Fin Pro não configurado".
+- Se o Fin Pro estiver fora do ar, a nota espera e o sistema tenta de novo sozinho enquanto o Monitor da TV ou o Painel estiverem abertos (a cada 5 minutos, depois com mais intervalo).
+
+Para ligar, no Easypanel, em **Ambiente**, acrescente as duas variáveis e toque em **Implantar**:
+
+```
+FINPRO_URL=
+FINPRO_TOKEN=
+```
+
+`FINPRO_URL` é o endereço do Fin Pro (por exemplo `https://finpro.seudominio.com.br`). `FINPRO_TOKEN` é uma senha longa, a mesma que vai na `OPERACOES_TOKEN` do Fin Pro. Não mande essa senha por mensagem nem a coloque no GitHub.
 
 ## Local no Windows
 

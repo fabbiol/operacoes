@@ -43,6 +43,56 @@ final class NotaFiscal
         return self::ler($conteudo);
     }
 
+    /**
+     * Guarda o PDF lido até a ordem ser lançada (storage/notas/pendentes) e devolve o nome sorteado,
+     * que vai escondido no formulário. Sem conseguir guardar, a leitura segue sem o PDF.
+     */
+    public static function guardarPdf(string $campo = 'nota'): ?string
+    {
+        $pasta = OPERACOES_ROOT . '/storage/notas/pendentes';
+        if (!is_dir($pasta) && !@mkdir($pasta, 0775, true)) {
+            return null;
+        }
+        // O PDF lido e não lançado fica para trás: some depois de um dia.
+        foreach (glob($pasta . '/*.pdf') ?: [] as $velho) {
+            if ((int) @filemtime($velho) < time() - 86400) {
+                @unlink($velho);
+            }
+        }
+        $nome = bin2hex(random_bytes(16));
+
+        return @move_uploaded_file((string) ($_FILES[$campo]['tmp_name'] ?? ''), $pasta . '/' . $nome . '.pdf') ? $nome : null;
+    }
+
+    /** Liga o PDF guardado na leitura à ordem lançada (storage/notas/<id>.pdf). Nome inválido ou vencido: fica sem PDF. */
+    public static function ligarPdf(int $ordemId, string $nome): void
+    {
+        $origem = OPERACOES_ROOT . '/storage/notas/pendentes/' . $nome . '.pdf';
+        if (!preg_match('/^[0-9a-f]{32}$/', $nome) || !is_file($origem)) {
+            return;
+        }
+        if (!@rename($origem, OPERACOES_ROOT . '/storage/notas/' . $ordemId . '.pdf')) {
+            return;
+        }
+        Db::pdo()->prepare('UPDATE fila_carregamentos SET nf_arquivo = ? WHERE id = ?')->execute(['notas/' . $ordemId . '.pdf', $ordemId]);
+    }
+
+    /** Caminho do PDF da nota da ordem, conferido para não sair da pasta storage/notas; null se não tem. */
+    public static function arquivoPdf(array $ordem): ?string
+    {
+        $relativo = (string) ($ordem['nf_arquivo'] ?? '');
+        if (!preg_match('#^notas/(\d+)\.pdf$#', $relativo, $partes) || (int) $partes[1] !== (int) ($ordem['id'] ?? 0)) {
+            return null;
+        }
+        $base = realpath(OPERACOES_ROOT . '/storage/notas');
+        $arquivo = realpath(OPERACOES_ROOT . '/storage/' . $relativo);
+        if ($base === false || $arquivo === false || !is_file($arquivo)) {
+            return null;
+        }
+
+        return str_starts_with(str_replace('\\', '/', $arquivo), rtrim(str_replace('\\', '/', $base), '/') . '/') ? $arquivo : null;
+    }
+
     /** @return array<string, mixed> */
     public static function ler(string $conteudo): array
     {
@@ -145,6 +195,7 @@ final class NotaFiscal
             '14' => 'prazo',
             '15' => 'boleto',
             '17' => 'pix',
+            '18' => 'transferencia',
         ];
         foreach (self::nos($nota, './*[local-name()="pag"]/*[local-name()="detPag"]/*[local-name()="tPag"]') as $codigo) {
             $forma = $formas[trim((string) $codigo)] ?? null;
