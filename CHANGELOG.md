@@ -1,5 +1,14 @@
 # O que mudou
 
+## Outubro de 2026: quantidade com ponto e cancelamento no fracionado
+
+- Na quantidade da ordem e no que foi carregado, **"1.500" agora é mil e quinhentos**. Antes virava 1,5 t sem aviso. Vírgula ou ponto com até 2 casas continuam valendo ("2,5" ou "2.5"); com mais casas, o sistema pede para corrigir em vez de arredondar escondido.
+- Ao **cancelar uma viagem do fracionado que já saiu**, o que ela levou volta para o saldo da nota: a viagem em **Saldo a buscar** é ajustada, ou criada se não houver. Antes o saldo ficava errado e a nota podia aparecer como entregue.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco não muda.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: CNPJ/CPF do cliente
 
 - **Ler a nota fiscal** agora lê também o CNPJ ou CPF do cliente, no PDF e no XML. Se a nota não trouxer (ou os números não conferirem), a tela avisa.
