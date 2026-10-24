@@ -27,4 +27,18 @@ ok(erro(fn () => Horimetro::corrigirEntrada('pa', 2, $entrada, '490', 'Pedro')) 
 $nova = (int) $v("SELECT entrada_id FROM maquina_posse WHERE usuario='Pedro'");
 ok(erro(fn () => Horimetro::corrigirEntrada('pa', 2, $nova, '490', 'Pedro')) === '', 'segunda correção com o mesmo valor');
 ok($v("SELECT COUNT(*) FROM horimetros WHERE tipo='pa' AND maquina_id=2 AND anulado_em IS NOT NULL") === '1' && $v("SELECT COUNT(*) FROM horimetros WHERE tipo='pa' AND maquina_id=2 AND anulado_em IS NULL") === '1', 'anulou uma vez só', $v("SELECT GROUP_CONCAT(CONCAT(leitura,'/',IFNULL(anulado_em,'-'))) FROM horimetros WHERE tipo='pa' AND maquina_id=2"));
+
+// 4. Cancelar uma viagem do fracionado que já saiu: o que ela levou volta para o saldo (nota de 10: viagem 1 com 3, viagem 2 com 6, saldo 1).
+$viagem2 = (int) $v("SELECT id FROM fila_carregamentos WHERE ordem_principal_id=1 AND viagem=2");
+$aviso = '';
+ok(erro(function () use ($viagem2, &$aviso) { $aviso = Operacoes::cancelar($viagem2, 'finalizou o cartão errado', 'Fabio'); }) === ''
+    && $v("SELECT quantidade_autorizada FROM fila_carregamentos WHERE ordem_principal_id=1 AND status='saldo'") === '7.00',
+    'cancelar a viagem 2: o saldo a buscar passa de 1 para 7 t', $aviso);
+ok(str_contains($aviso, 'ficou com o saldo de 7,00 t') && Operacoes::viagensDe(1)['saldo'] === 7.0, 'aviso e saldo da nota batem', $aviso);
+// Sem viagem pendente: o cliente levou o saldo (7), essa viagem é cancelada e o saldo volta como viagem nova.
+$pdo->exec("UPDATE fila_carregamentos SET status='aguardando_conferencia', quantidade_carregada=7 WHERE ordem_principal_id=1 AND status='saldo'");
+$ultima = (int) $v("SELECT id FROM fila_carregamentos WHERE ordem_principal_id=1 AND status='aguardando_conferencia'");
+ok(erro(fn () => Operacoes::cancelar($ultima, '', 'Fabio')) === ''
+    && $v("SELECT quantidade_autorizada FROM fila_carregamentos WHERE ordem_principal_id=1 AND status='saldo'") === '7.00',
+    'cancelar a última viagem que saiu: os 7 t voltam como viagem em Saldo a buscar');
 fim();

@@ -2088,8 +2088,8 @@ function tela_cancelar(int $id, string $method): void
     if ($method === 'POST') {
         csrf_check();
         try {
-            Operacoes::cancelar($id, (string) ($_POST['motivo'] ?? ''), Auth::usuario());
-            flash_set($ordem['status'] === 'saldo' ? 'Saldo encerrado.' : 'Ordem cancelada.');
+            $aviso = Operacoes::cancelar($id, (string) ($_POST['motivo'] ?? ''), Auth::usuario());
+            flash_set(($ordem['status'] === 'saldo' ? 'Saldo encerrado.' : 'Ordem cancelada.') . $aviso);
             redirect('/ordens/' . $id);
         } catch (InvalidArgumentException $e) {
             $erro = $e->getMessage();

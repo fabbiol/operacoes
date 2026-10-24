@@ -58,10 +58,11 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 **unitarios** (`tests/unitarios/`, PHP puro, sem banco)
 - `leitura_nota_xml` — regra de unidades e datas na leitura do XML da nota (soma só toneladas, unidade desconhecida, leiaute antigo só com a data).
 - `documento_nota` — CNPJ/CPF do cliente: dígitos verificadores, formatação e leitura do destinatário no XML e no PDF das notas sintéticas (a parte do PDF precisa do `pdftotext`).
+- `quantidade` — quantidade digitada: "1.500" é milhar, vírgula ou ponto com até 2 casas, mais casas é recusado.
 
 **integracao** (`tests/integracao/`, banco temporário; PHP direto no código ou HTTP puro)
 - `lavra` — relatório da lavra: médias de fila, estrada, volta e ciclo; garagem, oficina, fila que atravessa a noite, desconto da limpeza da escavadeira.
-- `finalizar_corrigir_horimetro` — quem pode finalizar a carga, correção do carregado (soma das viagens do fracionado), correção da entrada do horímetro.
+- `finalizar_corrigir_horimetro` — quem pode finalizar a carga, correção do carregado (soma das viagens do fracionado), cancelar viagem do fracionado que já saiu (o saldo é refeito), correção da entrada do horímetro.
 - `posse` — posse das máquinas (pá, retro, caminhão): quem está com quê, liberação pelo administrativo, dois toques ao mesmo tempo, sessão antiga que vira posse no banco.
 - `varrer_telas` — abre as telas principais com cada papel (administrativo, operadora, motorista, "ambos") e procura erro do PHP ou resposta 5xx.
 - `trocar_nome` — trocar o nome de uma pessoa leva o histórico junto; pessoa de `APP_USUARIOS` não troca.
