@@ -274,9 +274,9 @@ final class Operacoes
                 $ordem = sprintf('CAR-%03d', ((int) $ultimo) + 1);
                 $comando = $pdo->prepare(
                     'INSERT INTO fila_carregamentos (
-                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, nf_pagamento, material_id, quantidade_autorizada, unidade,
+                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, nf_pagamento, nf_documento, material_id, quantidade_autorizada, unidade,
                         fracionado, observacoes, status, autorizado_por, autorizado_em
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 $status = $liberar ? 'liberado' : 'aguardando_autorizacao';
                 $comando->execute([
@@ -290,6 +290,7 @@ final class Operacoes
                     $dados['nf_chave'],
                     $dados['nf_valor'],
                     $dados['nf_pagamento'],
+                    $dados['nf_documento'],
                     $dados['material_id'],
                     $dados['quantidade_autorizada'],
                     $dados['unidade'],
@@ -359,7 +360,7 @@ final class Operacoes
         }
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
-             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, nf_pagamento = ?, material_id = ?,
+             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, nf_pagamento = ?, nf_documento = ?, material_id = ?,
                  quantidade_autorizada = ?, unidade = ?, fracionado = ?, observacoes = ?
              WHERE id = ? AND status IN ('aguardando_autorizacao', 'liberado', 'saldo')"
         );
@@ -373,6 +374,7 @@ final class Operacoes
             $dados['nf_chave'],
             $dados['nf_valor'],
             $dados['nf_pagamento'],
+            $dados['nf_documento'],
             $dados['material_id'],
             $dados['quantidade_autorizada'],
             $dados['unidade'],
@@ -613,9 +615,9 @@ final class Operacoes
             . formatar_quantidade($resto) . ' ' . unidade_rotulo((string) $ordem['unidade']) . '.';
         Db::pdo()->prepare(
             "INSERT INTO fila_carregamentos (
-                ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, material_id, quantidade_autorizada, unidade,
+                ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_documento, nf_valor, material_id, quantidade_autorizada, unidade,
                 fracionado, ordem_principal_id, viagem, observacoes, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 1, ?, ?, ?, 'saldo')"
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, 1, ?, ?, ?, 'saldo')"
         )->execute([
             $codigo,
             agora_sql(),
@@ -625,6 +627,7 @@ final class Operacoes
             $ordem['nf_emitida_em'] ?? null,
             $ordem['nf_emitida_data'] ?? null,
             $ordem['nf_chave'] ?? null,
+            $ordem['nf_documento'] ?? null,
             $ordem['material_id'],
             number_format($resto, 2, '.', ''),
             $ordem['unidade'],
@@ -1000,6 +1003,7 @@ final class Operacoes
             'nf_chave' => self::chaveDaNota($post, $atual),
             'nf_valor' => self::valorDaNota($post, $atual),
             'nf_pagamento' => self::pagamentoDaNota($post, $atual),
+            'nf_documento' => self::documentoDaNota($post, $atual),
             'fracionado' => self::fracionadoDoFormulario($post, $atual),
             'material_id' => $materialId,
             'quantidade_autorizada' => parse_quantidade((string) ($post['quantidade_autorizada'] ?? '')),
@@ -1097,6 +1101,21 @@ final class Operacoes
         }
 
         return $forma;
+    }
+
+    /** CNPJ/CPF do cliente (opcional), guardado só com os números. Formulário sem o campo: fica o que estava. */
+    private static function documentoDaNota(array $post, ?array $atual): ?string
+    {
+        if (!array_key_exists('nf_documento', $post)) {
+            return $atual['nf_documento'] ?? null;
+        }
+        $bruto = trim((string) $post['nf_documento']);
+        if ($bruto === '') {
+            return null;
+        }
+
+        return NotaFiscal::documento($bruto)
+            ?? throw new InvalidArgumentException('O CNPJ/CPF do cliente não confere. Confira os números ou deixe em branco.');
     }
 
     /** Fracionado: marcado no formulário. As viagens seguintes de uma nota fracionada continuam fracionadas. */

@@ -1892,6 +1892,7 @@ function tela_ordem(int $id, string $method): void
     render('ordem', [
         'titulo' => $ordem['ordem'],
         'ordem' => $ordem,
+        'documento' => NotaFiscal::formatarDocumento($ordem['nf_documento'] ?? null),
         'grupo' => (int) ($ordem['fracionado'] ?? 0) === 1 ? Operacoes::viagensDe(Operacoes::grupo($ordem)) : null,
         'editavel' => $editavel,
         'formulario' => $editavel ? dados_formulario($ordem, null, null) : null,
@@ -1973,6 +1974,7 @@ function tela_ler_nota(string $method): void
         'nf_chave' => (string) ($nota['chave'] ?? ''),
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
         'nf_pagamento' => (string) ($nota['pagamento'] ?? ''),
+        'nf_documento' => NotaFiscal::formatarDocumento($nota['documento'] ?? null),
     ]);
     if ($nota['origem'] === 'pdf') {
         $dados['valor']['nota_arquivo'] = NotaFiscal::guardarPdf() ?? '';
@@ -1996,6 +1998,9 @@ function leitura_da_nota(array $nota, ?int $materialId): array
     }
     if ($nota['cliente'] === null) {
         $avisos[] = 'Não achei o cliente na nota. Preencha o cliente.';
+    }
+    if (($nota['documento'] ?? null) === null) {
+        $avisos[] = 'Não achei o CNPJ/CPF do cliente na nota (ou os números não conferem). Preencha o CNPJ/CPF do cliente, se tiver.';
     }
     if ($nota['pedido'] === null) {
         $avisos[] = 'Não achei o número do pedido na nota. Preencha o pedido.';
@@ -2516,6 +2521,9 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     ? (string) ($post['nf_valor'] ?? '')
                     : (is_array($ordem) && $ordem['nf_valor'] !== null ? formatar_quantidade((string) $ordem['nf_valor']) : ''),
                 'nf_pagamento' => (string) ($fonte['nf_pagamento'] ?? ''),
+                'nf_documento' => $post !== null
+                    ? (string) ($post['nf_documento'] ?? '')
+                    : NotaFiscal::formatarDocumento(is_array($ordem) ? ($ordem['nf_documento'] ?? null) : null),
                 'fracionado' => $post !== null ? isset($post['fracionado']) : (is_array($ordem) && (int) ($ordem['fracionado'] ?? 0) === 1),
                 'nota_arquivo' => (string) ($post['nota_arquivo'] ?? ''),
             ],

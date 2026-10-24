@@ -175,6 +175,7 @@ final class NotaFiscal
             'nf' => $numero !== '' ? ltrim($numero, '0') : null,
             'serie' => self::texto($nota, './*[local-name()="ide"]/*[local-name()="serie"]'),
             'cliente' => self::texto($nota, './*[local-name()="dest"]/*[local-name()="xNome"]'),
+            'documento' => self::texto($nota, './*[local-name()="dest"]/*[local-name()="CNPJ" or local-name()="CPF"]'),
             'pedido' => $pedido,
             'emitida_em' => self::horaLocal($emissao),
             'data_emissao' => $soData,
@@ -269,6 +270,7 @@ final class NotaFiscal
             'nf' => $numero !== '' ? $numero : null,
             'serie' => $serie,
             'cliente' => $cliente,
+            'documento' => self::documentoDoPdf($linhas, $texto),
             'pedido' => self::pedidoNoTexto($adicionais !== '' ? $adicionais : $texto),
             'emitida_em' => $emitida,
             'data_emissao' => $dataEmissao,
@@ -399,6 +401,81 @@ final class NotaFiscal
         }
 
         return null;
+    }
+
+    /**
+     * O CNPJ/CPF do destinatário: o número embaixo de "CNPJ / CPF", no quadro do destinatário, ou, sem ele,
+     * o do canhoto ("DESTINATARIO: NOME - endereço, CNPJ: ..."). Volta como está; resultado() confere os dígitos.
+     */
+    private static function documentoDoPdf(array $linhas, string $texto): ?string
+    {
+        $numero = '/(?<!\d)(?:\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}|\d{3}\.?\d{3}\.?\d{3}-?\d{2})(?!\d)/';
+        $quadro = self::linhaComTitulo($linhas, ['DESTINATARIO/REMETENTE']);
+        if ($quadro !== null) {
+            for ($i = $quadro; $i < min(count($linhas), $quadro + 4); $i++) {
+                $coluna = self::posicaoTitulo($linhas[$i], 'CNPJ/CPF');
+                if ($coluna === null) {
+                    continue;
+                }
+                for ($j = $i + 1; $j < min(count($linhas), $i + 3); $j++) {
+                    if (!preg_match_all($numero, $linhas[$j], $achados, PREG_OFFSET_CAPTURE)) {
+                        continue;
+                    }
+                    // O número fica centrado embaixo do título e pode começar antes dele: vale o mais perto da coluna.
+                    $melhor = null;
+                    $distancia = PHP_INT_MAX;
+                    foreach ($achados[0] as [$valor, $byte]) {
+                        $longe = abs(mb_strlen(substr($linhas[$j], 0, $byte), 'UTF-8') - $coluna);
+                        if ($longe < $distancia) {
+                            [$melhor, $distancia] = [$valor, $longe];
+                        }
+                    }
+
+                    return $melhor;
+                }
+            }
+        }
+        if (preg_match('/DESTINAT\S*\s*:.{0,400}?\b(?:CNPJ|CPF)\s*:\s*([\d.\/-]{11,18})/su', $texto, $achado)) {
+            return $achado[1];
+        }
+
+        return null;
+    }
+
+    /** CNPJ (14 números) ou CPF (11) só com os números, se os dígitos verificadores conferem; senão null. */
+    public static function documento(string $bruto): ?string
+    {
+        $numero = self::digitos($bruto);
+        $tamanho = strlen($numero);
+        if (($tamanho !== 11 && $tamanho !== 14) || preg_match('/^(\d)\1*$/', $numero)) {
+            return null;
+        }
+        for ($dv = $tamanho - 2; $dv < $tamanho; $dv++) {
+            $soma = 0;
+            for ($i = 0; $i < $dv; $i++) {
+                // Pesos da direita para a esquerda: 2, 3, 4... (no CNPJ voltam a 2 depois do 9).
+                $peso = $dv - $i + 1;
+                $soma += (int) $numero[$i] * ($tamanho === 14 ? ($peso - 2) % 8 + 2 : $peso);
+            }
+            $resto = $soma % 11;
+            if ((int) $numero[$dv] !== ($resto < 2 ? 0 : 11 - $resto)) {
+                return null;
+            }
+        }
+
+        return $numero;
+    }
+
+    /** "98765432000198" em "98.765.432/0001-98" e "52998224725" em "529.982.247-25"; outro tamanho volta como está. */
+    public static function formatarDocumento(?string $numero): string
+    {
+        $numero = (string) $numero;
+
+        return match (strlen($numero)) {
+            11 => (string) preg_replace('/^(\d{3})(\d{3})(\d{3})(\d{2})$/', '$1.$2.$3-$4', $numero),
+            14 => (string) preg_replace('/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/', '$1.$2.$3/$4-$5', $numero),
+            default => $numero,
+        };
     }
 
     /**
@@ -664,6 +741,8 @@ final class NotaFiscal
             'nf' => $dados['nf'] ?? null,
             'serie' => (string) ($dados['serie'] ?? ''),
             'cliente' => $cliente !== '' ? mb_substr($cliente, 0, 160, 'UTF-8') : null,
+            // CNPJ/CPF do destinatário, só os números; null se não veio ou se os dígitos verificadores não conferem.
+            'documento' => self::documento((string) ($dados['documento'] ?? '')),
             'pedido' => $pedido !== '' ? mb_substr($pedido, 0, 60, 'UTF-8') : null,
             'material' => $material,
             'quantidade' => $quantidade !== null && $quantidade > 0 ? round($quantidade, 2) : null,

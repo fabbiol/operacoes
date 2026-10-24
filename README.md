@@ -87,6 +87,7 @@ Ao lançar a ordem, escolha a **Forma de pagamento** (Pix, Transferência (TED/D
 As notas pagas por **Pix** ou **Transferência (TED/DOC)** vão sozinhas para o Fin Pro, na aba "Transferências de clientes", para conferir com o extrato do banco. Vai a nota quando é lançada, quando a forma é corrigida na ficha e quando você toca em **Reenviar ao Fin Pro** na ficha da ordem. As outras formas e as notas canceladas não vão.
 
 - O PDF lido em **Ler a nota fiscal** fica guardado com a ordem e vai junto. Na ficha, o link **PDF da nota** abre o arquivo. Ordem lançada à mão fica sem PDF.
+- O **CNPJ/CPF do cliente** é lido da nota (PDF ou XML) e vai junto para o Fin Pro. Ele aparece no formulário da ordem para conferir ou corrigir (pode digitar com ou sem pontos; o sistema confere os números) e na ficha. Se a nota não trouxer, a leitura avisa e o campo pode ficar em branco.
 - A ficha mostra "Enviada ao Fin Pro em ...", "Esperando envio ao Fin Pro: <motivo>" ou "Fin Pro não configurado".
 - Se o Fin Pro estiver fora do ar, a nota espera e o sistema tenta de novo sozinho enquanto o Monitor da TV ou o Painel estiverem abertos (a cada 5 minutos, depois com mais intervalo).
 

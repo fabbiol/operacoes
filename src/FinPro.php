@@ -154,6 +154,8 @@ final class FinPro
             'emitida_em' => (string) ($ordem['nf_emitida_em'] ?: ($ordem['nf_emitida_data'] ?: substr((string) $ordem['data'], 0, 10))),
             'forma' => (string) $ordem['nf_pagamento'],
             'chave' => (string) ($ordem['nf_chave'] ?? ''),
+            // CNPJ/CPF do cliente, só os números; vazio quando a ordem não tem.
+            'documento' => (string) ($ordem['nf_documento'] ?? ''),
         ];
         $pdf = NotaFiscal::arquivoPdf($ordem);
         if ($pdf !== null) {

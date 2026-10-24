@@ -57,6 +57,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 
 **unitarios** (`tests/unitarios/`, PHP puro, sem banco)
 - `leitura_nota_xml` — regra de unidades e datas na leitura do XML da nota (soma só toneladas, unidade desconhecida, leiaute antigo só com a data).
+- `documento_nota` — CNPJ/CPF do cliente: dígitos verificadores, formatação e leitura do destinatário no XML e no PDF das notas sintéticas (a parte do PDF precisa do `pdftotext`).
 
 **integracao** (`tests/integracao/`, banco temporário; PHP direto no código ou HTTP puro)
 - `lavra` — relatório da lavra: médias de fila, estrada, volta e ciclo; garagem, oficina, fila que atravessa a noite, desconto da limpeza da escavadeira.
@@ -76,13 +77,13 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `problema_maquina` — "Como ficou a máquina?" ao soltar, Painel, Manutenção, ficha, resolver, liberar com problema.
 - `lavra_encerrar_horimetro` — encerrar viagem como problema, Oficina, horímetro com ponto de milhar, entrada digitada errada.
 - `valor_nota` — nota sem valor no Monitor e no Controle; preencher e corrigir o valor.
-- `nota_leitura`, `nota_m3`, `nota_unidade_desconhecida` — leitura de XML e PDF (notas **sintéticas** de `tests/notas/`), nota repetida, material fora do cadastro, m³, unidades desconhecidas.
+- `nota_leitura`, `nota_m3`, `nota_unidade_desconhecida` — leitura de XML e PDF (notas **sintéticas** de `tests/notas/`), CNPJ/CPF do cliente, nota repetida, material fora do cadastro, m³, unidades desconhecidas.
 - `nota_real` — a mesma leitura com a nota real do cliente (só com `NOTA_REAL_DIR`; nada dela está escrito nos testes).
 - `tv_tela_cheia`, `tv_toque`, `tv_tamanhos` — Monitor da TV em tela cheia, com mouse e com toque, e em vários tamanhos de televisão.
 - `tv_dia_cheio` — Monitor num dia movimentado (pás, pista, problemas, limpeza, escavadeira na oficina, britador, vendas por forma): cada aviso na coluna certa e nada cortado.
 - `britador` — operador do britador secundário: cadastro, iniciar, problema, resolver, terminar e o que o Monitor recebe.
 - `forma_pagamento` — forma de pagamento obrigatória para liberar, corrigida na ficha e somada por forma no vendido.
-- `finpro` — integração com o Fin Pro contra um servidor falso (Node, no próprio teste): nota lida do PDF e lançada com Pix vai na hora com o PDF e a chave Bearer; Dinheiro não vai; resposta 500 deixa esperando com o motivo e a consulta do Monitor tenta de novo na hora certa; Reenviar; forma corrigida para Transferência (formulário e quadro do valor); o PDF abre na ficha.
+- `finpro` — integração com o Fin Pro contra um servidor falso (Node, no próprio teste): nota lida do PDF e lançada com Pix vai na hora com o PDF e a chave Bearer; Dinheiro não vai; resposta 500 deixa esperando com o motivo e a consulta do Monitor tenta de novo na hora certa; Reenviar; forma corrigida para Transferência (formulário e quadro do valor); o PDF abre na ficha; CNPJ/CPF do cliente lido, recusado com dígito errado, mostrado formatado e enviado só com os números.
 - `planilha_estoque` — a planilha do estoque entra uma vez, dia por dia, só com a pá 656, a Brita 01 e o Pedrisco no cadastro.
 - `oficina` — máquina com alguém não vai para a oficina; na oficina, some da escolha de máquina e o servidor recusa assumir e iniciar carga com ela; Monitor e Manutenção mostram; liberar exige o que foi feito, grava a ordem de serviço com o custo e resolve o problema ligado; disponibilidade do mês; 403 para o operador.
 - `pecas` — peças da máquina (com foto), pedido ao Compras confirmado com o operador, mensagem do WhatsApp, página pública sem login (e 404 sem código válido), 403 para o operador, trocado com horímetro e última troca, cópia do item no pedido.
@@ -98,7 +99,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - Cada teste de integração ou de tela roda no **próprio ambiente**: pasta temporária (`op-teste-*`) com cópia de `public/`, `src/`, `views/` e `database/` e um `storage/` vazio; banco novo `op_t_<nome>_<sorteio>` com os dados de `tests/lib/seed.sql`; servidor `php -S` numa porta livre de 8170 a 8199.
 - Os testes usam só o usuário `operacoes_teste`, que existe só em `127.0.0.1` e só enxerga bancos que começam com `op_t_`. Eles não conseguem tocar o banco real nem outro `op_*`. Nenhum teste fala com produção.
 - Ao terminar (bem, mal ou com Ctrl+C), o runner mata o servidor, apaga o banco e remove a pasta. Rodar duas vezes seguidas não deixa `op_t_*`, servidor nas portas 8170–8199 nem pastas temporárias.
-- As pessoas e senhas dos testes (`Fabio`, `Maria`, `Pedro`, `Joao`, `Ana`) são falsas e só existem nesses servidores temporários. As notas de `tests/notas/` são sintéticas (CNPJ fictício; `gerar.py` as recria com `brazilfiscalreport`). Nota real de cliente nunca entra aqui.
+- As pessoas e senhas dos testes (`Fabio`, `Maria`, `Pedro`, `Joao`, `Ana`) são falsas e só existem nesses servidores temporários. As notas de `tests/notas/` são sintéticas (CNPJ e CPF fictícios; o destinatário da nota1 tem CNPJ válido, o da nota2 CPF válido e o da nota3 CNPJ com dígito errado; `gerar.py` as recria com `brazilfiscalreport`). Nota real de cliente nunca entra aqui.
 
 ## Detalhes que pegam desprevenido
 

@@ -8,6 +8,9 @@
 
 <dl class="ficha">
     <div><dt>Cliente</dt><dd><?= e($ordem['cliente']) ?></dd></div>
+    <?php if (!empty($documento)): ?>
+        <div><dt>CNPJ/CPF do cliente</dt><dd><?= e($documento) ?></dd></div>
+    <?php endif; ?>
     <div><dt>Pedido</dt><dd><?= e($ordem['pedido']) ?></dd></div>
     <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php elseif (!empty($ordem['nf_emitida_data'])): ?> · emitida em <?= e(date('d/m/Y', (int) strtotime((string) $ordem['nf_emitida_data']))) ?><?php endif; ?><?php if (!empty($ordem['nf_arquivo'])): ?> · <a href="<?= e(url('ordens/' . $ordem['id'] . '/nota')) ?>" target="_blank" rel="noopener">PDF da nota</a><?php endif; ?></dd></div>
     <div><dt>Material</dt><dd><?php

@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     nf_valor DECIMAL(12,2) NULL,
     nf_pagamento VARCHAR(16) NULL,
     nf_arquivo VARCHAR(80) NULL,
+    nf_documento VARCHAR(14) NULL,
     material_id INT UNSIGNED NOT NULL,
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,
