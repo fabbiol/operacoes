@@ -845,9 +845,9 @@ a.venda:hover { border-color: var(--ink); }
 .manutencao-aviso li { border-left: 6px solid #b88a00; border-radius: 10px; background: white; }
 .manutencao-aviso li.faixa-25 { border-left-color: #c46a12; }
 .manutencao-aviso li.faixa-8, .manutencao-aviso li.faixa-0 { border-left-color: var(--saida); }
-.manutencao-aviso a, .manutencao-aviso .manutencao-linha { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 8px 10px; color: var(--ink); text-decoration: none; }
-.manutencao-aviso a:hover { outline: 2px solid #efe6c9; border-radius: 10px; }
-.manutencao-aviso a span { flex: 1 1 220px; }
+.manutencao-aviso li a, .manutencao-aviso .manutencao-linha { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 8px 10px; color: var(--ink); text-decoration: none; }
+.manutencao-aviso li a:hover { outline: 2px solid #efe6c9; border-radius: 10px; }
+.manutencao-aviso li a span { flex: 1 1 220px; }
 .manutencao-aviso small { font-weight: 700; }
 .manutencao-aviso li.faixa-8 small, .manutencao-aviso li.faixa-0 small { color: var(--saida); }
 .manutencao-aviso .nota { margin: 8px 0 0; }
