@@ -3,12 +3,13 @@
 declare(strict_types=1);
 
 /**
- * Peças de cada máquina (função, marca, código, quantidade e foto) e os pedidos ao Compras pelo WhatsApp.
+ * Peças de cada máquina (função, marca, código, quantidade e até 5 fotos) e os pedidos ao Compras pelo WhatsApp.
  * O pedido guarda uma cópia de cada item e um código secreto para a página pública das fotos.
  */
 final class Pecas
 {
     public const TIPOS = ['pa', 'retro', 'caminhao'];
+    public const MAX_FOTOS = 5;
 
     private const NOME_MAQUINA = "COALESCE(pa.maquina, r.maquina, c.placa, 'Máquina')";
     private const JUNTA_MAQUINA = "LEFT JOIN pas_carregadeiras pa ON p.tipo = 'pa' AND pa.id = p.maquina_id
@@ -18,14 +19,16 @@ final class Pecas
     public static function daMaquina(string $tipo, int $maquinaId): array
     {
         $busca = Db::pdo()->prepare(
-            'SELECT id, funcao, marca, codigo, quantidade, foto, ativo FROM maquina_pecas
+            'SELECT id, funcao, marca, codigo, quantidade, ativo FROM maquina_pecas
              WHERE tipo = ? AND maquina_id = ? ORDER BY ativo DESC, funcao ASC, id ASC'
         );
         $busca->execute([$tipo, $maquinaId]);
         $pecas = $busca->fetchAll();
         $trocas = self::ultimasTrocas($tipo, $maquinaId);
+        $fotos = self::fotosDe(array_column($pecas, 'id'));
         foreach ($pecas as &$peca) {
             $peca['ultima_troca'] = $trocas[(int) $peca['id']] ?? null;
+            $peca['fotos'] = $fotos[(int) $peca['id']] ?? [];
         }
         unset($peca);
 
@@ -45,27 +48,24 @@ final class Pecas
     {
         self::exigirMaquina($tipo, $maquinaId);
         $dados = self::ler($post);
-        $pendente = Fotos::receber(Fotos::LADO_MAQUINA);
+        $pendentes = self::receberFotos();
         try {
+            self::exigirLimite(count($pendentes));
             Db::pdo()->prepare(
                 'INSERT INTO maquina_pecas (tipo, maquina_id, funcao, marca, codigo, quantidade) VALUES (?, ?, ?, ?, ?, ?)'
             )->execute([$tipo, $maquinaId, $dados['funcao'], $dados['marca'], $dados['codigo'], $dados['quantidade']]);
             $id = (int) Db::pdo()->lastInsertId();
-            if ($pendente !== null) {
-                try {
-                    self::gravarFoto($id, $pendente);
-                    $pendente = null;
-                } catch (Throwable $e) {
-                    Db::pdo()->prepare('DELETE FROM maquina_pecas WHERE id = ?')->execute([$id]);
-                    throw $e;
-                }
+            try {
+                self::gravarFotos($id, $pendentes);
+            } catch (Throwable $e) {
+                self::removerFotos($id, array_column(self::fotosDe([$id])[$id] ?? [], 'id'));
+                Db::pdo()->prepare('DELETE FROM maquina_pecas WHERE id = ?')->execute([$id]);
+                throw $e;
             }
 
             return $id;
         } finally {
-            if ($pendente !== null && is_file($pendente['tmp'])) {
-                unlink($pendente['tmp']);
-            }
+            self::apagarTemporarios($pendentes);
         }
     }
 
@@ -73,21 +73,18 @@ final class Pecas
     {
         self::daPropriaMaquina($tipo, $maquinaId, $id);
         $dados = self::ler($post);
-        $pendente = Fotos::receber(Fotos::LADO_MAQUINA);
+        $pendentes = self::receberFotos();
         try {
+            $atuais = array_column(self::fotosDe([$id])[$id] ?? [], 'id');
+            $marcadas = array_map('intval', is_array($post['remover_fotos'] ?? null) ? $post['remover_fotos'] : []);
+            $remover = array_values(array_intersect($atuais, $marcadas));
+            self::exigirLimite(count($atuais) - count($remover) + count($pendentes));
             Db::pdo()->prepare('UPDATE maquina_pecas SET funcao = ?, marca = ?, codigo = ?, quantidade = ? WHERE id = ?')
                 ->execute([$dados['funcao'], $dados['marca'], $dados['codigo'], $dados['quantidade'], $id]);
-            if ($pendente !== null) {
-                self::gravarFoto($id, $pendente);
-                $pendente = null;
-            } elseif (isset($post['remover_foto'])) {
-                self::limparArquivos($id);
-                Db::pdo()->prepare('UPDATE maquina_pecas SET foto = NULL WHERE id = ?')->execute([$id]);
-            }
+            self::removerFotos($id, $remover);
+            self::gravarFotos($id, $pendentes);
         } finally {
-            if ($pendente !== null && is_file($pendente['tmp'])) {
-                unlink($pendente['tmp']);
-            }
+            self::apagarTemporarios($pendentes);
         }
     }
 
@@ -97,12 +94,18 @@ final class Pecas
         Db::pdo()->prepare('UPDATE maquina_pecas SET ativo = 1 - ativo WHERE id = ?')->execute([$id]);
     }
 
-    /** @return array{caminho: string, tipo: string}|null */
-    public static function arquivoFoto(int $id): ?array
+    /**
+     * O arquivo de uma foto da peça. A foto precisa ser dessa peça.
+     *
+     * @return array{caminho: string, tipo: string}|null
+     */
+    public static function arquivoFoto(int $pecaId, int $fotoId): ?array
     {
-        $peca = self::buscar($id);
-        $relativo = str_replace('\\', '/', (string) ($peca['foto'] ?? ''));
-        if (!preg_match('#^pecas/(\d+)\.(jpg|png|webp)$#', $relativo, $partes) || (int) $partes[1] !== $id) {
+        $busca = Db::pdo()->prepare('SELECT arquivo FROM peca_fotos WHERE id = ? AND peca_id = ? LIMIT 1');
+        $busca->execute([$fotoId, $pecaId]);
+        $relativo = str_replace('\\', '/', (string) $busca->fetchColumn());
+        // Antes de haver várias, a foto era pecas/<peça>.jpg; as novas são pecas/<peça>-<sorteio>.jpg.
+        if (!preg_match('#^pecas/(\d+)(?:-[0-9a-f]{8})?\.(jpg|png|webp)$#', $relativo, $partes) || (int) $partes[1] !== $pecaId) {
             return null;
         }
         $arquivo = OPERACOES_ROOT . '/storage/fotos/' . $relativo;
@@ -257,11 +260,14 @@ final class Pecas
         if (!$pedido) {
             return null;
         }
-        $itens = Db::pdo()->prepare(
-            'SELECT i.*, mp.foto FROM pecas_pedido_itens i LEFT JOIN maquina_pecas mp ON mp.id = i.peca_id WHERE i.pedido_id = ? ORDER BY i.id ASC'
-        );
+        $itens = Db::pdo()->prepare('SELECT * FROM pecas_pedido_itens WHERE pedido_id = ? ORDER BY id ASC');
         $itens->execute([$pedido['id']]);
         $pedido['itens'] = $itens->fetchAll();
+        $fotos = self::fotosDe(array_filter(array_column($pedido['itens'], 'peca_id')));
+        foreach ($pedido['itens'] as &$item) {
+            $item['fotos'] = $item['peca_id'] !== null ? ($fotos[(int) $item['peca_id']] ?? []) : [];
+        }
+        unset($item);
 
         return $pedido;
     }
@@ -345,29 +351,118 @@ final class Pecas
         }
     }
 
-    private static function gravarFoto(int $id, array $pendente): void
+    /**
+     * Fotos das peças, na ordem em que foram incluídas (a primeira aparece na lista).
+     *
+     * @param list<int|string> $pecaIds
+     * @return array<int, list<array{id: int, arquivo: string}>>
+     */
+    private static function fotosDe(array $pecaIds): array
     {
-        self::limparArquivos($id);
+        $pecaIds = array_values(array_unique(array_map('intval', $pecaIds)));
+        if ($pecaIds === []) {
+            return [];
+        }
+        $busca = Db::pdo()->prepare(
+            'SELECT id, peca_id, arquivo FROM peca_fotos WHERE peca_id IN (' . implode(',', array_fill(0, count($pecaIds), '?')) . ') ORDER BY id ASC'
+        );
+        $busca->execute($pecaIds);
+        $fotos = [];
+        foreach ($busca->fetchAll() as $linha) {
+            $fotos[(int) $linha['peca_id']][] = ['id' => (int) $linha['id'], 'arquivo' => (string) $linha['arquivo']];
+        }
+
+        return $fotos;
+    }
+
+    /**
+     * As fotos escolhidas no campo "fotos[]", conferidas e reduzidas.
+     *
+     * @return list<array{tmp: string, ext: string}>
+     */
+    private static function receberFotos(): array
+    {
+        $envio = $_FILES['fotos'] ?? null;
+        if (!is_array($envio) || !is_array($envio['error'] ?? null)) {
+            return [];
+        }
+        $pendentes = [];
+        try {
+            foreach (array_keys($envio['error']) as $i) {
+                $foto = Fotos::receberArquivo([
+                    'error' => $envio['error'][$i],
+                    'size' => $envio['size'][$i] ?? 0,
+                    'tmp_name' => $envio['tmp_name'][$i] ?? '',
+                ], Fotos::LADO_MAQUINA);
+                if ($foto !== null) {
+                    $pendentes[] = $foto;
+                }
+            }
+        } catch (Throwable $e) {
+            self::apagarTemporarios($pendentes);
+            throw $e;
+        }
+
+        return $pendentes;
+    }
+
+    private static function exigirLimite(int $total): void
+    {
+        if ($total > self::MAX_FOTOS) {
+            throw new InvalidArgumentException('Cada peça pode ter no máximo ' . self::MAX_FOTOS . ' fotos.');
+        }
+    }
+
+    /**
+     * Guarda as fotos recebidas; cada uma guardada sai da lista (o que sobrar é apagado por quem chamou).
+     *
+     * @param list<array{tmp: string, ext: string}> $pendentes
+     */
+    private static function gravarFotos(int $pecaId, array &$pendentes): void
+    {
+        if ($pendentes === []) {
+            return;
+        }
         $dir = OPERACOES_ROOT . '/storage/fotos/pecas';
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new InvalidArgumentException('Não foi possível guardar a foto.');
         }
-        $final = $dir . DIRECTORY_SEPARATOR . $id . '.' . $pendente['ext'];
-        if (!@rename($pendente['tmp'], $final)) {
-            if (!@copy($pendente['tmp'], $final)) {
-                throw new InvalidArgumentException('Não foi possível guardar a foto.');
+        while ($pendentes !== []) {
+            $pendente = $pendentes[0];
+            $relativo = 'pecas/' . $pecaId . '-' . bin2hex(random_bytes(4)) . '.' . $pendente['ext'];
+            $final = OPERACOES_ROOT . '/storage/fotos/' . $relativo;
+            if (!@rename($pendente['tmp'], $final)) {
+                if (!@copy($pendente['tmp'], $final)) {
+                    throw new InvalidArgumentException('Não foi possível guardar a foto.');
+                }
+                unlink($pendente['tmp']);
             }
-            unlink($pendente['tmp']);
+            array_shift($pendentes);
+            Db::pdo()->prepare('INSERT INTO peca_fotos (peca_id, arquivo) VALUES (?, ?)')->execute([$pecaId, $relativo]);
         }
-        Db::pdo()->prepare('UPDATE maquina_pecas SET foto = ? WHERE id = ?')->execute(['pecas/' . $id . '.' . $pendente['ext'], $id]);
     }
 
-    private static function limparArquivos(int $id): void
+    /** @param list<int> $fotoIds fotos dessa peça que saem */
+    private static function removerFotos(int $pecaId, array $fotoIds): void
     {
-        foreach (['jpg', 'png', 'webp'] as $ext) {
-            $arquivo = OPERACOES_ROOT . '/storage/fotos/pecas/' . $id . '.' . $ext;
+        foreach (self::fotosDe([$pecaId])[$pecaId] ?? [] as $foto) {
+            if (!in_array($foto['id'], $fotoIds, true)) {
+                continue;
+            }
+            Db::pdo()->prepare('DELETE FROM peca_fotos WHERE id = ?')->execute([$foto['id']]);
+            $arquivo = OPERACOES_ROOT . '/storage/fotos/' . $foto['arquivo'];
             if (is_file($arquivo)) {
                 unlink($arquivo);
+            }
+        }
+    }
+
+    /** @param list<array{tmp: string, ext: string}> $pendentes */
+    private static function apagarTemporarios(array $pendentes): void
+    {
+        foreach ($pendentes as $pendente) {
+            if (is_file($pendente['tmp'])) {
+                unlink($pendente['tmp']);
             }
         }
     }

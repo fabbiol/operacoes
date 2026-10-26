@@ -16,9 +16,9 @@
                 <strong><?= $n + 1 ?>. <?= e((string) $item['funcao']) ?></strong>
             </header>
             <p class="meta"><?= e(trim((string) $item['marca'] . ' ' . $item['codigo'])) ?> · <?= (int) $item['quantidade'] ?> un</p>
-            <?php if (!empty($item['foto'])): ?>
-                <img class="foto-atual" src="<?= e(url('compras/' . $pedido['codigo_publico'] . '/fotos/' . $item['id'])) ?>" alt="Foto: <?= e((string) $item['funcao']) ?>" loading="lazy" decoding="async">
-            <?php endif; ?>
+            <?php foreach ($item['fotos'] ?? [] as $f => $foto): ?>
+                <img class="foto-atual" src="<?= e(url('compras/' . $pedido['codigo_publico'] . '/fotos/' . $foto['id'])) ?>" alt="Foto <?= $f + 1 ?>: <?= e((string) $item['funcao']) ?>" loading="lazy" decoding="async">
+            <?php endforeach; ?>
         </article>
     <?php endforeach; ?>
 </div>

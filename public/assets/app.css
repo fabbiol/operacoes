@@ -340,6 +340,8 @@ pre.nota { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit;
 .carga { margin: 0; font-size: 18px; }
 .selo-vencida { background: #f3d2c6; color: #6d2e1b; }
 .selo-proxima { background: #efe6c9; color: #6a5420; }
+.selo-proxima.faixa-25 { background: #ffe3c2; color: #6a3d12; }
+.selo-proxima.faixa-8 { background: #f3d2c6; color: #6d2e1b; }
 .selo-em_dia { background: #d7efe8; color: #1d5c4a; }
 .selo-sem_leitura,
 .selo-sem_servico,
@@ -567,6 +569,11 @@ a.rosto:hover { border-color: var(--ink); }
 .enquadro-zoom span { font-size: 13px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); }
 .enquadro-zoom input { width: 100%; }
 .foto-atual { width: min(100%, 280px); height: 180px; object-fit: cover; border-radius: 14px; border: 1px solid var(--line); }
+.cartao .foto-atual + .foto-atual { margin-top: 8px; }
+.fotos-peca { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 12px; }
+.fotos-peca legend { padding: 0 4px; font-weight: 700; }
+.foto-peca { display: grid; gap: 6px; justify-items: start; }
+.foto-peca img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; background: #e7e1d6; }
 .dica { color: var(--muted); font-size: 13px; font-weight: 600; }
 
 .enviadas { list-style: none; margin: 0; padding: 0; }
@@ -827,6 +834,30 @@ a.venda:hover { border-color: var(--ink); }
 .problemas-painel a span { flex: 1 1 220px; }
 .problemas-painel small { color: var(--muted); font-weight: 600; }
 .problemas-painel .nota { margin: 8px 0 0; }
+
+/* Manutenção chegando: amarelo com 100 e 50 h, laranja com 25 h, vermelho com 8 h e vencida. */
+.manutencao-aviso { margin: 0 0 18px; padding: 14px 16px; border: 1px solid #efe6c9; border-left: 6px solid #b88a00; border-radius: 14px; background: #fffbea; }
+.manutencao-aviso:has(.faixa-25) { border-left-color: #c46a12; background: #fff4e6; }
+.manutencao-aviso:has(.faixa-8, .faixa-0) { border-left-color: var(--saida); background: #fff8f6; }
+.manutencao-aviso h2 { margin: 0 0 8px; font-size: 18px; }
+.manutencao-aviso h2 span { display: inline-grid; place-items: center; min-width: 26px; height: 26px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--ink); color: white; font-size: 14px; vertical-align: 2px; }
+.manutencao-aviso ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.manutencao-aviso li { border-left: 6px solid #b88a00; border-radius: 10px; background: white; }
+.manutencao-aviso li.faixa-25 { border-left-color: #c46a12; }
+.manutencao-aviso li.faixa-8, .manutencao-aviso li.faixa-0 { border-left-color: var(--saida); }
+.manutencao-aviso a, .manutencao-aviso .manutencao-linha { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 8px 10px; color: var(--ink); text-decoration: none; }
+.manutencao-aviso a:hover { outline: 2px solid #efe6c9; border-radius: 10px; }
+.manutencao-aviso a span { flex: 1 1 220px; }
+.manutencao-aviso small { font-weight: 700; }
+.manutencao-aviso li.faixa-8 small, .manutencao-aviso li.faixa-0 small { color: var(--saida); }
+.manutencao-aviso .nota { margin: 8px 0 0; }
+.servicos-troca, .servico-novo { display: grid; gap: 8px; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.servicos-troca legend, .servico-novo legend { padding: 0 4px; font-weight: 700; }
+.opcao-troca { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; border: 2px solid var(--line); border-radius: 14px; background: white; font-size: 18px; }
+.opcao-troca input { flex: none; width: 24px; height: 24px; }
+.opcao-troca:has(input:checked) { border-color: var(--ink); background: var(--gold); }
+.opcao-texto { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.opcao-texto small { color: var(--muted); font-size: 14px; font-weight: 600; }
 
 /* Aviso do tablet do pátio: carga nova, alterada ou cancelada. Fica na frente de tudo até o "Ciente". */
 .avisos-patio {

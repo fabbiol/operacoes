@@ -13,12 +13,13 @@ $situacoes = ['enviado' => ['Enviado', 'status-liberado'], 'trocado' => ['Trocad
         <ul class="cadastro">
             <?php foreach ($ativas as $peca): ?>
                 <li>
-                    <?php if (!empty($peca['foto'])): ?>
-                        <img class="miniatura" src="<?= e(url($basePecas . '/' . $peca['id'] . '/foto') . '?v=' . Fotos::versao((string) $peca['foto'])) ?>" alt="Foto: <?= e($peca['funcao']) ?>" loading="lazy" decoding="async">
+                    <?php $fotosPeca = $peca['fotos'] ?? []; ?>
+                    <?php if ($fotosPeca !== []): ?>
+                        <img class="miniatura" src="<?= e(url($basePecas . '/' . $peca['id'] . '/fotos/' . $fotosPeca[0]['id']) . '?v=' . Fotos::versao($fotosPeca[0]['arquivo'])) ?>" alt="Foto: <?= e($peca['funcao']) ?>" loading="lazy" decoding="async">
                     <?php endif; ?>
                     <span class="cadastro-texto">
                         <strong><?= e($peca['funcao']) ?></strong>
-                        <small><?= e(trim((string) $peca['marca'] . ' ' . $peca['codigo'])) ?> · <?= (int) $peca['quantidade'] ?> un<?php if ($peca['ultima_troca'] !== null): ?>
+                        <small><?= e(trim((string) $peca['marca'] . ' ' . $peca['codigo'])) ?> · <?= (int) $peca['quantidade'] ?> un<?php if (count($fotosPeca) > 1): ?> · <?= count($fotosPeca) ?> fotos<?php endif; ?><?php if ($peca['ultima_troca'] !== null): ?>
                             · última troca em <?= e(quando((string) $peca['ultima_troca']['trocado_em'])) ?><?php if ($peca['ultima_troca']['trocado_horimetro'] !== null): ?>, <?= e(Horimetro::texto((float) $peca['ultima_troca']['trocado_horimetro'])) ?><?php endif; ?>
                         <?php endif; ?></small>
                     </span>
@@ -27,11 +28,16 @@ $situacoes = ['enviado' => ['Enviado', 'status-liberado'], 'trocado' => ['Trocad
                         <form method="post" enctype="multipart/form-data" action="<?= e(url($basePecas . '/' . $peca['id'])) ?>" class="formulario">
                             <?= csrf_field() ?>
                             <?php $valores = $peca; require __DIR__ . '/trecho_peca_campos.php'; ?>
-                            <?php if (!empty($peca['foto'])): ?>
-                                <label class="check">
-                                    <input type="checkbox" name="remover_foto" value="1">
-                                    <span>Remover foto</span>
-                                </label>
+                            <?php if ($fotosPeca !== []): ?>
+                                <fieldset class="fotos-peca">
+                                    <legend>Fotos guardadas</legend>
+                                    <?php foreach ($fotosPeca as $n => $foto): ?>
+                                        <label class="foto-peca">
+                                            <img src="<?= e(url($basePecas . '/' . $peca['id'] . '/fotos/' . $foto['id']) . '?v=' . Fotos::versao($foto['arquivo'])) ?>" alt="Foto <?= $n + 1 ?>: <?= e($peca['funcao']) ?>" loading="lazy" decoding="async">
+                                            <span class="check"><input type="checkbox" name="remover_fotos[]" value="<?= (int) $foto['id'] ?>"> Apagar</span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </fieldset>
                             <?php endif; ?>
                             <button type="submit" class="btn primario">Salvar peça</button>
                         </form>

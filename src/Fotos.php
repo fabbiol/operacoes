@@ -27,10 +27,18 @@ final class Fotos
      */
     public static function receber(int $lado): ?array
     {
-        if (!isset($_FILES['foto']) || !is_array($_FILES['foto'])) {
-            return null;
-        }
-        $erro = (int) ($_FILES['foto']['error'] ?? UPLOAD_ERR_NO_FILE);
+        return isset($_FILES['foto']) && is_array($_FILES['foto']) ? self::receberArquivo($_FILES['foto'], $lado) : null;
+    }
+
+    /**
+     * Igual a receber(), para um arquivo do envio já separado (um dos vários de um campo "fotos[]").
+     *
+     * @param array{error?: mixed, size?: mixed, tmp_name?: mixed} $arquivo
+     * @return array{tmp: string, ext: string}|null
+     */
+    public static function receberArquivo(array $arquivo, int $lado): ?array
+    {
+        $erro = (int) ($arquivo['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($erro === UPLOAD_ERR_NO_FILE) {
             return null;
         }
@@ -40,11 +48,11 @@ final class Fotos
         if ($erro !== UPLOAD_ERR_OK) {
             throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
         }
-        $tamanho = (int) ($_FILES['foto']['size'] ?? 0);
+        $tamanho = (int) ($arquivo['size'] ?? 0);
         if ($tamanho < 1 || $tamanho > self::MAX_ENVIO) {
             throw new InvalidArgumentException('A foto pode ter no máximo 10 MB.');
         }
-        $origem = (string) ($_FILES['foto']['tmp_name'] ?? '');
+        $origem = (string) ($arquivo['tmp_name'] ?? '');
         if ($origem === '' || !is_uploaded_file($origem)) {
             throw new InvalidArgumentException('Não foi possível receber a foto. Tente outra imagem.');
         }

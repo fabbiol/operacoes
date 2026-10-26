@@ -486,10 +486,10 @@ function despachar(string $path, string $method): void
         return;
     }
 
-    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/pecas/(\d+)/foto$#', $path, $m)) {
+    if (preg_match('#^cadastros/(pas|retros|caminhoes)/(\d+)/pecas/(\d+)/fotos/(\d+)$#', $path, $m)) {
         $peca = Pecas::buscar((int) $m[3]);
         $arquivo = $peca !== null && $peca['tipo'] === Horimetro::tipoDaChave($m[1]) && (int) $peca['maquina_id'] === (int) $m[2]
-            ? Pecas::arquivoFoto((int) $m[3]) : null;
+            ? Pecas::arquivoFoto((int) $m[3], (int) $m[4]) : null;
         if ($arquivo === null) {
             http_response_code(404);
             exit;
@@ -520,6 +520,14 @@ function despachar(string $path, string $method): void
             redirect('/painel');
         }
         tela_trabalhos();
+        return;
+    }
+
+    if ($path === 'troca') {
+        if (Auth::admin()) {
+            redirect('/manutencao');
+        }
+        tela_troca($method);
         return;
     }
 
@@ -1800,6 +1808,39 @@ function tela_trabalhos(): void
     ]);
 }
 
+/** Manutenção da máquina que está com o operador: ele registra a troca no tablet (só na máquina dele). */
+function tela_troca(string $method): void
+{
+    $maquina = maquina_escolhida();
+    if ($maquina === null) {
+        flash_set('Assuma uma máquina para registrar a troca.', 'erro');
+        redirect('/maquina');
+    }
+    $tipo = (string) $maquina['tipo'];
+    $id = (int) $maquina['id'];
+    $erro = null;
+    if ($method === 'POST') {
+        csrf_check();
+        try {
+            flash_set(Horimetro::registrarTroca($tipo, $id, $_POST, Auth::usuario()));
+            redirect('/troca');
+        } catch (InvalidArgumentException $e) {
+            $erro = $e->getMessage();
+        }
+    }
+    $ficha = Horimetro::ficha($tipo, $id);
+
+    render('troca', [
+        'titulo' => 'Manutenção da máquina',
+        'corpo' => 'troca',
+        'erro' => $erro,
+        'maquina' => $maquina,
+        'atual' => $ficha['atual'],
+        'planos' => array_values(array_filter($ficha['planos'], static fn (array $plano): bool => (int) $plano['ativo'] === 1)),
+        'avisos' => Horimetro::avisos($tipo, $id),
+    ]);
+}
+
 function tela_dashboard(): void
 {
     render('dashboard', [
@@ -1823,6 +1864,7 @@ function tela_painel(): void
         'autorizar' => (int) ($contagens['aguardando_autorizacao'] ?? 0),
         'saldos' => (int) ($contagens['saldo'] ?? 0),
         'problemas' => Problemas::abertos(),
+        'avisosManutencao' => Horimetro::avisosDeTodas(),
         'limpezas' => Lavra::limpezasAbertas(),
         'vendas' => Operacoes::vendas($dia),
         'conferir' => (int) ($contagens['aguardando_conferencia'] ?? 0),
@@ -2447,15 +2489,15 @@ function tela_pedido_pecas(int $id): void
     ]);
 }
 
-/** Página pública do pedido para o Compras (/compras/<código>) e as fotos das peças dele. */
+/** Página pública do pedido para o Compras (/compras/<código>) e as fotos das peças dele (/compras/<código>/fotos/<foto>). */
 function tela_compras(string $path): void
 {
     $pedido = preg_match('#^compras/([0-9a-f]{32})(?:/fotos/(\d+))?$#', $path, $m) ? Pecas::pedidoPorCodigo($m[1]) : null;
     if ($pedido !== null && ($m[2] ?? '') !== '') {
         $arquivo = null;
         foreach ($pedido['itens'] as $item) {
-            if ((int) $item['id'] === (int) $m[2] && $item['peca_id'] !== null) {
-                $arquivo = Pecas::arquivoFoto((int) $item['peca_id']);
+            if (in_array((int) $m[2], array_column($item['fotos'], 'id'), true)) {
+                $arquivo = Pecas::arquivoFoto((int) $item['peca_id'], (int) $m[2]);
             }
         }
         if ($arquivo === null) {

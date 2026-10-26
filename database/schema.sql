@@ -356,6 +356,16 @@ CREATE TABLE IF NOT EXISTS maquina_pecas (
     KEY idx_peca_maquina (tipo, maquina_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Fotos de cada peça (até 5). A coluna maquina_pecas.foto é de antes e fica vazia: a foto vem para cá (Db::garantirFotosDasPecas).
+CREATE TABLE IF NOT EXISTS peca_fotos (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    peca_id INT UNSIGNED NOT NULL,
+    arquivo VARCHAR(80) NOT NULL,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_foto_peca (peca_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS pecas_pedidos (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     tipo ENUM('pa', 'retro', 'caminhao') NOT NULL,

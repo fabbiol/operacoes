@@ -1,7 +1,7 @@
-// Peças da máquina e pedido ao Compras: o administrativo cadastra as peças (uma com foto), faz o pedido confirmado
+// Peças da máquina e pedido ao Compras: o administrativo cadastra as peças (uma com duas fotos, até 5), faz o pedido confirmado
 // com o operador, a mensagem do WhatsApp sai pronta com o link público das fotos, que abre sem login só com o código;
 // o operador não abre nada disso; "trocado" grava o horímetro e a última troca aparece na peça; editar a peça
-// depois não muda o pedido.
+// depois não muda o pedido; uma foto pode ser apagada sozinha.
 const T = require('../lib/teste');
 const { ok, sql, txt, enviar, BASE } = T;
 // PNG de 1x1 pixel.
@@ -21,15 +21,18 @@ T.executar(async () => {
     await adm.fill(f + ' input[name=marca]', marca);
     await adm.fill(f + ' input[name=codigo]', codigo);
     await adm.fill(f + ' input[name=quantidade]', qtd);
-    if (foto) await adm.setInputFiles(f + ' input[name=foto]', { name: 'filtro.png', mimeType: 'image/png', buffer: PNG });
+    if (foto) await adm.setInputFiles(f + ' input[name="fotos[]"]', Array.from({ length: foto }, (_, i) => ({ name: 'filtro' + i + '.png', mimeType: 'image/png', buffer: PNG })));
     await enviar(adm, f + ' button[type=submit]');
   }
-  await incluir('Filtro de óleo do motor', 'Fleetguard', 'LF3349', '1', true);
-  await incluir('Filtro de ar', 'Donaldson', 'P181052', '2', false);
+  await incluir('Filtro de óleo do motor', 'Fleetguard', 'LF3349', '1', 2);
+  await incluir('Filtro de ar', 'Donaldson', 'P181052', '2', 0);
+  await incluir('Filtro de combustível', 'Fleetguard', 'FF5052', '1', 6);
+  ok(/no máximo 5 fotos/.test(await txt(adm)) && sql("SELECT COUNT(*) FROM maquina_pecas WHERE codigo='FF5052'") === '0', 'mais de 5 fotos: recusa e não inclui a peça');
   ok(sql("SELECT COUNT(*) FROM maquina_pecas WHERE tipo='pa' AND maquina_id=1") === '2', 'duas peças incluídas na Pá 1');
   const idOleo = sql("SELECT id FROM maquina_pecas WHERE codigo='LF3349'");
-  ok(/^pecas\/\d+\.jpg$/.test(sql(`SELECT foto FROM maquina_pecas WHERE id=${idOleo}`)), 'foto da peça guardada em pecas/');
-  ok(await adm.locator('#pecas img.miniatura').count() === 1, 'ficha mostra a miniatura da peça');
+  const arquivos = sql(`SELECT GROUP_CONCAT(arquivo ORDER BY id) FROM peca_fotos WHERE peca_id=${idOleo}`).split(',');
+  ok(arquivos.length === 2 && arquivos.every(a => new RegExp('^pecas/' + idOleo + '-[0-9a-f]{8}\\.jpg$').test(a)), 'duas fotos da peça guardadas em pecas/', arquivos.join(' '));
+  ok(await adm.locator('#pecas img.miniatura').count() === 1, 'ficha mostra a miniatura (a primeira foto) da peça');
 
   // Pedido sem peça marcada é recusado.
   await adm.goto(BASE + '/cadastros/pas/1/pedidos/novo');
@@ -62,9 +65,12 @@ T.executar(async () => {
   let tela = await txt(pub);
   ok(r.status() === 200 && /Filtro de óleo do motor/.test(tela) && /LF3349/.test(tela) && /P181052/.test(tela), 'página pública abre sem login com os itens', r.status() + ' ' + tela.slice(0, 300));
   ok(await pub.locator('nav.menu').count() === 0, 'página pública sem menu');
-  const src = await pub.getAttribute('main img.foto-atual', 'src');
-  const foto = src ? await ctx.request.get(BASE + src) : null;
-  ok(foto && foto.status() === 200 && /^image\//.test(foto.headers()['content-type'] || ''), 'foto da peça abre pelo link público', src);
+  const fontes = await pub.locator('main img.foto-atual').evaluateAll(imgs => imgs.map(i => i.getAttribute('src')));
+  ok(fontes.length === 2, 'página pública mostra as duas fotos da peça', fontes.join(' '));
+  for (const src of fontes) {
+    const foto = await ctx.request.get(BASE + src);
+    ok(foto.status() === 200 && /^image\//.test(foto.headers()['content-type'] || ''), 'foto da peça abre pelo link público', src);
+  }
   await T.capturar(pub, 'pecas_compras', { fullPage: true });
   ok((await pub.goto(BASE + '/compras/' + '0'.repeat(32))).status() === 404, 'código inexistente: 404');
   ok((await pub.goto(BASE + '/compras/abc')).status() === 404, 'código fora do formato: 404');
@@ -90,6 +96,13 @@ T.executar(async () => {
   await adm.fill('#pecas li:has-text("Filtro de óleo") input[name=codigo]', 'LF9999');
   await enviar(adm, '#pecas li:has-text("Filtro de óleo") button:has-text("Salvar peça")');
   ok(sql(`SELECT codigo FROM maquina_pecas WHERE id=${idOleo}`) === 'LF9999', 'peça editada');
+  ok(sql(`SELECT COUNT(*) FROM peca_fotos WHERE peca_id=${idOleo}`) === '2', 'editar sem mexer nas fotos mantém as duas');
+
+  // Apagar uma das fotos.
+  await adm.click('#pecas li:has-text("Filtro de óleo") details.anular > summary');
+  await adm.check('#pecas li:has-text("Filtro de óleo") input[name="remover_fotos[]"] >> nth=0');
+  await enviar(adm, '#pecas li:has-text("Filtro de óleo") button:has-text("Salvar peça")');
+  ok(sql(`SELECT arquivo FROM peca_fotos WHERE peca_id=${idOleo}`) === arquivos[1], 'só a foto marcada foi apagada');
   ok(sql(`SELECT codigo FROM pecas_pedido_itens WHERE peca_id=${idOleo}`) === 'LF3349', 'item do pedido continua com o código antigo');
   await adm.goto(BASE + '/pedidos-pecas/' + idPedido);
   ok(/LF3349/.test(await txt(adm)), 'página do pedido mostra o código da hora do pedido');

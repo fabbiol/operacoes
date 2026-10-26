@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-finpro-documento';
+    private const MIGRACOES = '2026-10-pecas-fotos';
 
     private static ?PDO $pdo = null;
 
@@ -122,6 +122,7 @@ final class Db
             self::garantirEstoque($pdo);
             self::garantirBritadorEPagamento($pdo);
             self::garantirFinPro($pdo);
+            self::garantirFotosDasPecas($pdo);
             // A planilha do estoque entra uma vez, só num estoque ainda vazio.
             Estoque::importarPlanilha($pdo);
 
@@ -583,6 +584,22 @@ final class Db
         $forma = $pdo->query("SHOW COLUMNS FROM fila_carregamentos LIKE 'nf_pagamento'")->fetch();
         if ($forma && strtolower((string) ($forma['Type'] ?? $forma['type'])) === 'varchar(12)') {
             $pdo->exec('ALTER TABLE fila_carregamentos MODIFY COLUMN nf_pagamento VARCHAR(16) NULL');
+        }
+    }
+
+    /** A foto única da peça (maquina_pecas.foto) vira a primeira das fotos da peça (peca_fotos); o arquivo fica onde está. */
+    private static function garantirFotosDasPecas(PDO $pdo): void
+    {
+        // Juntos: se parar no meio, a foto não é copiada duas vezes na próxima tentativa.
+        $pdo->beginTransaction();
+        try {
+            $pdo->exec("INSERT INTO peca_fotos (peca_id, arquivo, criado_em)
+                SELECT id, foto, criado_em FROM maquina_pecas WHERE foto IS NOT NULL AND foto <> ''");
+            $pdo->exec('UPDATE maquina_pecas SET foto = NULL WHERE foto IS NOT NULL');
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
         }
     }
 

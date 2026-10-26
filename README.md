@@ -284,7 +284,7 @@ A **disponibilidade no mês**, na ficha e na Manutenção, é 100% menos o tempo
 
 ## Peças e pedido ao Compras
 
-Cada máquina (pá, escavadeira e caminhão) tem a lista **Peças** na ficha (Cadastros → a máquina). Cadastre uma vez cada peça que costuma ser trocada: a função ("Filtro de óleo do motor"), a marca, o código e quantas vão na troca. A foto é opcional. **Editar** muda a peça e **Desativar peça** tira da lista (as desativadas ficam guardadas embaixo e podem voltar).
+Cada máquina (pá, escavadeira e caminhão) tem a lista **Peças** na ficha (Cadastros → a máquina). Cadastre uma vez cada peça que costuma ser trocada: a função ("Filtro de óleo do motor"), a marca, o código e quantas vão na troca. As fotos são opcionais: até 5 por peça (por exemplo, a peça e a etiqueta com o código), escolhidas juntas ou aos poucos. Em **Editar**, marque **Apagar** embaixo de uma foto para tirá-la. A primeira foto aparece na lista; o link do pedido para o Compras mostra todas. **Editar** muda a peça e **Desativar peça** tira da lista (as desativadas ficam guardadas embaixo e podem voltar).
 
 Para pedir peças:
 
@@ -300,6 +300,18 @@ Quando as peças forem colocadas, abra o pedido e toque em **Peças trocadas**: 
 ## Previsão de vencimento da manutenção
 
 Na **Manutenção** e na ficha da máquina, cada serviço que ainda não venceu mostra "vence por volta de quinta, 30/10": é o dia em que as horas que faltam acabam, se a máquina continuar trabalhando a média de horas por dia dos turnos dos últimos 14 dias (só contam os dias com turno). Sem turno nesse período, não aparece previsão; serviço vencido continua com o selo **Vencida**.
+
+## Troca registrada pelo operador e avisos
+
+Quem faz a troca (óleo, filtros e outros serviços) é o operador, e ele mesmo registra no tablet:
+
+1. Com a máquina assumida, toque em **Manutenção**, no menu.
+2. Escolha o serviço feito. Se ele ainda não está na lista daquela máquina, marque **Outro serviço**, escreva o nome (ex.: "Troca de óleo do motor") e de quantas em quantas horas é a troca (ex.: 250). O prazo fica salvo: nas próximas vezes é só escolher na lista.
+3. Toque em **Registrar troca**. A troca fica gravada com o horímetro atual da máquina e o nome de quem registrou.
+
+O operador só registra troca na máquina que está com ele. O administrativo continua podendo tudo na ficha da máquina: incluir serviço, desativar e registrar o serviço feito.
+
+**Avisos.** Quando faltam **100 h** para um serviço, aparece o quadro **Manutenção chegando**: no tablet de quem está com a máquina (em todas as telas) e no **Painel** do administrativo, com a máquina. O aviso fica mais forte conforme as horas acabam: amarelo com 100 e 50 h, laranja com 25 h e vermelho com 8 h e depois de vencido. Ele some quando a troca é registrada. O aviso não aparece na TV. O pedido das peças continua com o escritório (veja **Peças e pedido ao Compras**).
 
 ## Docker
 

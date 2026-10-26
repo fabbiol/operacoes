@@ -9,4 +9,4 @@ if ($falta !== null && $falta > 0) {
     $texto .= ' · vence agora';
 }
 ?>
-<span class="selo selo-<?= e($situacao['estado']) ?>"><?= e($texto) ?></span>
+<span class="selo selo-<?= e($situacao['estado']) ?><?= isset($situacao['faixa']) ? ' faixa-' . (int) $situacao['faixa'] : '' ?>"><?= e($texto) ?></span>
