@@ -57,7 +57,7 @@ Tamanho em linhas (19/10/2026): `public/index.php` 2.177, `src/Lavra.php` 1.244,
 ## Dados e migrações
 
 - O esquema está em `database/schema.sql`. As colunas acrescentadas depois que a tabela já existia são criadas pelas funções `garantir*()` de `src/Db.php`.
-- No primeiro acesso depois de uma publicação, `Db::migrar()` roda o schema e as `garantir*()`, protegido por `GET_LOCK`. A marca da versão fica na tabela `schema_versao` (hash do schema + `Db::MIGRACOES`). Ao criar ou mudar uma `garantir*()`, troque `Db::MIGRACOES`.
+- No primeiro acesso depois de uma publicação, `Db::migrar()` roda o schema e as `garantir*()`, protegido por `GET_LOCK`. A marca da versão fica na tabela `schema_versao` (linha 1: hash do schema + `Db::MIGRACOES`; linha 2: a planilha do estoque já foi tratada e não volta). Ao criar ou mudar uma `garantir*()`, troque `Db::MIGRACOES`.
 - As `garantir*()` precisam poder rodar mais de uma vez, e o código precisa aceitar linhas antigas (colunas novas com NULL ou valor padrão).
 - Arquivos fora do banco: fotos em `storage/fotos/`, PDFs das notas em `storage/notas/` (os lidos e ainda não lançados em `storage/notas/pendentes/`, apagados depois de um dia) e sessões em `storage/sessoes/`. Em produção ficam num volume do Docker.
 - Fuso: PHP em `America/Cuiaba` e conexão MySQL com `time_zone = '-04:00'`.

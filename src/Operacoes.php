@@ -1258,9 +1258,17 @@ final class Operacoes
         $somas = ['fila' => 0, 'carga' => 0, 'ciclo' => 0];
         $quantidades = $somas;
         foreach ($linhas as $ordem) {
+            // Etapa que atravessa a meia-noite (liberada num dia, carregada no outro) é espera da noite: fica fora, como na lavra.
+            $fora = [];
+            foreach (['fila' => ['autorizado_em', 'inicio_carregamento'], 'carga' => ['inicio_carregamento', 'fim_carregamento']] as $etapa => [$de, $ate]) {
+                if (!empty($ordem[$de]) && !empty($ordem[$ate]) && substr((string) $ordem[$de], 0, 10) !== substr((string) $ordem[$ate], 0, 10)) {
+                    $fora[$etapa] = true;
+                    $fora['ciclo'] = true;
+                }
+            }
             foreach ($somas as $chave => $valor) {
                 $tempo = $ordem['tempos'][$chave] ?? null;
-                if ($tempo === null) {
+                if ($tempo === null || isset($fora[$chave])) {
                     continue;
                 }
                 $somas[$chave] += $tempo;

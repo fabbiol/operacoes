@@ -1,5 +1,18 @@
 # O que mudou
 
+## Outubro de 2026: garagem, médias do pátio, troca de nome e CNPJ com letras
+
+- Na lavra, o caminhão que foi **para a garagem** no britador não aparece mais como "Chegou" para a escavadeira.
+- No relatório do pátio, a **ordem liberada num dia e carregada no outro** fica fora das médias de fila e de ciclo, como já acontece na lavra. A espera da noite não aumenta mais a média.
+- **Trocar o nome de uma pessoa** agora leva junto também as entradas do estoque, as britagens terminadas por ela, os pedidos de peças e a entrada e saída da oficina. Trocar o nome também não mexe mais nos tempos das viagens da lavra.
+- O campo **CNPJ/CPF do cliente** aceita o **CNPJ novo com letras** (ex.: 12.ABC.345/01DE-35), que a Receita começou a dar em julho de 2026. Antes ele era recusado, e na leitura da nota o número sumia.
+- A **planilha antiga do estoque** entra uma vez só. Mesmo que o estoque seja zerado depois, ela não volta.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco não muda.
+2. Publique junto a versão do Fin Pro que aceita o CNPJ com letras. Sem ela, uma nota com esse CNPJ não chega ao Fin Pro.
+3. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: quantidade com ponto e cancelamento no fracionado
 
 - Na quantidade da ordem e no que foi carregado, **"1.500" agora é mil e quinhentos**. Antes virava 1,5 t sem aviso. Vírgula ou ponto com até 2 casas continuam valendo ("2,5" ou "2.5"); com mais casas, o sistema pede para corrigir em vez de arredondar escondido.

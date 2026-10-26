@@ -116,7 +116,8 @@ final class Estoque
 
     /**
      * A planilha que o estoque substituiu (conchas da pá 656, de 3,3 m³), lançada uma vez, dia por dia.
-     * Só entra num estoque ainda vazio, com a pá 656, a Brita 01 e o Pedrisco achados no cadastro.
+     * Só entra num estoque ainda vazio, com a pá 656, a Brita 01 e o Pedrisco achados no cadastro, e uma vez só:
+     * a marca fica no banco (schema_versao id 2), então zerar o estoque depois não traz a planilha de volta.
      *
      * @return string o que aconteceu, para o teste
      */
@@ -128,7 +129,13 @@ final class Estoque
             ['2026-10-10', 35, 20], ['2026-10-13', 40, 50], ['2026-10-14', 40, 20], ['2026-10-15', 50, 0],
             ['2026-10-19', 40, 0], ['2026-10-21', 35, 35],
         ];
+        $marcar = fn () => $pdo->exec("INSERT IGNORE INTO schema_versao (id, hash, atualizado_em) VALUES (2, SHA2('planilha_estoque', 256), NOW())");
+        if ((int) $pdo->query('SELECT COUNT(*) FROM schema_versao WHERE id = 2')->fetchColumn() > 0) {
+            return 'a planilha já foi tratada';
+        }
         if ((int) $pdo->query('SELECT COUNT(*) FROM estoque_entradas')->fetchColumn() > 0) {
+            $marcar();
+
             return 'o estoque já tem lançamentos';
         }
         $pas = $pdo->query("SELECT id FROM pas_carregadeiras WHERE maquina LIKE '%656%'")->fetchAll();
@@ -164,6 +171,7 @@ final class Estoque
                     }
                 }
             }
+            $marcar();
             $pdo->commit();
         } catch (Throwable $e) {
             $pdo->rollBack();
