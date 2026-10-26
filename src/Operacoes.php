@@ -838,7 +838,8 @@ final class Operacoes
         self::exigirAlteracao($comando);
     }
 
-    public static function cancelar(int $id, string $motivo, string $responsavel): void
+    /** Cancela a ordem. Devolve o aviso do saldo refeito quando era uma viagem do fracionado que já tinha saído. */
+    public static function cancelar(int $id, string $motivo, string $responsavel): string
     {
         $ordem = self::exigir($id);
         if (!in_array($ordem['status'], ['aguardando_autorizacao', 'liberado', 'carregando', 'aguardando_conferencia', 'saldo'], true)) {
@@ -862,13 +863,29 @@ final class Operacoes
         }
         $observacoes = trim((string) $ordem['observacoes'] . "\n\n" . $linha);
 
-        $comando = Db::pdo()->prepare(
-            "UPDATE fila_carregamentos
-             SET status = 'cancelado', observacoes = ?
-             WHERE id = ? AND status = ?"
-        );
-        $comando->execute([$observacoes, $id, $ordem['status']]);
-        self::exigirAlteracao($comando);
+        // Viagem seguinte do fracionado que já saiu: o que ela levou volta para o saldo da nota.
+        $refazer = (int) ($ordem['ordem_principal_id'] ?? 0) > 0 && $ordem['status'] === 'aguardando_conferencia';
+        $principalId = self::grupo($ordem);
+        $jaEncerrado = $refazer && self::viagensDe($principalId)['encerrado'];
+
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            $comando = $pdo->prepare(
+                "UPDATE fila_carregamentos
+                 SET status = 'cancelado', observacoes = ?
+                 WHERE id = ? AND status = ?"
+            );
+            $comando->execute([$observacoes, $id, $ordem['status']]);
+            self::exigirAlteracao($comando);
+            $aviso = $refazer ? self::refazerSaldo($principalId, $ordem, $jaEncerrado, $responsavel) : '';
+            $pdo->commit();
+
+            return $aviso;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 
     /**
@@ -921,45 +938,7 @@ final class Operacoes
                  WHERE id = ? AND status IN ('aguardando_conferencia', 'concluido')"
             )->execute([number_format($valor, 2, '.', ''), $fracionado, trim((string) $ordem['observacoes'] . "\n\n" . $linha), $id]);
 
-            $grupo = self::viagensDe($principalId);
-            $pendente = $grupo['pendente'];
-            if ($pendente !== null && $pendente['status'] === 'carregando') {
-                throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' está carregando agora. Corrija depois que ela for finalizada.');
-            }
-            $saldo = $grupo['saldo'];
-            $aviso = 'Quantidade corrigida.';
-            if ($saldo > 0.0001 && $pendente !== null) {
-                // Só enquanto a viagem não começou: se a pá iniciou agora, nada muda (volta tudo).
-                $ajuste = $pdo->prepare(
-                    "UPDATE fila_carregamentos SET quantidade_autorizada = ?
-                     WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
-                );
-                $ajuste->execute([number_format($saldo, 2, '.', ''), (int) $pendente['id']]);
-                if ($ajuste->rowCount() === 0 && abs((float) $pendente['quantidade_autorizada'] - $saldo) > 0.0001) {
-                    throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
-                }
-                $aviso .= ' A viagem ' . $pendente['ordem'] . ' ficou com o saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . '.';
-            } elseif ($saldo > 0.0001 && $jaEncerrado) {
-                $aviso .= ' O saldo desta nota já estava encerrado, então nenhuma viagem nova foi criada.';
-            } elseif ($saldo > 0.0001) {
-                $ultima = end($grupo['viagens']);
-                $ultima = is_array($ultima) ? $ultima : $ordem;
-                $novaId = self::criarProximaViagem(['fracionado' => 1] + $ultima, $saldo);
-                $nova = self::exigir($novaId);
-                $aviso .= ' O saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . ' virou a viagem ' . $nova['ordem'] . ', em Saldo a buscar.';
-            } elseif ($pendente !== null) {
-                $fecho = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Encerrada: a nota foi toda carregada (correção da viagem ' . $ordem['ordem'] . ').';
-                $encerrar = $pdo->prepare(
-                    "UPDATE fila_carregamentos
-                     SET status = 'cancelado', observacoes = ?
-                     WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
-                );
-                $encerrar->execute([trim((string) $pendente['observacoes'] . "\n\n" . $fecho), (int) $pendente['id']]);
-                if ($encerrar->rowCount() === 0) {
-                    throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
-                }
-                $aviso .= ' A nota ficou toda carregada, e a viagem ' . $pendente['ordem'] . ' foi encerrada.';
-            }
+            $aviso = 'Quantidade corrigida.' . self::refazerSaldo($principalId, $ordem, $jaEncerrado, $responsavel);
             $pdo->commit();
 
             return $aviso;
@@ -967,6 +946,57 @@ final class Operacoes
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Depois de mudar o que uma viagem levou (corrigida ou cancelada), refaz o saldo da nota: a viagem que falta é
+     * ajustada, criada ou encerrada. Roda dentro da transação de quem chamou; devolve o aviso para a tela.
+     */
+    private static function refazerSaldo(int $principalId, array $ordem, bool $jaEncerrado, string $responsavel): string
+    {
+        $pdo = Db::pdo();
+        $unidade = unidade_rotulo((string) $ordem['unidade']);
+        $grupo = self::viagensDe($principalId);
+        $pendente = $grupo['pendente'];
+        if ($pendente !== null && $pendente['status'] === 'carregando') {
+            throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' está carregando agora. Corrija depois que ela for finalizada.');
+        }
+        $saldo = $grupo['saldo'];
+        $aviso = '';
+        if ($saldo > 0.0001 && $pendente !== null) {
+            // Só enquanto a viagem não começou: se a pá iniciou agora, nada muda (volta tudo).
+            $ajuste = $pdo->prepare(
+                "UPDATE fila_carregamentos SET quantidade_autorizada = ?
+                 WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
+            );
+            $ajuste->execute([number_format($saldo, 2, '.', ''), (int) $pendente['id']]);
+            if ($ajuste->rowCount() === 0 && abs((float) $pendente['quantidade_autorizada'] - $saldo) > 0.0001) {
+                throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
+            }
+            $aviso .= ' A viagem ' . $pendente['ordem'] . ' ficou com o saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . '.';
+        } elseif ($saldo > 0.0001 && $jaEncerrado) {
+            $aviso .= ' O saldo desta nota já estava encerrado, então nenhuma viagem nova foi criada.';
+        } elseif ($saldo > 0.0001) {
+            $ultima = end($grupo['viagens']);
+            $ultima = is_array($ultima) ? $ultima : $ordem;
+            $novaId = self::criarProximaViagem(['fracionado' => 1] + $ultima, $saldo);
+            $nova = self::exigir($novaId);
+            $aviso .= ' O saldo de ' . formatar_quantidade($saldo) . ' ' . $unidade . ' virou a viagem ' . $nova['ordem'] . ', em Saldo a buscar.';
+        } elseif ($pendente !== null) {
+            $fecho = '[' . date('d/m/Y H:i') . ' · ' . $responsavel . '] Encerrada: a nota foi toda carregada (viagem ' . $ordem['ordem'] . ').';
+            $encerrar = $pdo->prepare(
+                "UPDATE fila_carregamentos
+                 SET status = 'cancelado', observacoes = ?
+                 WHERE id = ? AND status IN ('saldo', 'liberado', 'aguardando_autorizacao')"
+            );
+            $encerrar->execute([trim((string) $pendente['observacoes'] . "\n\n" . $fecho), (int) $pendente['id']]);
+            if ($encerrar->rowCount() === 0) {
+                throw new InvalidArgumentException('A viagem ' . $pendente['ordem'] . ' começou a carregar agora. Corrija depois que ela for finalizada.');
+            }
+            $aviso .= ' A nota ficou toda carregada, e a viagem ' . $pendente['ordem'] . ' foi encerrada.';
+        }
+
+        return $aviso;
     }
 
     /** A viagem do fracionado foi liberada mas o cliente não veio: volta a esperar, em vez de ser cancelada. */

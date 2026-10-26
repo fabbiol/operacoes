@@ -859,11 +859,12 @@ function parse_quantidade(string $bruto): string
     if ($bruto === '') {
         throw new InvalidArgumentException('Informe a quantidade autorizada.');
     }
-    if (str_contains($bruto, ',') && str_contains($bruto, '.')) {
+    // "1.500" sem vírgula é milhar (1500), como se escreve no Brasil; ponto com 1 ou 2 casas ("2.5") é decimal.
+    if ((str_contains($bruto, ',') && str_contains($bruto, '.')) || preg_match('/^[1-9]\d{0,2}(\.\d{3})+$/', $bruto)) {
         $bruto = str_replace('.', '', $bruto);
     }
     $bruto = str_replace(',', '.', $bruto);
-    if (!preg_match('/^\d+(\.\d+)?$/', $bruto)) {
+    if (!preg_match('/^\d+(\.\d{1,2})?$/', $bruto)) {
         throw new InvalidArgumentException('A quantidade autorizada precisa ser um número.');
     }
     $numero = round((float) $bruto, 2);
