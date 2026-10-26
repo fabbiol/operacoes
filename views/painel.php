@@ -6,6 +6,10 @@
     <p class="data"><?= e(data_por_extenso()) ?></p>
 </section>
 
+<?php if (($avisosManutencao ?? []) !== []): ?>
+    <?php $verTodos = true; require __DIR__ . '/trecho_avisos_manutencao.php'; ?>
+<?php endif; ?>
+
 <div id="fluxo" data-url="<?= e($fluxoUrl) ?>" data-marca="<?= e($fluxoMarca) ?>">
 <section class="vendas-dia">
     <a class="venda" href="<?= e(url('controle')) ?>">

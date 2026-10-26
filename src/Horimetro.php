@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 final class Horimetro
 {
-    public const PROXIMA_H = 50.0;
+    public const PROXIMA_H = 100.0;
+    // Avisos ao operador e ao administrativo quando faltam estas horas para o serviço (o mais forte por último).
+    public const AVISOS_H = [100.0, 50.0, 25.0, 8.0];
     // Folga sobre o tempo decorrido: a máquina não roda mais horas do que o relógio.
     private const FOLGA_H = 1.0;
 
@@ -187,7 +189,7 @@ final class Horimetro
         return $busca->fetchAll();
     }
 
-    public static function criarPlano(string $tipo, int $id, string $nome, string $intervalo): void
+    public static function criarPlano(string $tipo, int $id, string $nome, string $intervalo): int
     {
         self::exigirMaquina($tipo, $id);
         $titulo = limpar_texto($nome, 120, true, 'Serviço');
@@ -197,6 +199,8 @@ final class Horimetro
              VALUES (?, ?, ?, ?)'
         );
         $comando->execute([$tipo, $id, $titulo, self::gravar($horas)]);
+
+        return (int) Db::pdo()->lastInsertId();
     }
 
     public static function alternarPlano(int $planoId, string $tipo, int $maquinaId): void
@@ -238,29 +242,11 @@ final class Horimetro
     public static function ficha(string $tipo, int $id): array
     {
         $atual = self::atual($tipo, $id);
-        $media = self::mediaPorDia($tipo, $id);
-        $planos = [];
+        $planos = self::planosDe($tipo, $id, $atual, self::mediaPorDia($tipo, $id));
         $pior = $atual === null ? 'sem_leitura' : 'sem_plano';
-        $busca = Db::pdo()->prepare(
-            'SELECT id, nome, intervalo_h, ativo FROM manutencao_planos
-             WHERE tipo = ? AND maquina_id = ?
-             ORDER BY ativo DESC, nome ASC'
-        );
-        $busca->execute([$tipo, $id]);
-        foreach ($busca as $plano) {
-            $ultima = self::ultimaFeita((int) $plano['id']);
-            $situacao = self::situacao($atual, $ultima, (float) $plano['intervalo_h'], (int) $plano['ativo'] === 1);
-            $situacao['previsao'] = self::previsao($situacao['falta'], $media);
-            $planos[] = [
-                'id' => (int) $plano['id'],
-                'nome' => (string) $plano['nome'],
-                'intervalo_h' => (float) $plano['intervalo_h'],
-                'ativo' => (int) $plano['ativo'],
-                'ultima' => $ultima,
-                'situacao' => $situacao,
-            ];
-            if ((int) $plano['ativo'] === 1 && self::rank($situacao['estado']) < self::rank($pior)) {
-                $pior = $situacao['estado'];
+        foreach ($planos as $plano) {
+            if ($plano['ativo'] === 1 && self::rank($plano['situacao']['estado']) < self::rank($pior)) {
+                $pior = $plano['situacao']['estado'];
             }
         }
         if ($planos === [] && $atual !== null) {
@@ -281,6 +267,92 @@ final class Horimetro
     }
 
     /** @param bool|null $maquinaOk como o operador entregou a máquina; null quando ninguém perguntou */
+    /**
+     * Serviços ativos da máquina que estão no aviso (faltam 100 h ou menos) ou vencidos, o mais urgente primeiro.
+     *
+     * @return list<array{id: int, nome: string, intervalo_h: float, ultima: ?float, situacao: array<string, mixed>}>
+     */
+    public static function avisos(string $tipo, int $id): array
+    {
+        $atual = self::atual($tipo, $id);
+        if ($atual === null) {
+            return [];
+        }
+        $avisos = array_values(array_filter(
+            self::planosDe($tipo, $id, $atual, null),
+            static fn (array $plano): bool => $plano['ativo'] === 1 && in_array($plano['situacao']['estado'], ['vencida', 'proxima'], true)
+        ));
+        usort($avisos, static fn (array $a, array $b): int => $a['situacao']['falta'] <=> $b['situacao']['falta']);
+
+        return $avisos;
+    }
+
+    /**
+     * Os avisos de todas as máquinas ativas, para o Painel.
+     *
+     * @return list<array{chave: string, id: int, maquina: string, nome: string, situacao: array<string, mixed>}>
+     */
+    public static function avisosDeTodas(): array
+    {
+        $saida = [];
+        foreach (self::CHAVES as $chave => $tipo) {
+            foreach (Cadastro::listar($chave) as $item) {
+                if ((int) $item['ativo'] !== 1) {
+                    continue;
+                }
+                foreach (self::avisos($tipo, (int) $item['id']) as $plano) {
+                    $saida[] = ['chave' => $chave, 'id' => (int) $item['id'], 'maquina' => (string) $item['nome'],
+                        'nome' => $plano['nome'], 'situacao' => $plano['situacao']];
+                }
+            }
+        }
+        usort($saida, static fn (array $a, array $b): int => $a['situacao']['falta'] <=> $b['situacao']['falta']);
+
+        return $saida;
+    }
+
+    /**
+     * Troca registrada pelo operador no tablet, na máquina que está com ele: um serviço da lista (com o prazo
+     * já salvo) ou um serviço novo, com o prazo dito na primeira vez. O horímetro é o atual da máquina.
+     *
+     * @return string o aviso para a tela
+     */
+    public static function registrarTroca(string $tipo, int $id, array $post, string $usuario): string
+    {
+        $escolha = (string) ($post['servico'] ?? '');
+        if ($escolha === '') {
+            throw new InvalidArgumentException('Escolha o serviço que foi feito.');
+        }
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            if ($escolha === 'novo') {
+                $nome = (string) limpar_texto((string) ($post['nome'] ?? ''), 120, true, 'o nome do serviço');
+                foreach (self::planosDe($tipo, $id, null, null) as $plano) {
+                    if (mb_strtolower($plano['nome']) === mb_strtolower($nome)) {
+                        throw new InvalidArgumentException('Esse serviço já está na lista desta máquina. Escolha ele na lista.');
+                    }
+                }
+                $planoId = self::criarPlano($tipo, $id, $nome, (string) ($post['intervalo'] ?? ''));
+            } else {
+                $planoId = (int) $escolha;
+            }
+            self::registrar($planoId, $tipo, $id, '', $usuario, '');
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        foreach (self::planosDe($tipo, $id, self::atual($tipo, $id), null) as $plano) {
+            if ($plano['id'] === $planoId) {
+                return $plano['nome'] . ' registrada com ' . self::texto($plano['ultima'])
+                    . '. A próxima é com ' . self::texto($plano['situacao']['proxima']) . '.';
+            }
+        }
+
+        return 'Troca registrada.';
+    }
+
     public static function registrarTurno(string $tipo, int $id, float $entrada, float $saida, ?string $iniciadoEm, string $usuario, ?bool $maquinaOk = null): void
     {
         self::exigirMaquina($tipo, $id);
@@ -445,7 +517,15 @@ final class Horimetro
             return ['estado' => 'vencida', 'rotulo' => 'Vencida', 'falta' => $falta, 'proxima' => $proxima];
         }
         if ($falta <= self::PROXIMA_H) {
-            return ['estado' => 'proxima', 'rotulo' => 'Próxima', 'falta' => $falta, 'proxima' => $proxima];
+            // A faixa do aviso: a menor das AVISOS_H que ainda cobre o que falta (faltam 40 h: faixa 50).
+            $faixa = self::PROXIMA_H;
+            foreach (self::AVISOS_H as $limite) {
+                if ($falta <= $limite) {
+                    $faixa = $limite;
+                }
+            }
+
+            return ['estado' => 'proxima', 'rotulo' => 'Próxima', 'falta' => $falta, 'proxima' => $proxima, 'faixa' => $faixa];
         }
 
         return ['estado' => 'em_dia', 'rotulo' => 'Em dia', 'falta' => $falta, 'proxima' => $proxima];
@@ -473,6 +553,37 @@ final class Horimetro
             'sem_leitura' => 4,
             default => 5,
         };
+    }
+
+    /**
+     * Serviços da máquina com a situação de cada um (ativos primeiro, por nome).
+     *
+     * @return list<array{id: int, nome: string, intervalo_h: float, ativo: int, ultima: ?float, situacao: array<string, mixed>}>
+     */
+    private static function planosDe(string $tipo, int $id, ?float $atual, ?float $media): array
+    {
+        $busca = Db::pdo()->prepare(
+            'SELECT id, nome, intervalo_h, ativo FROM manutencao_planos
+             WHERE tipo = ? AND maquina_id = ?
+             ORDER BY ativo DESC, nome ASC'
+        );
+        $busca->execute([$tipo, $id]);
+        $planos = [];
+        foreach ($busca as $plano) {
+            $ultima = self::ultimaFeita((int) $plano['id']);
+            $situacao = self::situacao($atual, $ultima, (float) $plano['intervalo_h'], (int) $plano['ativo'] === 1);
+            $situacao['previsao'] = self::previsao($situacao['falta'], $media);
+            $planos[] = [
+                'id' => (int) $plano['id'],
+                'nome' => (string) $plano['nome'],
+                'intervalo_h' => (float) $plano['intervalo_h'],
+                'ativo' => (int) $plano['ativo'],
+                'ultima' => $ultima,
+                'situacao' => $situacao,
+            ];
+        }
+
+        return $planos;
     }
 
     private static function ultimaFeita(int $planoId): ?float

@@ -1,5 +1,15 @@
 # O que mudou
 
+## Outubro de 2026: troca registrada pelo operador, avisos de manutenção e várias fotos na peça
+
+- O **operador registra a troca** (óleo, filtros...) no tablet, em **Manutenção**, na máquina que está com ele. Na primeira vez de cada serviço, ele diz de quantas em quantas horas é a troca; depois é só escolher na lista. A troca fica com o horímetro atual da máquina.
+- **Avisos de manutenção** quando faltam **100, 50, 25 e 8 horas**: aparecem no tablet de quem está com a máquina e no **Painel** do administrativo, mais fortes conforme as horas acabam (amarelo, laranja, vermelho). Não aparecem na TV. Antes, o selo "Próxima" só aparecia com 50 h.
+- Cada **peça** pode ter **até 5 fotos** (por exemplo, a peça e a etiqueta com o código). Dá para apagar uma foto sozinha. O link do pedido para o Compras mostra todas. As fotos que as peças já tinham continuam lá.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho o lugar das fotos das peças, e a foto de cada peça passa para lá.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: garagem, médias do pátio, troca de nome e CNPJ com letras
 
 - Na lavra, o caminhão que foi **para a garagem** no britador não aparece mais como "Chegou" para a escavadeira.

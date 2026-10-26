@@ -135,7 +135,7 @@
     <?php endif; ?>
 </section>
 
-<section class="bloco horimetro">
+<section class="bloco horimetro" id="manutencao">
     <h2>Manutenção</h2>
     <?php if ($horimetro['planos'] === []): ?>
         <p class="vazio">Nenhum serviço nesta máquina.</p>

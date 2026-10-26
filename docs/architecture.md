@@ -23,10 +23,10 @@ src/               classes de domínio, uma por assunto
   Auth.php         entrada, papéis, bloqueio por senhas erradas
   Operacoes.php    fila de carregamento do pátio, fracionado, vendido e Controle de carga
   Lavra.php        ciclo do Pusch, médias, limpeza da lavra, resumo
-  Horimetro.php    leituras, turnos, manutenção preventiva
+  Horimetro.php    leituras, turnos, manutenção preventiva (troca registrada pelo operador em /troca e avisos de 100, 50, 25 e 8 h)
   Posse.php        quem está com cada máquina
   Problemas.php    problemas das máquinas
-  Pecas.php        peças das máquinas e pedidos ao Compras (mensagem do WhatsApp, página pública /compras/<código>)
+  Pecas.php        peças das máquinas (até 5 fotos em peca_fotos) e pedidos ao Compras (mensagem do WhatsApp, página pública /compras/<código>)
   Oficina.php      máquina na oficina (bloqueia assumir e começar trabalho), ordem de serviço e disponibilidade do mês
   Estoque.php      estoque das pilhas (conchas lançadas pela pá)
   Britador.php     britador secundário: britagens e problemas

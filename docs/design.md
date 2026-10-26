@@ -12,6 +12,7 @@
 - Cores e sombra do sistema: variáveis em `:root` no início de `public/assets/app.css` (`--ink`, `--paper`, `--gold`, `--muted`, `--line`, `--saida`, `--entrada`, `--info`). Fonte: "Segoe UI", Arial.
 - TV: variáveis `--tv-*` e a escala `--k` em `public/assets/dashboard.css`. A escala muda com a tela cheia.
 - Componentes reaproveitados nas views: `trecho_*.php` (máquina, quem está com ela, situação, carga da lavra, horímetro), `.cartao`, `.selo status-*`, `.aviso`, `.botoes`, `.btn primario|secundario|perigo|concluir`.
+- Avisos de manutenção (`trecho_avisos_manutencao.php`, `.manutencao-aviso` e `.selo-proxima.faixa-*`): amarelo com 100 e 50 h, laranja com 25 h, vermelho com 8 h e vencida; o texto diz as horas, a cor só reforça.
 - O valor de cada cor e medida fica nos arquivos CSS; este documento não repete valores.
 
 ## Interação

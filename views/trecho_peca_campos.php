@@ -17,7 +17,7 @@
     <input type="number" name="quantidade" min="1" max="99" step="1" required value="<?= (int) ($valores['quantidade'] ?? 1) ?>">
 </label>
 <div class="campo">
-    <span>Foto (opcional)</span>
-    <input type="file" name="foto" accept="image/jpeg,image/png,image/webp">
-    <small class="dica">JPG, PNG ou WebP, até 10 MB.</small>
+    <span>Fotos (opcional)</span>
+    <input type="file" name="fotos[]" multiple accept="image/jpeg,image/png,image/webp">
+    <small class="dica">Até <?= defined('Pecas::MAX_FOTOS') ? (int) Pecas::MAX_FOTOS : 5 ?> fotos por peça (ex.: a peça e a etiqueta com o código). JPG, PNG ou WebP, até 10 MB cada.</small>
 </div>

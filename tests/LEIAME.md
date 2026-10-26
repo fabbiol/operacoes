@@ -68,6 +68,8 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `varrer_telas` — abre as telas principais com cada papel (administrativo, operadora, motorista, "ambos") e procura erro do PHP ou resposta 5xx.
 - `trocar_nome` — trocar o nome de uma pessoa leva o histórico junto; pessoa de `APP_USUARIOS` não troca.
 - `entrada_por_foto` — entrada pela foto no tablet autorizado, senha, limite de tentativas, tablet revogado, aparelho não autorizado.
+- `troca_operador` — troca registrada pelo operador: serviço novo com o prazo dito na primeira vez, o mesmo serviço não se repete, avisos com 100, 50, 25 e 8 h, vencida, serviço de outra máquina e máquina sem horímetro.
+- `fotos_pecas` — a foto única de antes vira a primeira foto da peça, uma vez só, e continua abrindo; a foto de uma peça não abre pela outra.
 - `previsao_manutencao` — previsão de vencimento: média de horas por dia dos turnos dos últimos 14 dias, dia previsto do serviço, sem previsão para máquina sem turno e serviço vencido.
 - `fotos` — envio de fotos: redução, giro pelo EXIF, PNG com fundo branco, arquivo quebrado, cache 304 (as imagens são geradas na hora).
 
@@ -78,6 +80,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `limpeza_lavra` — limpeza da lavra: tempo fora da fila e do ciclo, Painel, Monitor, quem pode terminar.
 - `problema_maquina` — "Como ficou a máquina?" ao soltar, Painel, Manutenção, ficha, resolver, liberar com problema.
 - `lavra_encerrar_horimetro` — encerrar viagem como problema, Oficina, horímetro com ponto de milhar, entrada digitada errada.
+- `troca` — manutenção pelo operador no tablet: primeira troca com o prazo, aviso no tablet e no Painel quando faltam 40 h, segunda troca só escolhendo na lista.
 - `valor_nota` — nota sem valor no Monitor e no Controle; preencher e corrigir o valor.
 - `nota_leitura`, `nota_m3`, `nota_unidade_desconhecida` — leitura de XML e PDF (notas **sintéticas** de `tests/notas/`), CNPJ/CPF do cliente, nota repetida, material fora do cadastro, m³, unidades desconhecidas.
 - `nota_real` — a mesma leitura com a nota real do cliente (só com `NOTA_REAL_DIR`; nada dela está escrito nos testes).
@@ -88,7 +91,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `finpro` — integração com o Fin Pro contra um servidor falso (Node, no próprio teste): nota lida do PDF e lançada com Pix vai na hora com o PDF e a chave Bearer; Dinheiro não vai; resposta 500 deixa esperando com o motivo e a consulta do Monitor tenta de novo na hora certa; Reenviar; forma corrigida para Transferência (formulário e quadro do valor); o PDF abre na ficha; CNPJ/CPF do cliente lido, recusado com dígito errado, mostrado formatado e enviado só com os números.
 - `planilha_estoque` — a planilha do estoque entra uma vez, dia por dia, só com a pá 656, a Brita 01 e o Pedrisco no cadastro.
 - `oficina` — máquina com alguém não vai para a oficina; na oficina, some da escolha de máquina e o servidor recusa assumir e iniciar carga com ela; Monitor e Manutenção mostram; liberar exige o que foi feito, grava a ordem de serviço com o custo e resolve o problema ligado; disponibilidade do mês; 403 para o operador.
-- `pecas` — peças da máquina (com foto), pedido ao Compras confirmado com o operador, mensagem do WhatsApp, página pública sem login (e 404 sem código válido), 403 para o operador, trocado com horímetro e última troca, cópia do item no pedido.
+- `pecas` — peças da máquina (até 5 fotos por peça, apagar uma foto, mais de 5 é recusado), pedido ao Compras confirmado com o operador, mensagem do WhatsApp, página pública sem login (e 404 sem código válido), 403 para o operador, trocado com horímetro e última troca, cópia do item no pedido.
 - `previsao` — a Manutenção e a ficha mostram "vence por volta de <dia>, <dd/mm>" na máquina com turnos, e nada na máquina sem turno.
 - `estoque` — estoque das pilhas: concha da pá, lançamento do operador, saldo da planilha, correção e exclusão.
 - `som_aviso` — som do aviso sem AudioContext (não precisa de servidor).

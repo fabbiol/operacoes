@@ -5,7 +5,7 @@
     </div>
     <a class="btn secundario" href="<?= e(url('pedidos-pecas')) ?>">Pedidos de peças</a>
 </section>
-<p class="nota">O prazo usa a última leitura do horímetro. Próxima significa que faltam <?= (int) Horimetro::PROXIMA_H ?> h ou menos. Sem leitura, o prazo não aparece. Os problemas são os que os operadores avisaram ao soltar a máquina: marque como resolvido na ficha. A disponibilidade é 100% menos o tempo que a máquina passou na oficina neste mês.</p>
+<p class="nota">O prazo usa a última leitura do horímetro. Próxima significa que faltam <?= (int) Horimetro::PROXIMA_H ?> h ou menos: o aviso aparece aqui, no Painel e no tablet de quem está com a máquina, e fica mais forte com 50, 25 e 8 h. Sem leitura, o prazo não aparece. Os problemas são os que os operadores avisaram ao soltar a máquina: marque como resolvido na ficha. A disponibilidade é 100% menos o tempo que a máquina passou na oficina neste mês.</p>
 
 <?php foreach ($grupos as $grupo): ?>
     <h2><?= e($grupo['titulo']) ?></h2>

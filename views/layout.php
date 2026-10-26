@@ -9,6 +9,15 @@ try {
     $maquinasMenu = [];
     $oferecerApp = false;
 }
+// Operador com máquina: os serviços dela que estão chegando (faltam 100 h ou menos) aparecem em todas as telas.
+$avisosDaMaquina = [];
+if ($maquinasMenu !== [] && !Auth::admin() && ($corpo ?? '') !== 'troca' && method_exists(Horimetro::class, 'avisos')) {
+    try {
+        $avisosDaMaquina = Horimetro::avisos((string) $maquinasMenu[0]['tipo'], (int) $maquinasMenu[0]['id']);
+    } catch (Throwable) {
+        $avisosDaMaquina = [];
+    }
+}
 // A tela fica acesa enquanto a pessoa está com uma máquina, e no monitor da TV.
 $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
 ?>
@@ -64,6 +73,9 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
                     <?php if (pode_patio()): ?>
                         <a class="link<?= ($caminho === 'patio' || str_starts_with($caminho, 'carregamentos/') || $caminho === 'estoque') ? ' ativo' : '' ?>" href="<?= e(url('patio')) ?>">Pátio</a>
                     <?php endif; ?>
+                    <?php if ($maquinasMenu !== []): ?>
+                        <a class="link<?= $caminho === 'troca' ? ' ativo' : '' ?>" href="<?= e(url('troca')) ?>">Manutenção</a>
+                    <?php endif; ?>
                     <?php if (method_exists(Auth::class, 'britador') && Auth::britador()): ?>
                         <a class="link<?= str_starts_with($caminho, 'britador') ? ' ativo' : '' ?>" href="<?= e(url('britador')) ?>">Britador</a>
                     <?php else: ?>
@@ -113,6 +125,9 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
         <?php endif; ?>
         <?php if (!empty($erro)): ?>
             <p class="aviso erro"><?= e($erro) ?></p>
+        <?php endif; ?>
+        <?php if ($avisosDaMaquina !== []): ?>
+            <?php $avisosManutencao = $avisosDaMaquina; $verTodos = false; require __DIR__ . '/trecho_avisos_manutencao.php'; ?>
         <?php endif; ?>
         <?php require $viewFile; ?>
     </main>
