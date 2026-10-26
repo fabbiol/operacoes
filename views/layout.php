@@ -10,12 +10,12 @@ try {
     $oferecerApp = false;
 }
 // Operador com máquina: os serviços dela que estão chegando (faltam 100 h ou menos) aparecem em todas as telas.
-$avisosManutencao = [];
+$avisosDaMaquina = [];
 if ($maquinasMenu !== [] && !Auth::admin() && ($corpo ?? '') !== 'troca' && method_exists(Horimetro::class, 'avisos')) {
     try {
-        $avisosManutencao = Horimetro::avisos((string) $maquinasMenu[0]['tipo'], (int) $maquinasMenu[0]['id']);
+        $avisosDaMaquina = Horimetro::avisos((string) $maquinasMenu[0]['tipo'], (int) $maquinasMenu[0]['id']);
     } catch (Throwable) {
-        $avisosManutencao = [];
+        $avisosDaMaquina = [];
     }
 }
 // A tela fica acesa enquanto a pessoa está com uma máquina, e no monitor da TV.
@@ -126,8 +126,8 @@ $telaAcesa = ($corpo ?? '') === 'dashboard' || $maquinasMenu !== [];
         <?php if (!empty($erro)): ?>
             <p class="aviso erro"><?= e($erro) ?></p>
         <?php endif; ?>
-        <?php if ($avisosManutencao !== []): ?>
-            <?php $verTodos = false; require __DIR__ . '/trecho_avisos_manutencao.php'; ?>
+        <?php if ($avisosDaMaquina !== []): ?>
+            <?php $avisosManutencao = $avisosDaMaquina; $verTodos = false; require __DIR__ . '/trecho_avisos_manutencao.php'; ?>
         <?php endif; ?>
         <?php require $viewFile; ?>
     </main>

@@ -89,7 +89,7 @@ T.executar(async () => {
   ok(sql(`SELECT CONCAT(situacao,'|',trocado_horimetro,'|',trocado_por,'|',trocado_em IS NOT NULL) FROM pecas_pedidos WHERE id=${idPedido}`) === 'trocado|100.0|Fabio|1', 'trocado com horímetro e quem marcou');
   await adm.goto(BASE + '/cadastros/pas/1');
   tela = await txt(adm);
-  ok(/LF3349 · 1 un · última troca em [\d/]+ [\d:]+, 100,0 h/.test(tela), 'peça mostra a última troca', tela.slice(tela.indexOf('Peças'), tela.indexOf('Peças') + 400));
+  ok(/LF3349 · 1 un · 2 fotos · última troca em [\d/]+ [\d:]+, 100,0 h/.test(tela), 'peça mostra a última troca', tela.slice(tela.indexOf('Peças'), tela.indexOf('Peças') + 400));
 
   // Editar a peça não muda o item do pedido.
   await adm.click('#pecas li:has-text("Filtro de óleo") details.anular > summary');
