@@ -15,6 +15,9 @@ ok(NotaFiscal::documento('98765432000110') === null, 'CNPJ com dígito verificad
 ok(NotaFiscal::documento('52998224724') === null, 'CPF com dígito verificador errado fica vazio');
 ok(NotaFiscal::documento('11111111111') === null && NotaFiscal::documento('00000000000000') === null, 'números todos iguais ficam vazios');
 ok(NotaFiscal::documento('') === null && NotaFiscal::documento('1234567') === null, 'vazio ou tamanho errado fica vazio');
+ok(NotaFiscal::documento('12.ABC.345/01DE-35') === '12ABC34501DE35' && NotaFiscal::documento('12abc34501de35') === '12ABC34501DE35', 'CNPJ com letras (jul/2026) é aceito, em maiúsculas');
+ok(NotaFiscal::documento('12ABC34501DE36') === null && NotaFiscal::documento('12ABC34501DEAB') === null && NotaFiscal::documento('5299822472A') === null, 'CNPJ com letras e dígito errado, letra no dígito verificador ou CPF com letra ficam vazios');
+ok(NotaFiscal::formatarDocumento('12ABC34501DE35') === '12.ABC.345/01DE-35', 'formatação do CNPJ com letras');
 ok(NotaFiscal::formatarDocumento('98765432000198') === '98.765.432/0001-98' && NotaFiscal::formatarDocumento('52998224725') === '529.982.247-25', 'formatação de CNPJ e CPF');
 
 // XML.

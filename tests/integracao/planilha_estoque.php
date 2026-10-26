@@ -1,6 +1,6 @@
 <?php
 // Planilha do estoque (Estoque::importarPlanilha): entra uma vez, dia por dia, com a pá 656, a Brita 01 e o Pedrisco;
-// sem eles no cadastro, ou com o estoque já lançado, não faz nada.
+// sem eles no cadastro, ou com o estoque já lançado, não faz nada; depois de importada, não volta nem com o estoque zerado.
 require __DIR__ . '/../lib/cli.php';
 
 ok(Estoque::importarPlanilha($pdo) !== 'importada', 'cadastro sem a pá 656 e o Pedrisco: não importa');
@@ -20,6 +20,8 @@ ok($pdo->query("SELECT COUNT(*) FROM estoque_entradas WHERE colocado_em = '2026-
 ok($pdo->query("SELECT CONCAT(concha_m3, '|', (SELECT SUM(estoque) FROM materiais)) FROM pas_carregadeiras WHERE maquina = 'Pá 656'")->fetchColumn() === '3.30|2', 'concha da 656 em 3,3 m³ e os dois materiais com estoque');
 
 $total = $pdo->query('SELECT COUNT(*) FROM estoque_entradas')->fetchColumn();
-ok(Estoque::importarPlanilha($pdo) === 'o estoque já tem lançamentos' && $pdo->query('SELECT COUNT(*) FROM estoque_entradas')->fetchColumn() === $total, 'de novo: não lança duas vezes');
+ok(Estoque::importarPlanilha($pdo) === 'a planilha já foi tratada' && $pdo->query('SELECT COUNT(*) FROM estoque_entradas')->fetchColumn() === $total, 'de novo: não lança duas vezes');
+$pdo->exec('DELETE FROM estoque_entradas');
+ok(Estoque::importarPlanilha($pdo) === 'a planilha já foi tratada' && (int) $pdo->query('SELECT COUNT(*) FROM estoque_entradas')->fetchColumn() === 0, 'estoque zerado depois: a planilha não volta');
 
 fim();

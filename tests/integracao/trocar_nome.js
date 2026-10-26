@@ -17,6 +17,9 @@ T.executar(async () => {
   f = parseForms(p.text).find(x => /caminhoes\/2\/fila$/.test(x.action));
   r = await bruno.post(f.action, f.fields);
   ok(sql("SELECT COUNT(*) FROM ciclos_lavra WHERE operador='Bruno'") === '1', 'Bruno entra na fila');
+  sql("UPDATE ciclos_lavra SET atualizado_em='2026-01-02 03:04:05' WHERE operador='Bruno'");
+  sql("INSERT INTO estoque_entradas (material_id, pa_carregadeira_id, conchas, concha_m3, colocado_em, usuario) VALUES (1, 1, 3, 2.5, NOW(), 'Bruno')");
+  sql("INSERT INTO britagens (usuario, inicio, fim, terminado_por) VALUES ('Joao', NOW(), NOW(), 'Bruno')");
 
   // admin troca o nome
   p = await adm.get('/usuarios/' + id);
@@ -31,6 +34,8 @@ T.executar(async () => {
   const resto = sql("SELECT (SELECT COUNT(*) FROM ciclos_lavra WHERE operador='Bruno') + (SELECT COUNT(*) FROM horimetros WHERE usuario='Bruno') + (SELECT COUNT(*) FROM maquina_posse WHERE usuario='Bruno')");
   ok(resto === '0', 'nada ficou com o nome antigo', resto);
   ok(sql("SELECT COUNT(*) FROM ciclos_lavra WHERE operador='Bernardo'") === '1' && sql("SELECT usuario FROM maquina_posse WHERE usuario_id=" + id) === 'Bernardo', 'viagem e máquina passaram para Bernardo');
+  ok(sql("SELECT COUNT(*) FROM estoque_entradas WHERE usuario='Bernardo'") === '1' && sql("SELECT COUNT(*) FROM britagens WHERE terminado_por='Bernardo'") === '1', 'estoque e britagem passaram para Bernardo');
+  ok(sql("SELECT atualizado_em FROM ciclos_lavra WHERE operador='Bernardo'") === '2026-01-02 03:04:05', 'trocar o nome não mexe no horário da viagem', sql("SELECT atualizado_em FROM ciclos_lavra WHERE operador='Bernardo'"));
 
   // a sessão do Bruno continua e já usa o nome novo
   p = await bruno.get('/lavra');

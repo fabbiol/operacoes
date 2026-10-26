@@ -790,6 +790,7 @@ final class Lavra
             JOIN ciclos_lavra c ON c.caminhao_id = k.id
                 AND c.status = 'concluido'
                 AND (c.encerramento IS NULL OR c.encerramento = '')
+                AND c.garagem = 0
                 AND c.fim_ciclo >= CURDATE()
             WHERE k.ativo = 1
               AND c.id = (

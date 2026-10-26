@@ -408,7 +408,8 @@ final class Pessoas
 
     /**
      * O trabalho fica registrado com o nome de quem fez. Ao trocar o nome, o histórico vai junto:
-     * viagens, cargas, horímetro, turnos, manutenções, problemas das máquinas, a máquina que a pessoa está usando agora.
+     * viagens, cargas, horímetro, turnos, manutenções, problemas das máquinas, estoque, britagens, pedidos de peças, oficina
+     * e a máquina que a pessoa está usando agora.
      * O texto livre das observações fica como foi escrito.
      */
     private static function levarHistorico(string $antigo, string $novo): void
@@ -423,12 +424,17 @@ final class Pessoas
             'maquina_posse' => ['usuario'],
             'maquina_problemas' => ['usuario', 'resolvido_por'],
             'lavra_limpezas' => ['operador'],
-            'britagens' => ['usuario'],
+            'britagens' => ['usuario', 'terminado_por'],
             'britagem_problemas' => ['usuario', 'resolvido_por'],
+            'estoque_entradas' => ['usuario'],
+            'pecas_pedidos' => ['pedido_por', 'confirmado_com', 'trocado_por'],
+            'maquina_oficina' => ['entrada_por', 'saida_por'],
         ];
         foreach ($colunas as $tabela => $lista) {
+            // Trocar o nome não é mexer na viagem/ordem: atualizado_em fica como estava (a lavra mede tempo por ele).
+            $manter = in_array($tabela, ['fila_carregamentos', 'ciclos_lavra'], true) ? ', atualizado_em = atualizado_em' : '';
             foreach ($lista as $coluna) {
-                Db::pdo()->prepare(sprintf('UPDATE %s SET %s = ? WHERE %s = ?', $tabela, $coluna, $coluna))->execute([$novo, $antigo]);
+                Db::pdo()->prepare(sprintf('UPDATE %s SET %s = ?%s WHERE %s = ?', $tabela, $coluna, $manter, $coluna))->execute([$novo, $antigo]);
             }
         }
     }

@@ -62,6 +62,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 
 **integracao** (`tests/integracao/`, banco temporário; PHP direto no código ou HTTP puro)
 - `lavra` — relatório da lavra: médias de fila, estrada, volta e ciclo; garagem, oficina, fila que atravessa a noite, desconto da limpeza da escavadeira.
+- `medias_patio` — relatório do pátio: fila e carga que atravessam a meia-noite ficam fora das médias.
 - `finalizar_corrigir_horimetro` — quem pode finalizar a carga, correção do carregado (soma das viagens do fracionado), cancelar viagem do fracionado que já saiu (o saldo é refeito), correção da entrada do horímetro.
 - `posse` — posse das máquinas (pá, retro, caminhão): quem está com quê, liberação pelo administrativo, dois toques ao mesmo tempo, sessão antiga que vira posse no banco.
 - `varrer_telas` — abre as telas principais com cada papel (administrativo, operadora, motorista, "ambos") e procura erro do PHP ou resposta 5xx.

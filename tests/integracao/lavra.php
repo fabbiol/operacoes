@@ -21,6 +21,8 @@ ok(Lavra::resumo(date('Y-m-d'))['caminhao']['viagens'] === 4, 'mas continua cont
 $ins->execute([3, $t('10:00'), $t('10:05'), $t('10:10'), $t('10:30'), $t('10:31'), null, 1]);
 $m = Lavra::resumo(date('Y-m-d'))['caminhao']['medias'];
 ok($m['retorno'] === 1200 && $m['ciclo'] === 3000 && $m['ida'] === 1200, 'garagem: entra a estrada, fica fora a volta e o ciclo', json_encode($m));
+$chegou = array_map('intval', array_column(Lavra::chegouHoje(), 'id'));
+ok(in_array(1, $chegou, true) && !in_array(3, $chegou, true), 'garagem: o caminhão não aparece como "Chegou" na escavadeira', json_encode($chegou));
 // fila que atravessou a noite
 if (date('H') >= '07') {
     $ins->execute([3, date('Y-m-d', time() - 86400) . ' 17:40:00', $t('07:00'), $t('07:05'), $t('07:25'), $t('07:45'), null, 0]);

@@ -59,7 +59,7 @@ $travado = !empty($travado);
         </label>
         <label class="campo">
             <span>CNPJ/CPF do cliente</span>
-            <input type="text" name="nf_documento" inputmode="numeric" maxlength="18" autocomplete="off" value="<?= e($valor['nf_documento'] ?? '') ?>" placeholder="Opcional" <?= $travado ? 'disabled' : '' ?>>
+            <input type="text" name="nf_documento" maxlength="18" autocapitalize="characters" autocomplete="off" value="<?= e($valor['nf_documento'] ?? '') ?>" placeholder="Opcional" <?= $travado ? 'disabled' : '' ?>>
         </label>
         <label class="campo">
             <span>Pedido</span>
