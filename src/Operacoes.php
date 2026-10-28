@@ -380,7 +380,7 @@ final class Operacoes
     }
 
     /** @param array<string, mixed> $dados lidos por lerOrdem */
-    private static function gravarOrdemEditada(int $id, array $dados, string $observacoes): void
+    private static function gravarOrdemEditada(int $id, array $dados, ?string $observacoes): void
     {
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
