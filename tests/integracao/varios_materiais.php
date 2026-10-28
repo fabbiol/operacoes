@@ -23,12 +23,12 @@ ok(outros_materiais_texto($ordem) === ' + 5,00 t · Pó de pedra + 2,50 t · Are
 ok(Operacoes::viagensDe($ordemId)['total'] === 17.5, 'o total da nota soma os três materiais');
 
 // Corrigir dados: trocar os outros; formulário sem as linhas mantém o que tinha.
-Operacoes::atualizar($ordemId, $com([['material_id' => $id('Pedrisco'), 'quantidade' => '4']]));
-ok(outros_materiais_texto(Operacoes::buscar($ordemId)) === ' + 4,00 t · Pedrisco', 'corrigir troca os outros materiais');
+$msg = erro(fn () => Operacoes::atualizar($ordemId, $com([['material_id' => $id('Pedrisco'), 'quantidade' => '4']])));
+ok($msg === '' && outros_materiais_texto(Operacoes::buscar($ordemId)) === ' + 4,00 t · Pedrisco', 'corrigir troca os outros materiais', $msg);
 $semLinhas = $base;
 unset($semLinhas['tem_outros']);
-Operacoes::atualizar($ordemId, $semLinhas);
-ok(outros_materiais_texto(Operacoes::buscar($ordemId)) === ' + 4,00 t · Pedrisco', 'formulário sem as linhas mantém os outros materiais');
+$msg = erro(fn () => Operacoes::atualizar($ordemId, $semLinhas));
+ok($msg === '' && outros_materiais_texto(Operacoes::buscar($ordemId)) === ' + 4,00 t · Pedrisco', 'formulário sem as linhas mantém os outros materiais', $msg);
 
 // Carregado no dia e correção do carregado.
 $pdo->exec("UPDATE fila_carregamentos SET status = 'concluido', fim_carregamento = NOW() WHERE id = $ordemId");

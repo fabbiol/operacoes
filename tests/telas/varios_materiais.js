@@ -41,6 +41,6 @@ T.executar(async () => {
 
   await adm.goto(BASE + '/controle');
   const controle = await txt(adm);
-  ok(/NF 7777 .*Brita 1 \+ Pó de pedra 15,00 t 15,00 t/.test(controle), 'o Controle mostra os dois materiais e soma 15 t', controle.slice(controle.indexOf('Notas do dia'), controle.indexOf('Notas do dia') + 400));
+  ok(/NF 7777.*Brita 1 \+ Pó de pedra\s*15,00 t\s*15,00 t/.test(controle), 'o Controle mostra os dois materiais e soma 15 t', controle.slice(controle.indexOf('NF 7777'), controle.indexOf('NF 7777') + 200));
   T.resumo();
 });
