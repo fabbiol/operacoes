@@ -19,6 +19,10 @@ function nota(array $itens, string $ide): string
 $n = NotaFiscal::lerXml(nota([['BRITA 1', '10.0000', 'TON'], ['BRITA 1', '4.0000', 'M3'], ['BRITA 1', '2.5000', 't']], '<dhEmi>2026-10-15T08:00:00-04:00</dhEmi>'));
 ok($n['quantidade'] == 12.5 && $n['unidade'] === 't' && $n['outras_unidades'] === ['M3'], 'soma só as toneladas (TON + t) e avisa o M3', json_encode([$n['quantidade'], $n['unidade'], $n['outras_unidades']]));
 
+$n = NotaFiscal::lerXml(nota([['BRITA 1', '10', 't'], ['PO DE PEDRA', '5', 't'], ['BRITA 1', '2', 't'], ['PO DE PEDRA', '1.5', 'TON'], ['PEDRISCO', '3', 'M3']], '<dEmi>2026-10-14</dEmi>'));
+ok($n['material'] === 'BRITA 1' && $n['quantidade'] == 12 && $n['outros_materiais'] === [['material' => 'PO DE PEDRA', 'quantidade' => 6.5]] && $n['outras_unidades'] === ['M3'],
+    'nota com mais de um material: o primeiro é o da ordem, os outros somados na mesma unidade, o item em m³ fica de fora', json_encode($n, JSON_UNESCAPED_UNICODE));
+
 $n = NotaFiscal::lerXml(nota([['AREIA', '3', 'SC']], '<dEmi>2026-10-14</dEmi>'));
 ok($n['unidade'] === null && $n['unidade_nota'] === 'SC', 'unidade desconhecida fica sem unidade do sistema');
 ok($n['emitida_em'] === null && $n['data_emissao'] === '2026-10-14', 'leiaute antigo só com a data: guarda a data', json_encode([$n['emitida_em'], $n['data_emissao']]));

@@ -113,6 +113,19 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     CONSTRAINT fk_fila_pa FOREIGN KEY (pa_carregadeira_id) REFERENCES pas_carregadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Carga com mais de um material na mesma nota (sai inteira, nunca fracionada): o primeiro material fica em
+-- fila_carregamentos.material_id/quantidade_autorizada; os outros (até 4), aqui, na mesma unidade da ordem.
+CREATE TABLE IF NOT EXISTS ordem_materiais (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    ordem_id INT UNSIGNED NOT NULL,
+    posicao TINYINT UNSIGNED NOT NULL,
+    material_id INT UNSIGNED NOT NULL,
+    quantidade DECIMAL(12,2) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_ordem_materiais (ordem_id, posicao),
+    CONSTRAINT fk_ordem_materiais_material FOREIGN KEY (material_id) REFERENCES materiais (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS retroescavadeiras (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     maquina VARCHAR(120) NOT NULL,

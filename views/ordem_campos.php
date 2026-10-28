@@ -118,6 +118,37 @@ $travado = !empty($travado);
             </select>
         </label>
     </div>
+    <?php
+    $outros = $valor['outros'] ?? [];
+    $maxOutros = (defined('Operacoes::MAX_MATERIAIS') ? (int) Operacoes::MAX_MATERIAIS : 5) - 1;
+    ?>
+    <?php if (!$viagemSeguinte && !($travado && $outros === [])): ?>
+        <?php if (!$travado): ?>
+            <input type="hidden" name="tem_outros" value="1">
+        <?php endif; ?>
+        <details class="outros-materiais"<?= $outros !== [] ? ' open' : '' ?>>
+            <summary>+ Outro material nesta carga</summary>
+            <p class="dica">Para a nota com mais de um material no mesmo caminhão: a carga sai inteira, numa viagem só, na unidade escolhida acima. Até <?= $maxOutros ?> materiais além do primeiro.</p>
+            <?php for ($n = 0; $n < $maxOutros; $n++): ?>
+                <?php $linha = is_array($outros[$n] ?? null) ? $outros[$n] : []; ?>
+                <div class="grade">
+                    <label class="campo">
+                        <span>Material <?= $n + 2 ?></span>
+                        <select name="outros[<?= $n ?>][material_id]" <?= $travado ? 'disabled' : '' ?>>
+                            <option value="">Nenhum</option>
+                            <?php foreach ($materiais as $item): ?>
+                                <option value="<?= (int) $item['id'] ?>" <?= (int) ($linha['material_id'] ?? 0) === (int) $item['id'] ? 'selected' : '' ?>><?= e($item['nome']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label class="campo">
+                        <span>Quantidade do material <?= $n + 2 ?></span>
+                        <input type="text" name="outros[<?= $n ?>][quantidade]" inputmode="decimal" value="<?= e((string) ($linha['quantidade'] ?? '')) ?>" placeholder="0,00" <?= $travado ? 'disabled' : '' ?>>
+                    </label>
+                </div>
+            <?php endfor; ?>
+        </details>
+    <?php endif; ?>
     <?php if ($viagemSeguinte): ?>
         <p class="nota">Viagem <?= (int) $ordem['viagem'] ?> de uma nota fracionada. A quantidade é o saldo que o cliente ainda vai buscar.</p>
     <?php else: ?>

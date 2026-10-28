@@ -21,7 +21,7 @@ src/               classes de domínio, uma por assunto
   helpers.php      funções comuns: escape, CSRF, flash, redirect, render, horímetro ao soltar, toque repetido
   Db.php           conexão PDO, trava (GET_LOCK) e atualização automática do banco
   Auth.php         entrada, papéis, bloqueio por senhas erradas
-  Operacoes.php    fila de carregamento do pátio, fracionado, vendido e Controle de carga
+  Operacoes.php    fila de carregamento do pátio, fracionado, carga com mais de um material (ordem_materiais), vendido e Controle de carga
   Lavra.php        ciclo do Pusch, médias, limpeza da lavra, resumo
   Horimetro.php    leituras, turnos, manutenção preventiva (troca registrada pelo operador em /troca e avisos de 100, 50, 25 e 8 h)
   Posse.php        quem está com cada máquina

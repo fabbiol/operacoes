@@ -59,7 +59,8 @@ $filtros = [
                 <p class="cliente"><?= e($ordem['cliente']) ?></p>
                 <p class="carga"><?php
                     $quanto = $ordem['quantidade_carregada'] !== null ? (string) $ordem['quantidade_carregada'] : (string) $ordem['quantidade_autorizada'];
-                    echo e(((int) ($ordem['fracionado'] ?? 0) === 1 && $ordem['quantidade_carregada'] === null ? 'Saldo ' : '') . formatar_quantidade($quanto) . ' ' . unidade_rotulo($ordem['unidade']) . ' · ' . $ordem['material_nome']);
+                    echo e(((int) ($ordem['fracionado'] ?? 0) === 1 && $ordem['quantidade_carregada'] === null ? 'Saldo ' : '') . formatar_quantidade($quanto) . ' ' . unidade_rotulo($ordem['unidade']) . ' · ' . $ordem['material_nome']
+                        . (function_exists('outros_materiais_texto') ? outros_materiais_texto($ordem) : ''));
                 ?></p>
                 <?php if ((int) ($ordem['fracionado'] ?? 0) === 1): ?>
                     <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span></p>

@@ -75,7 +75,7 @@ $quantidade = static fn (float $valor, string $unidade): string => formatar_quan
                         <tr>
                             <td><a href="<?= e(url('ordens/' . $principal['id'])) ?>"><?= e($principal['cliente']) ?></a><small><?= e($principal['ordem']) ?> · <?= e(!empty($principal['nf_emitida_em']) || empty($principal['nf_emitida_data']) ? quando((string) ($principal['nf_emitida_em'] ?? $principal['data'])) : date('d/m/Y', (int) strtotime((string) $principal['nf_emitida_data']))) ?></small></td>
                             <td><?= e($principal['nf']) ?></td>
-                            <td><?= e($principal['material_nome']) ?></td>
+                            <td><?= e(function_exists('materiais_nomes') ? materiais_nomes($principal) : $principal['material_nome']) ?></td>
                             <td class="numero"><?= e($quantidade($grupo['total'], (string) $principal['unidade'])) ?></td>
                             <td class="numero"><?= e($quantidade($grupo['carregado'], (string) $principal['unidade'])) ?></td>
                             <td class="numero"><strong><?= e($quantidade($grupo['saldo'], (string) $principal['unidade'])) ?></strong></td>
@@ -114,7 +114,7 @@ $quantidade = static fn (float $valor, string $unidade): string => formatar_quan
                         <tr>
                             <td><a href="<?= e(url('ordens/' . $principal['id'])) ?>">NF <?= e($principal['nf']) ?></a><small><?= e($principal['ordem']) ?> · <?= e(hora_curta((string) ($principal['nf_emitida_em'] ?? $principal['data']))) ?><?= (int) $principal['fracionado'] === 1 ? ' · fracionado' : '' ?></small></td>
                             <td><?= e($principal['cliente']) ?><small>Pedido <?= e($principal['pedido']) ?></small></td>
-                            <td><?= e($principal['material_nome']) ?></td>
+                            <td><?= e(function_exists('materiais_nomes') ? materiais_nomes($principal) : $principal['material_nome']) ?></td>
                             <td class="numero"><?= e($quantidade($grupo['total'], (string) $principal['unidade'])) ?></td>
                             <td class="numero"><?= e($quantidade($grupo['carregado'], (string) $principal['unidade'])) ?></td>
                             <td class="numero"><?= $grupo['saldo'] > 0 && $principal['status'] !== 'cancelado' ? e($quantidade($grupo['saldo'], (string) $principal['unidade'])) : '—' ?></td>

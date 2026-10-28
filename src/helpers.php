@@ -937,6 +937,44 @@ function unidade_rotulo(string $unidade): string
     return unidades()[$unidade] ?? $unidade;
 }
 
+/**
+ * Os outros materiais de uma carga com mais de um (o primeiro é material_nome/quantidade_autorizada da ordem),
+ * lidos da coluna outros_materiais que Operacoes::sqlBase traz em JSON.
+ *
+ * @return list<array{material: string, quantidade: float}>
+ */
+function outros_materiais(array $ordem): array
+{
+    $lista = json_decode((string) ($ordem['outros_materiais'] ?? ''), true);
+    if (!is_array($lista)) {
+        return [];
+    }
+    usort($lista, static fn (array $a, array $b): int => (int) ($a['posicao'] ?? 0) <=> (int) ($b['posicao'] ?? 0));
+
+    return array_map(static fn (array $item): array => [
+        'material' => (string) ($item['material'] ?? ''),
+        'quantidade' => (float) ($item['quantidade'] ?? 0),
+    ], $lista);
+}
+
+/** " + 5,00 t · Pó de pedra" para cada outro material da carga (vazio na carga de um material só). */
+function outros_materiais_texto(array $ordem): string
+{
+    $unidade = unidade_rotulo((string) ($ordem['unidade'] ?? ''));
+    $texto = '';
+    foreach (outros_materiais($ordem) as $item) {
+        $texto .= ' + ' . formatar_quantidade($item['quantidade']) . ' ' . $unidade . ' · ' . $item['material'];
+    }
+
+    return $texto;
+}
+
+/** "Brita 1 + Pó de pedra": os nomes de todos os materiais da carga. */
+function materiais_nomes(array $ordem): string
+{
+    return implode(' + ', array_merge([(string) ($ordem['material_nome'] ?? '')], array_column(outros_materiais($ordem), 'material')));
+}
+
 /** Formas de pagamento da nota, na ordem em que aparecem na tela. */
 function formas_pagamento(): array
 {

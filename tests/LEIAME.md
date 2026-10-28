@@ -56,7 +56,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 **sintaxe** — `php -l` em todo `.php` versionado, `node --check` em todo `.js`, `sh -n` em todo `.sh` (a lista vem de `git ls-files`, mais os arquivos novos de `tests/`).
 
 **unitarios** (`tests/unitarios/`, PHP puro, sem banco)
-- `leitura_nota_xml` — regra de unidades e datas na leitura do XML da nota (soma só toneladas, unidade desconhecida, leiaute antigo só com a data).
+- `leitura_nota_xml` — regra de unidades e datas na leitura do XML da nota (soma só toneladas, nota com mais de um material, unidade desconhecida, leiaute antigo só com a data).
 - `documento_nota` — CNPJ/CPF do cliente: dígitos verificadores, formatação e leitura do destinatário no XML e no PDF das notas sintéticas (a parte do PDF precisa do `pdftotext`).
 - `quantidade` — quantidade digitada: "1.500" é milhar, vírgula ou ponto com até 2 casas, mais casas é recusado.
 
@@ -68,6 +68,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `varrer_telas` — abre as telas principais com cada papel (administrativo, operadora, motorista, "ambos") e procura erro do PHP ou resposta 5xx.
 - `trocar_nome` — trocar o nome de uma pessoa leva o histórico junto; pessoa de `APP_USUARIOS` não troca.
 - `entrada_por_foto` — entrada pela foto no tablet autorizado, senha, limite de tentativas, tablet revogado, aparelho não autorizado.
+- `varios_materiais` — carga com mais de um material: grava até 5, recusa o mesmo material duas vezes, linha incompleta e fracionado; corrigir troca ou mantém os outros; soma no total e no carregado do dia; correção do carregado só na carga de um material; o Fin Pro recebe os materiais juntos.
 - `troca_operador` — troca registrada pelo operador: serviço novo com o prazo dito na primeira vez, o mesmo serviço não se repete, avisos com 100, 50, 25 e 8 h, vencida, serviço de outra máquina e máquina sem horímetro.
 - `fotos_pecas` — a foto única de antes vira a primeira foto da peça, uma vez só, e continua abrindo; a foto de uma peça não abre pela outra.
 - `previsao_manutencao` — previsão de vencimento: média de horas por dia dos turnos dos últimos 14 dias, dia previsto do serviço, sem previsão para máquina sem turno e serviço vencido.
@@ -80,6 +81,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `limpeza_lavra` — limpeza da lavra: tempo fora da fila e do ciclo, Painel, Monitor, quem pode terminar.
 - `problema_maquina` — "Como ficou a máquina?" ao soltar, Painel, Manutenção, ficha, resolver, liberar com problema.
 - `lavra_encerrar_horimetro` — encerrar viagem como problema, Oficina, horímetro com ponto de milhar, entrada digitada errada.
+- `varios_materiais` — nota com Brita 1 e Pó de pedra: "+ Outro material" no formulário, os dois no cartão do pátio, finalizar uma vez só, Controle com os dois e a soma.
 - `troca` — manutenção pelo operador no tablet: primeira troca com o prazo, aviso no tablet e no Painel quando faltam 40 h, segunda troca só escolhendo na lista.
 - `valor_nota` — nota sem valor no Monitor e no Controle; preencher e corrigir o valor.
 - `nota_leitura`, `nota_m3`, `nota_unidade_desconhecida` — leitura de XML e PDF (notas **sintéticas** de `tests/notas/`), CNPJ/CPF do cliente, nota repetida, material fora do cadastro, m³, unidades desconhecidas.

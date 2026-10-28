@@ -58,7 +58,7 @@
                         <span class="selo status-liberado">Pátio</span>
                     </header>
                     <p class="cliente"><?= e($ordem['cliente']) ?></p>
-                    <p class="carga"><?= e(formatar_quantidade((string) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']))) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                    <p class="carga"><?= e(formatar_quantidade((string) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']))) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?><?= e(function_exists('outros_materiais_texto') ? outros_materiais_texto($ordem) : '') ?></p>
                     <p class="meta"><?= e($ordem['pa_nome'] ?: 'Sem pá') ?> · <?= e(quando($ordem['fim_carregamento'])) ?></p>
                     <dl class="tempos tempos-ciclo">
                         <div><span>Ciclo</span><strong><?= e(texto_duracao($ordem['tempos']['ciclo'])) ?></strong></div>

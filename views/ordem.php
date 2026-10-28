@@ -16,7 +16,8 @@
     <div><dt>Material</dt><dd><?php
         $fracionado = (int) ($ordem['fracionado'] ?? 0) === 1;
         $rotuloQuantidade = $fracionado && (int) ($ordem['ordem_principal_id'] ?? 0) > 0 ? 'saldo ' : '';
-        echo e($rotuloQuantidade . formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . unidade_rotulo($ordem['unidade']) . ' · ' . $ordem['material_nome']);
+        echo e($rotuloQuantidade . formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . unidade_rotulo($ordem['unidade']) . ' · ' . $ordem['material_nome']
+            . (function_exists('outros_materiais_texto') ? outros_materiais_texto($ordem) : ''));
         if ($ordem['quantidade_carregada'] !== null) {
             echo e(' · carregado nesta viagem: ' . formatar_quantidade((string) $ordem['quantidade_carregada']) . ' ' . unidade_rotulo($ordem['unidade']));
         }
@@ -169,7 +170,7 @@ if (!empty($grupo) && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $grupo[
     </section>
 <?php endif; ?>
 
-<?php if (in_array($ordem['status'], ['aguardando_conferencia', 'concluido'], true)): ?>
+<?php if (in_array($ordem['status'], ['aguardando_conferencia', 'concluido'], true) && (!function_exists('outros_materiais') || outros_materiais($ordem) === [])): ?>
     <details class="corrigir-carregado bloco">
         <summary>Corrigir a quantidade carregada</summary>
         <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/carregado')) ?>" class="formulario">

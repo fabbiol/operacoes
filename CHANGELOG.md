@@ -1,5 +1,15 @@
 # O que mudou
 
+## Outubro de 2026: carga com mais de um material
+
+- A ordem aceita **mais de um material na mesma carga** (até 5), cada um com a sua quantidade: no formulário, toque em **+ Outro material nesta carga**. **Ler a nota fiscal** já preenche todos os materiais da nota.
+- A carga com mais de um material sai inteira, numa viagem só (não pode ser fracionada). O operador da pá vê todos os materiais no cartão e inicia e finaliza uma vez só.
+- A ficha, a fila, o Controle, o Monitor da TV e "Meus trabalhos" mostram todos os materiais. O Controle soma as quantidades. A nota vai ao Fin Pro com os materiais juntos.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho o lugar dos outros materiais; as ordens que já existem continuam com um material.
+2. No Easypanel, toque em **Implantar**. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: troca registrada pelo operador, avisos de manutenção e várias fotos na peça
 
 - O **operador registra a troca** (óleo, filtros...) no tablet, em **Manutenção**, na máquina que está com ele. Na primeira vez de cada serviço, ele diz de quantas em quantas horas é a troca; depois é só escolher na lista. A troca fica com o horímetro atual da máquina.

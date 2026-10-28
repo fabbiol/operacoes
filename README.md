@@ -24,7 +24,17 @@ Em **Fila › Carregamento › Nova ordem**, o quadro **Ler a nota fiscal** rece
 - **XML**: leitura exata, campo por campo. A hora é a da emissão da nota.
 - **PDF**: o sistema lê o texto do DANFE. O número e a série vêm da chave de acesso (conferida pelo dígito verificador); a hora vem do protocolo de autorização (segundos depois da emissão) ou da hora de saída. Alguns DANFEs, como o da Próspera, só mostram a data da emissão, sem a hora: a tela avisa, o sistema guarda a data (a nota conta no vendido desse dia) e, para gravar a hora, use o XML. PDF escaneado (foto) não tem texto: use o XML.
 - **Pedido**: o do campo de pedido da nota (xPed) ou, se não tiver, o "Pedido: ..." das informações complementares.
-- **Material**: o do cadastro com o mesmo nome do material da nota (sem diferença de acento ou maiúscula; "BRITA 1" acha "Brita 1"). Se não achar, a tela avisa e você escolhe. Se a nota tiver mais de um material, o carregamento usa o primeiro e a tela avisa. Linhas do mesmo material em unidades diferentes (t e m³) não se somam: a tela avisa para conferir a quantidade.
+- **Material**: o do cadastro com o mesmo nome do material da nota (sem diferença de acento ou maiúscula; "BRITA 1" acha "Brita 1"). Se não achar, a tela avisa e você escolhe. Se a nota tiver mais de um material, o primeiro vai em **Material** e os outros (até 4) vão em **Outros materiais**, cada um com a quantidade dele. A tela avisa para conferir. Itens em outra unidade (t e m³ na mesma nota) não entram: a carga usa uma unidade só, e a tela avisa.
+
+### Carga com mais de um material
+
+Quando o mesmo caminhão leva mais de um material na mesma nota (por exemplo, 10 t de Brita 1 e 5 t de Pó de pedra), toque em **+ Outro material nesta carga** no formulário da ordem e preencha o material e a quantidade de cada um. São até 5 materiais por carga, todos na unidade da ordem. Para mais que isso, faça uma nota por vez.
+
+- A carga sai **inteira, numa viagem só**: não pode ser marcada como **Carregamento fracionado**.
+- O cartão do pátio mostra os materiais um embaixo do outro. O operador da pá inicia e finaliza uma vez só, sem digitar nada a mais.
+- A ficha, a fila, o Controle (com a soma no vendido, no carregado e no carregado do dia), o Monitor da TV e "Meus trabalhos" mostram todos os materiais.
+- A nota vai para o Fin Pro com os materiais juntos, por exemplo "Brita 1 (10,00 t) + Pó de pedra (5,00 t)".
+- **Corrigir a quantidade carregada** vale só para a carga de um material. Antes de a pá começar, os materiais da carga se corrigem em **Corrigir dados**.
 - **Unidade**: t, m³ ou un. Se a nota trouxer outra unidade (por exemplo SC), o campo fica em **Escolha** e a tela avisa.
 - **Nota repetida**: a tela avisa se a nota já está em outro carregamento, e o sistema não deixa lançar a mesma nota (mesma chave de acesso) duas vezes.
 
