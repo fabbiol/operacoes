@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 final class Operacoes
 {
+    // Materiais numa mesma carga (o primeiro e mais 4 em ordem_materiais). Para mais, uma nota por vez.
+    public const MAX_MATERIAIS = 5;
+
     public static function contagens(): array
     {
         $totais = array_fill_keys(array_keys(status_lista()), 0);
@@ -301,6 +304,7 @@ final class Operacoes
                     $liberar ? agora_sql() : null,
                 ]);
                 $id = (int) $pdo->lastInsertId();
+                self::gravarOutros($id, $dados['outros']);
                 $pdo->commit();
 
                 return $id;
@@ -358,6 +362,26 @@ final class Operacoes
                 throw new InvalidArgumentException('Essa nota fiscal já foi lançada no carregamento ' . $repetida['ordem'] . '.');
             }
         }
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            // A pá pode começar a carregar no meio: trava a ordem e só grava se ela ainda pode ser editada.
+            $trava = $pdo->prepare('SELECT status FROM fila_carregamentos WHERE id = ? FOR UPDATE');
+            $trava->execute([$id]);
+            if (!in_array($trava->fetchColumn(), ['aguardando_autorizacao', 'liberado', 'saldo'], true)) {
+                throw new InvalidArgumentException('Essa ordem mudou de situação. Atualize a tela.');
+            }
+            self::gravarOrdemEditada($id, $dados, $observacoes);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /** @param array<string, mixed> $dados lidos por lerOrdem */
+    private static function gravarOrdemEditada(int $id, array $dados, ?string $observacoes): void
+    {
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
              SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, nf_pagamento = ?, nf_documento = ?, material_id = ?,
@@ -382,7 +406,7 @@ final class Operacoes
             $observacoes,
             $id,
         ]);
-        self::aindaNaSituacao($id, ['aguardando_autorizacao', 'liberado', 'saldo']);
+        self::gravarOutros($id, $dados['outros']);
     }
 
     public static function liberar(int $id, string $responsavel): void
@@ -671,11 +695,13 @@ final class Operacoes
         $pendente = null;
         $ultima = null;
         foreach ($viagens as $linha) {
+            // Os outros materiais (carga de mais de um, que sai inteira) entram no total e no carregado.
+            $outros = array_sum(array_column(outros_materiais($linha), 'quantidade'));
             if ((int) ($linha['ordem_principal_id'] ?? 0) === 0) {
-                $total = (float) $linha['quantidade_autorizada'];
+                $total = (float) $linha['quantidade_autorizada'] + $outros;
             }
             if (in_array($linha['status'], ['aguardando_conferencia', 'concluido'], true)) {
-                $carregado += (float) ($linha['quantidade_carregada'] ?? $linha['quantidade_autorizada']);
+                $carregado += (float) ($linha['quantidade_carregada'] ?? $linha['quantidade_autorizada']) + $outros;
             }
             if (in_array($linha['status'], ['aguardando_autorizacao', 'saldo', 'liberado', 'carregando'], true)) {
                 $pendente = $linha;
@@ -743,8 +769,10 @@ final class Operacoes
     public static function carregadoNoDia(string $dia): array
     {
         $comando = Db::pdo()->prepare(
-            "SELECT unidade, COUNT(*) AS cargas, SUM(COALESCE(quantidade_carregada, quantidade_autorizada)) AS total
-             FROM fila_carregamentos
+            "SELECT unidade, COUNT(*) AS cargas,
+                    SUM(COALESCE(quantidade_carregada, quantidade_autorizada)
+                        + COALESCE((SELECT SUM(om.quantidade) FROM ordem_materiais om WHERE om.ordem_id = f.id), 0)) AS total
+             FROM fila_carregamentos f
              WHERE status IN ('aguardando_conferencia', 'concluido')
                AND fim_carregamento >= ? AND fim_carregamento <= ?
              GROUP BY unidade"
@@ -899,6 +927,9 @@ final class Operacoes
         if (!in_array($ordem['status'], ['aguardando_conferencia', 'concluido'], true)) {
             throw new InvalidArgumentException('Só dá para corrigir a quantidade de uma viagem que já foi finalizada.');
         }
+        if (outros_materiais($ordem) !== []) {
+            throw new InvalidArgumentException('Esta carga tem mais de um material e saiu inteira: a correção do carregado vale só para carga de um material.');
+        }
         try {
             $valor = (float) parse_quantidade($bruto);
         } catch (InvalidArgumentException) {
@@ -1022,6 +1053,11 @@ final class Operacoes
         }
 
         self::exigirVinculo('materiais', $materialId, 'o material', isset($atual['material_id']) ? (int) $atual['material_id'] : null);
+        $outros = self::outrosDoFormulario($post, $materialId, $atual);
+        $fracionado = self::fracionadoDoFormulario($post, $atual);
+        if ($outros !== [] && $fracionado === 1) {
+            throw new InvalidArgumentException('Carga com mais de um material sai inteira, numa viagem só: desmarque "Carregamento fracionado" ou deixe um material.');
+        }
 
         return [
             'data' => parse_data_hora((string) ($post['data'] ?? '')),
@@ -1034,12 +1070,81 @@ final class Operacoes
             'nf_valor' => self::valorDaNota($post, $atual),
             'nf_pagamento' => self::pagamentoDaNota($post, $atual),
             'nf_documento' => self::documentoDaNota($post, $atual),
-            'fracionado' => self::fracionadoDoFormulario($post, $atual),
+            'fracionado' => $fracionado,
             'material_id' => $materialId,
+            'outros' => $outros,
             'quantidade_autorizada' => parse_quantidade((string) ($post['quantidade_autorizada'] ?? '')),
             'unidade' => $unidade,
             'observacoes' => limpar_longo((string) ($post['observacoes'] ?? ''), 4000),
         ];
+    }
+
+    /**
+     * Os outros materiais da carga (até MAX_MATERIAIS - 1), das linhas "outros[n][material_id]" e "outros[n][quantidade]".
+     * Formulário sem essas linhas (sem "tem_outros"): ficam os que a ordem já tinha.
+     *
+     * @return list<array{material_id: int, quantidade: string}>
+     */
+    private static function outrosDoFormulario(array $post, int $principal, ?array $atual): array
+    {
+        $tinha = $atual !== null ? self::outrosDaOrdem((int) $atual['id']) : [];
+        if (!array_key_exists('tem_outros', $post)) {
+            return $tinha;
+        }
+        $outros = [];
+        $usados = [$principal => true];
+        foreach (is_array($post['outros'] ?? null) ? $post['outros'] : [] as $linha) {
+            $materialId = (int) (is_array($linha) ? ($linha['material_id'] ?? 0) : 0);
+            $bruto = trim((string) (is_array($linha) ? ($linha['quantidade'] ?? '') : ''));
+            if ($materialId === 0 && $bruto === '') {
+                continue;
+            }
+            if ($materialId === 0) {
+                throw new InvalidArgumentException('Escolha o material de cada quantidade em "Outros materiais".');
+            }
+            if ($bruto === '') {
+                throw new InvalidArgumentException('Informe a quantidade de cada material em "Outros materiais".');
+            }
+            if (isset($usados[$materialId])) {
+                throw new InvalidArgumentException('O mesmo material aparece duas vezes na carga. Some as quantidades numa linha só.');
+            }
+            self::exigirVinculo('materiais', $materialId, 'o material', in_array($materialId, array_column($tinha, 'material_id'), true) ? $materialId : null);
+            try {
+                $quantidade = parse_quantidade($bruto);
+            } catch (InvalidArgumentException) {
+                throw new InvalidArgumentException('A quantidade de cada material precisa ser um número maior que zero, como 5,00.');
+            }
+            $outros[] = ['material_id' => $materialId, 'quantidade' => $quantidade];
+            $usados[$materialId] = true;
+        }
+        if (count($outros) > self::MAX_MATERIAIS - 1) {
+            throw new InvalidArgumentException('Uma carga pode ter no máximo ' . self::MAX_MATERIAIS . ' materiais. Para mais, faça uma nota por vez.');
+        }
+
+        return $outros;
+    }
+
+    /** @return list<array{material_id: int, quantidade: string}> */
+    public static function outrosDaOrdem(int $id): array
+    {
+        $busca = Db::pdo()->prepare('SELECT material_id, quantidade FROM ordem_materiais WHERE ordem_id = ? ORDER BY posicao ASC, id ASC');
+        $busca->execute([$id]);
+
+        return array_map(static fn (array $linha): array => [
+            'material_id' => (int) $linha['material_id'],
+            'quantidade' => number_format((float) $linha['quantidade'], 2, '.', ''),
+        ], $busca->fetchAll());
+    }
+
+    /** @param list<array{material_id: int, quantidade: string}> $outros */
+    private static function gravarOutros(int $id, array $outros): void
+    {
+        $pdo = Db::pdo();
+        $pdo->prepare('DELETE FROM ordem_materiais WHERE ordem_id = ?')->execute([$id]);
+        $inserir = $pdo->prepare('INSERT INTO ordem_materiais (ordem_id, posicao, material_id, quantidade) VALUES (?, ?, ?, ?)');
+        foreach (array_values($outros) as $n => $item) {
+            $inserir->execute([$id, $n + 2, $item['material_id'], $item['quantidade']]);
+        }
     }
 
     /** Hora em que a nota foi emitida (opcional). Formulário antigo, sem o campo: fica a que estava. */
@@ -1087,6 +1192,15 @@ final class Operacoes
         }
         if ((int) ($post['material_id'] ?? 0) !== (int) $ordem['material_id'] || (string) ($post['unidade'] ?? '') !== (string) $ordem['unidade']) {
             return true;
+        }
+        if (array_key_exists('tem_outros', $post)) {
+            try {
+                if (self::outrosDoFormulario($post, (int) ($post['material_id'] ?? 0), $ordem) != self::outrosDaOrdem((int) $ordem['id'])) {
+                    return true;
+                }
+            } catch (InvalidArgumentException) {
+                return true;
+            }
         }
         try {
             return abs((float) parse_quantidade((string) ($post['quantidade_autorizada'] ?? '')) - (float) $ordem['quantidade_autorizada']) > 0.0001;
@@ -1313,6 +1427,8 @@ final class Operacoes
     {
         return 'SELECT f.*,
                 m.material AS material_nome,
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT(\'posicao\', om.posicao, \'quantidade\', om.quantidade, \'material\', m2.material))
+                   FROM ordem_materiais om JOIN materiais m2 ON m2.id = om.material_id WHERE om.ordem_id = f.id) AS outros_materiais,
                 COALESCE(p.maquina, r.maquina) AS pa_nome,
                 COALESCE(p.marca, r.marca) AS pa_marca,
                 COALESCE(p.modelo, r.modelo) AS pa_modelo,

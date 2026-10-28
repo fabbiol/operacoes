@@ -928,3 +928,7 @@ p.limpeza-aviso, .limpeza-aviso p { display: flex; flex-wrap: wrap; align-items:
 .corrigir-entrada summary { cursor: pointer; font-weight: 700; color: var(--muted); }
 .corrigir-entrada[open] summary { margin-bottom: 8px; }
 .corrigir-entrada .nota { margin: 6px 0 0; }
+
+/* Carga com mais de um material: as linhas dos outros materiais no formulário da ordem. */
+.outros-materiais { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.outros-materiais summary { font-weight: 700; cursor: pointer; }

@@ -385,8 +385,10 @@ final class Dashboard
             'cliente' => (string) $ordem['cliente'],
             'pedido' => (string) $ordem['pedido'],
             'nf' => (string) $ordem['nf'],
-            'produto' => (string) ($ordem['material_nome'] ?? ''),
-            'quantidade' => (float) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']),
+            'produto' => materiais_nomes($ordem),
+            // Carga de mais de um material: a quantidade é a soma (todos na mesma unidade).
+            'quantidade' => (float) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada'])
+                + array_sum(array_column(outros_materiais($ordem), 'quantidade')),
             'unidade' => unidade_rotulo((string) $ordem['unidade']),
             'maquina' => (string) ($ordem['pa_nome'] ?? ''),
             'operador' => (string) ($ordem['operador'] ?? ''),

@@ -1057,6 +1057,8 @@ function patio_assinatura(array $ordem): string
         (string) $ordem['unidade'],
         (int) ($ordem['fracionado'] ?? 0),
         trim((string) ($ordem['observacoes'] ?? '')),
+        // Só entra na carga de mais de um material: a assinatura das outras ordens continua a mesma.
+        ...(outros_materiais($ordem) !== [] ? [outros_materiais_texto($ordem)] : []),
     ])), 0, 12);
 }
 
@@ -1071,7 +1073,7 @@ function patio_avisos(): array
         'ordem' => (string) $ordem['ordem'],
         'cliente' => (string) $ordem['cliente'],
         'carga' => formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . unidade_rotulo((string) $ordem['unidade'])
-            . ' · ' . (string) ($ordem['material_nome'] ?? ''),
+            . ' · ' . (string) ($ordem['material_nome'] ?? '') . outros_materiais_texto($ordem),
         'obs' => observacao_recente($ordem['observacoes'] ?? null),
         'assinatura' => patio_assinatura($ordem),
     ];
@@ -2017,6 +2019,10 @@ function tela_ler_nota(string $method): void
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
         'nf_pagamento' => (string) ($nota['pagamento'] ?? ''),
         'nf_documento' => NotaFiscal::formatarDocumento($nota['documento'] ?? null),
+        'outros' => array_map(static fn (array $item): array => [
+            'material_id' => NotaFiscal::materialDoCadastro($item['material'], $dados['materiais']) ?? 0,
+            'quantidade' => $item['quantidade'] !== null ? formatar_quantidade($item['quantidade']) : '',
+        ], array_slice($nota['outros_materiais'], 0, Operacoes::MAX_MATERIAIS - 1)),
     ]);
     if ($nota['origem'] === 'pdf') {
         $dados['valor']['nota_arquivo'] = NotaFiscal::guardarPdf() ?? '';
@@ -2052,14 +2058,23 @@ function leitura_da_nota(array $nota, ?int $materialId): array
     } elseif ($materialId === null) {
         $avisos[] = 'O material da nota é "' . $nota['material'] . '", que não está no cadastro com esse nome. Escolha o material.';
     }
-    if ($nota['outros_materiais'] !== []) {
-        $avisos[] = 'A nota tem outros materiais (' . implode(', ', $nota['outros_materiais']) . '). O carregamento usa só o primeiro.';
+    foreach ($nota['outros_materiais'] as $n => $outro) {
+        if ($n >= Operacoes::MAX_MATERIAIS - 1) {
+            $avisos[] = 'A nota tem mais de ' . Operacoes::MAX_MATERIAIS . ' materiais. Entraram os ' . Operacoes::MAX_MATERIAIS . ' primeiros: faça uma nota por vez para os outros.';
+            break;
+        }
+        if (NotaFiscal::materialDoCadastro($outro['material'], Cadastro::opcoes('materiais', null)) === null) {
+            $avisos[] = 'O material "' . $outro['material'] . '" da nota não está no cadastro com esse nome. Escolha o material em "Outros materiais".';
+        }
+    }
+    if (count($nota['outros_materiais']) > 0) {
+        $avisos[] = 'A nota tem ' . (count($nota['outros_materiais']) + 1) . ' materiais: confira cada um em "Outros materiais".';
     }
     if ($nota['quantidade'] === null) {
         $avisos[] = 'Não achei a quantidade na nota. Preencha a quantidade.';
     }
     if (($nota['outras_unidades'] ?? []) !== []) {
-        $avisos[] = 'A nota tem o mesmo material em outra unidade (' . implode(', ', $nota['outras_unidades']) . '). Somei só os itens em "'
+        $avisos[] = 'A nota tem item em outra unidade (' . implode(', ', $nota['outras_unidades']) . '), que ficou de fora: a carga usa uma unidade só. Entraram só os itens em "'
             . $nota['unidade_nota'] . '". Confira a quantidade.';
     }
     if ($nota['unidade'] === null) {
@@ -2567,6 +2582,12 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     ? (string) ($post['nf_documento'] ?? '')
                     : NotaFiscal::formatarDocumento(is_array($ordem) ? ($ordem['nf_documento'] ?? null) : null),
                 'fracionado' => $post !== null ? isset($post['fracionado']) : (is_array($ordem) && (int) ($ordem['fracionado'] ?? 0) === 1),
+                'outros' => $post !== null
+                    ? array_values(array_filter(is_array($post['outros'] ?? null) ? $post['outros'] : [], 'is_array'))
+                    : (is_array($ordem) ? array_map(static fn (array $item): array => [
+                        'material_id' => $item['material_id'],
+                        'quantidade' => formatar_quantidade($item['quantidade']),
+                    ], Operacoes::outrosDaOrdem((int) $ordem['id'])) : []),
                 'nota_arquivo' => (string) ($post['nota_arquivo'] ?? ''),
             ],
             'materiais' => Cadastro::opcoes('materiais', $materialId > 0 ? $materialId : null),

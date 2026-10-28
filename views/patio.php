@@ -29,6 +29,9 @@
                 </header>
                 <p class="cliente"><?= e($ordem['cliente']) ?></p>
                 <p class="carga"><?= (int) ($ordem['fracionado'] ?? 0) === 1 ? 'Saldo ' : '' ?><?= e(formatar_quantidade((string) $ordem['quantidade_autorizada'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                <?php foreach ((function_exists('outros_materiais') ? outros_materiais($ordem) : []) as $outro): ?>
+                    <p class="carga">+ <?= e(formatar_quantidade($outro['quantidade'])) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($outro['material']) ?></p>
+                <?php endforeach; ?>
                 <?php if ((int) ($ordem['fracionado'] ?? 0) === 1): ?>
                     <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span></p>
                 <?php endif; ?>
@@ -119,7 +122,7 @@
                             <span><?= e($ordem['cliente']) ?></span>
                             <span class="selo status-<?= e($ordem['status']) ?>"><?= e(status_rotulo($ordem['status'])) ?></span>
                         </div>
-                        <p><?= e(formatar_quantidade((string) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']))) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?></p>
+                        <p><?= e(formatar_quantidade((string) ($ordem['quantidade_carregada'] ?? $ordem['quantidade_autorizada']))) ?> <?= e(unidade_rotulo($ordem['unidade'])) ?> · <?= e($ordem['material_nome']) ?><?= e(function_exists('outros_materiais_texto') ? outros_materiais_texto($ordem) : '') ?></p>
                         <?php if ($saida !== []): ?>
                             <p class="meta"><?= e(implode(' · ', $saida)) ?></p>
                         <?php endif; ?>

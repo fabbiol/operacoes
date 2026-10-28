@@ -140,6 +140,25 @@ final class FinPro
         return false;
     }
 
+    /**
+     * O material da nota. Carga de mais de um: "Brita 1 (10,00 t) + Pó de pedra (5,00 t)", cortado no limite
+     * de 120 caracteres que o Fin Pro aceita.
+     */
+    private static function material(array $ordem): string
+    {
+        $outros = outros_materiais($ordem);
+        if ($outros === []) {
+            return (string) ($ordem['material_nome'] ?? '');
+        }
+        $unidade = unidade_rotulo((string) $ordem['unidade']);
+        $partes = [(string) $ordem['material_nome'] . ' (' . formatar_quantidade((string) $ordem['quantidade_autorizada']) . ' ' . $unidade . ')'];
+        foreach ($outros as $outro) {
+            $partes[] = $outro['material'] . ' (' . formatar_quantidade($outro['quantidade']) . ' ' . $unidade . ')';
+        }
+
+        return mb_substr(implode(' + ', $partes), 0, 120, 'UTF-8');
+    }
+
     /** Os campos do contrato, montados da ordem. */
     private static function campos(array $ordem): array
     {
@@ -149,7 +168,7 @@ final class FinPro
             'pedido' => (string) $ordem['pedido'],
             'empresa' => (string) $ordem['cliente'],
             'valor' => $ordem['nf_valor'] === null ? '' : (string) $ordem['nf_valor'],
-            'material' => (string) ($ordem['material_nome'] ?? ''),
+            'material' => self::material($ordem),
             // O mesmo dia em que a nota conta no vendido (Operacoes::vendas).
             'emitida_em' => (string) ($ordem['nf_emitida_em'] ?: ($ordem['nf_emitida_data'] ?: substr((string) $ordem['data'], 0, 10))),
             'forma' => (string) $ordem['nf_pagamento'],

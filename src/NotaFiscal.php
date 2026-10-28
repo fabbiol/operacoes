@@ -705,7 +705,8 @@ final class NotaFiscal
 
     /**
      * Junta o que foi lido. Itens com o mesmo material e a mesma unidade têm a quantidade somada (toneladas não se
-     * somam com metros cúbicos); o carregamento usa o primeiro material.
+     * somam com metros cúbicos). O primeiro material é o da ordem; os outros, na unidade do primeiro, vão para
+     * "outros_materiais" (carga com mais de um material); item em outra unidade fica de fora, com aviso.
      *
      * @param array<string, mixed> $dados
      * @param list<array{material: string, quantidade: string, unidade: string, pedido: string}> $itens
@@ -728,12 +729,14 @@ final class NotaFiscal
                 $unidadeNota = $item['unidade'];
                 $quantidade = 0.0;
             }
-            if (self::normalizar($item['material']) !== self::normalizar($material)) {
-                $outros[$item['material']] = true;
-            } elseif ($mesmaUnidade($item['unidade']) === $mesmaUnidade((string) $unidadeNota)) {
+            if ($mesmaUnidade($item['unidade']) !== $mesmaUnidade((string) $unidadeNota)) {
+                $outrasUnidades[$item['unidade']] = true;
+            } elseif (self::normalizar($item['material']) === self::normalizar($material)) {
                 $quantidade += (float) $item['quantidade'];
             } else {
-                $outrasUnidades[$item['unidade']] = true;
+                $chave = self::normalizar($item['material']);
+                $outros[$chave] ??= ['material' => $item['material'], 'quantidade' => 0.0];
+                $outros[$chave]['quantidade'] += (float) $item['quantidade'];
             }
         }
 
@@ -753,7 +756,10 @@ final class NotaFiscal
             'quantidade' => $quantidade !== null && $quantidade > 0 ? round($quantidade, 2) : null,
             'unidade' => $unidadeNota !== null ? self::unidade($unidadeNota) : null,
             'unidade_nota' => $unidadeNota,
-            'outros_materiais' => array_keys($outros),
+            'outros_materiais' => array_map(static fn (array $item): array => [
+                'material' => $item['material'],
+                'quantidade' => $item['quantidade'] > 0 ? round($item['quantidade'], 2) : null,
+            ], array_values($outros)),
             'outras_unidades' => array_map('strval', array_keys($outrasUnidades)),
             'emitida_em' => $dados['emitida_em'] ?? null,
             'valor' => isset($dados['valor']) && is_numeric($dados['valor']) && (float) $dados['valor'] > 0 ? round((float) $dados['valor'], 2) : null,

@@ -17,7 +17,7 @@ O escritório precisa saber, em tempo real, quanto material saiu para cada clien
 
 ## Fluxos principais
 
-1. **Carga no pátio**: o administrativo lê o PDF ou o XML da nota fiscal, confere e libera a ordem. O tablet da pá avisa com som. O operador inicia e finaliza a carga, e a ordem vai para conferência.
+1. **Carga no pátio**: o administrativo lê o PDF ou o XML da nota fiscal, confere e libera a ordem. O tablet da pá avisa com som. O operador inicia e finaliza a carga, e a ordem vai para conferência. Uma nota pode ter até 5 materiais no mesmo caminhão: a carga sai inteira, numa viagem só.
 2. **Fracionado**: o cliente leva a nota em várias viagens. O que sobra fica em **Saldo a buscar** até o administrativo liberar a próxima viagem ou encerrar o saldo.
 3. **Pusch (lavra → britador)**: o caminhão entra na fila, a escavadeira carrega, o motorista marca a ida, a chegada ao britador e a volta. O sistema calcula as médias de fila, carga, ida, volta e ciclo, fora das viagens encerradas, das idas à garagem e das etapas que atravessam a meia-noite.
 4. **Limpeza da lavra**: a escavadeira marca o início e o fim da limpeza; a espera dos caminhões nesse tempo não entra nas médias.
