@@ -120,3 +120,23 @@
         }
     });
 })();
+
+(function () {
+    // Pagamento previsto: +15 ou +30 dias a partir do dia da nota (ou de hoje, sem ele).
+    document.addEventListener('click', function (evento) {
+        var botao = evento.target.closest('[data-prazo]');
+        if (!botao) return;
+        var form = botao.form;
+        var bloco = botao.closest('.previsto-pagamento');
+        var campo = (form && form.querySelector('[name=nf_emitida_em]')) || null;
+        var base = (campo && campo.value.slice(0, 10))
+            || (form && form.querySelector('[name=nf_emitida_data]') && form.querySelector('[name=nf_emitida_data]').value)
+            || (bloco && bloco.getAttribute('data-base'))
+            || (form && form.querySelector('[name=data]') && form.querySelector('[name=data]').value.slice(0, 10))
+            || '';
+        var dia = /^\d{4}-\d{2}-\d{2}$/.test(base) ? new Date(base + 'T12:00:00') : new Date();
+        dia.setDate(dia.getDate() + Number(botao.getAttribute('data-prazo')));
+        var mes = String(dia.getMonth() + 1).padStart(2, '0');
+        bloco.querySelector('[name=nf_previsto]').value = dia.getFullYear() + '-' + mes + '-' + String(dia.getDate()).padStart(2, '0');
+    });
+})();

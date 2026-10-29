@@ -37,5 +37,9 @@ ok(NotaFiscal::lerXml($comPag('<detPag><tPag>90</tPag></detPag>'))['pagamento'] 
 $duas = NotaFiscal::lerXml($comPag('<detPag><tPag>17</tPag><vPag>1000.00</vPag></detPag><detPag><tPag>03</tPag><vPag>500.00</vPag></detPag><detPag><tPag>04</tPag><vPag>405.60</vPag></detPag>'));
 ok($duas['pagamento'] === 'pix' && $duas['pagamentos'] === [['forma' => 'pix', 'valor' => 1000.0], ['forma' => 'cartao', 'valor' => 905.6]], 'nota paga em Pix e cartão (crédito + débito somados): as partes com os valores', json_encode($duas['pagamentos']));
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>17</tPag><vPag>100.00</vPag></detPag>'))['pagamentos'] === [], 'uma forma só: sem partes');
+// Venda paga depois (prefeitura): "depósito bancário" (tPag 16) é Transferência; o vencimento das duplicatas é o dia previsto.
+$prazo = NotaFiscal::lerXml(str_replace('<total>', '<cobr><dup><nDup>001</nDup><dVenc>2026-11-13</dVenc><vDup>500.00</vDup></dup><dup><nDup>002</nDup><dVenc>2026-11-28</dVenc><vDup>500.00</vDup></dup></cobr><pag><detPag><tPag>16</tPag></detPag></pag><total>', nota([['BRITA 1', '1', 't']], '<dEmi>2026-10-14</dEmi>')));
+ok($prazo['pagamento'] === 'transferencia' && $prazo['previsto'] === '2026-11-28', 'depósito bancário é Transferência e o previsto é o último vencimento', json_encode([$prazo['pagamento'], $prazo['previsto']]));
+ok(NotaFiscal::lerXml($comPag('<detPag><tPag>17</tPag></detPag>'))['previsto'] === null, 'sem duplicata: pago na hora (sem dia previsto)');
 
 fim();

@@ -279,9 +279,9 @@ final class Operacoes
                 $ordem = sprintf('CAR-%03d', ((int) $ultimo) + 1);
                 $comando = $pdo->prepare(
                     'INSERT INTO fila_carregamentos (
-                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, nf_pagamento, nf_documento, material_id, quantidade_autorizada, unidade,
+                        ordem, data, cliente, pedido, nf, nf_emitida_em, nf_emitida_data, nf_chave, nf_valor, nf_pagamento, nf_documento, nf_previsto, material_id, quantidade_autorizada, unidade,
                         fracionado, observacoes, status, autorizado_por, autorizado_em
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 $status = $liberar ? 'liberado' : 'aguardando_autorizacao';
                 $comando->execute([
@@ -296,6 +296,7 @@ final class Operacoes
                     $dados['nf_valor'],
                     $dados['nf_pagamento'],
                     $dados['nf_documento'],
+                    $dados['nf_previsto'],
                     $dados['material_id'],
                     $dados['quantidade_autorizada'],
                     $dados['unidade'],
@@ -387,7 +388,7 @@ final class Operacoes
     {
         $comando = Db::pdo()->prepare(
             "UPDATE fila_carregamentos
-             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, nf_pagamento = ?, nf_documento = ?, material_id = ?,
+             SET data = ?, cliente = ?, pedido = ?, nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_valor = ?, nf_pagamento = ?, nf_documento = ?, nf_previsto = ?, material_id = ?,
                  quantidade_autorizada = ?, unidade = ?, fracionado = ?, observacoes = ?
              WHERE id = ? AND status IN ('aguardando_autorizacao', 'liberado', 'saldo')"
         );
@@ -402,6 +403,7 @@ final class Operacoes
             $dados['nf_valor'],
             $dados['nf_pagamento'],
             $dados['nf_documento'],
+            $dados['nf_previsto'],
             $dados['material_id'],
             $dados['quantidade_autorizada'],
             $dados['unidade'],
@@ -1084,12 +1086,13 @@ final class Operacoes
             'pedido' => limpar_texto((string) ($post['pedido'] ?? ''), 60, true, 'o pedido'),
             'nf' => limpar_texto((string) ($post['nf'] ?? ''), 60, true, 'a nota fiscal'),
             'nf_emitida_em' => $emitidaEm = self::emissaoDaNota($post, $atual),
-            'nf_emitida_data' => self::dataDaNota($post, $atual, $emitidaEm),
+            'nf_emitida_data' => $dataNota = self::dataDaNota($post, $atual, $emitidaEm),
             'nf_chave' => self::chaveDaNota($post, $atual),
             'nf_valor' => $valorNota = self::valorDaNota($post, $atual),
             'nf_pagamento' => $forma = self::pagamentoDaNota($post, $atual),
             'pagamentos' => self::partesDoPagamento($post, $atual, $forma, $valorNota),
             'nf_documento' => self::documentoDaNota($post, $atual),
+            'nf_previsto' => self::previstoDaNota($post, $atual, $dataNota ?? substr(parse_data_hora((string) ($post['data'] ?? '')), 0, 10)),
             'fracionado' => $fracionado,
             'material_id' => $materialId,
             'outros' => $outros,
@@ -1362,17 +1365,45 @@ final class Operacoes
         }
         $forma = self::pagamentoDaNota($post, $principal);
         $partes = self::partesDoPagamento($post, $principal, $forma, $valor);
+        $previsto = self::previstoDaNota($post, $principal, (string) ($principal['nf_emitida_data'] ?: substr((string) $principal['data'], 0, 10)));
         $pdo = Db::pdo();
         $pdo->beginTransaction();
         try {
-            $pdo->prepare("UPDATE fila_carregamentos SET nf_valor = ?, nf_pagamento = ? WHERE id = ? AND status <> 'cancelado'")
-                ->execute([$valor, $forma, (int) $principal['id']]);
+            $pdo->prepare("UPDATE fila_carregamentos SET nf_valor = ?, nf_pagamento = ?, nf_previsto = ? WHERE id = ? AND status <> 'cancelado'")
+                ->execute([$valor, $forma, $previsto, (int) $principal['id']]);
             self::gravarPagamentos((int) $principal['id'], $partes);
             $pdo->commit();
         } catch (Throwable $e) {
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Venda paga depois (prefeitura: transferência em 15 ou 30 dias): o dia em que o pagamento é esperado.
+     * Vazio: pago na hora. Não pode ser antes da nota nem mais de um ano depois. Formulário sem o campo: fica o que estava.
+     */
+    private static function previstoDaNota(array $post, ?array $atual, string $dataNota): ?string
+    {
+        if (!array_key_exists('nf_previsto', $post)) {
+            return $atual['nf_previsto'] ?? null;
+        }
+        $bruto = trim((string) $post['nf_previsto']);
+        if ($bruto === '') {
+            return null;
+        }
+        $data = DateTimeImmutable::createFromFormat('!Y-m-d', $bruto);
+        if ($data === false || $data->format('Y-m-d') !== $bruto) {
+            throw new InvalidArgumentException('Informe o dia previsto do pagamento, como 13/11/2026.');
+        }
+        if ($bruto < $dataNota) {
+            throw new InvalidArgumentException('O pagamento previsto não pode ser antes da data da nota.');
+        }
+        if ($bruto > (new DateTimeImmutable($dataNota))->modify('+1 year')->format('Y-m-d')) {
+            throw new InvalidArgumentException('O pagamento previsto passa de um ano depois da nota. Confira a data.');
+        }
+
+        return $bruto;
     }
 
     /** Forma de pagamento (opcional ao lançar, obrigatória para liberar). Formulário sem o campo: fica a que estava. */

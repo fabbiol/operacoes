@@ -182,6 +182,7 @@ final class NotaFiscal
             'valor' => self::texto($nota, './*[local-name()="total"]/*[local-name()="ICMSTot"]/*[local-name()="vNF"]'),
             'pagamento' => self::pagamentoDoXml($nota),
             'pagamentos' => self::pagamentosDoXml($nota),
+            'previsto' => self::previstoDoXml($nota),
         ], $itens);
     }
 
@@ -221,6 +222,23 @@ final class NotaFiscal
         return array_map(static fn (string $forma, float $valor): array => ['forma' => $forma, 'valor' => $valor], array_keys($porForma), $porForma);
     }
 
+    /**
+     * Venda paga depois: o vencimento das duplicatas (<cobr><dup><dVenc>). Com várias, a última, quando a nota
+     * fica toda paga. Sem vencimento, null (pago na hora).
+     */
+    private static function previstoDoXml(SimpleXMLElement $nota): ?string
+    {
+        $datas = [];
+        foreach (self::nos($nota, './*[local-name()="cobr"]/*[local-name()="dup"]/*[local-name()="dVenc"]') as $vencimento) {
+            $data = trim((string) $vencimento);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $data) === 1) {
+                $datas[] = $data;
+            }
+        }
+
+        return $datas === [] ? null : max($datas);
+    }
+
     /** Código tPag da NF-e na forma de pagamento do sistema (90, "sem pagamento", e 99, "outros", ficam de fora). */
     private const FORMAS_TPAG = [
         '01' => 'dinheiro',
@@ -230,6 +248,7 @@ final class NotaFiscal
         '05' => 'prazo',
         '14' => 'prazo',
         '15' => 'boleto',
+        '16' => 'transferencia', // depósito bancário: a prefeitura paga por TED/DOC
         '17' => 'pix',
         '18' => 'transferencia',
     ];
@@ -793,6 +812,7 @@ final class NotaFiscal
             // O PDF da Próspera não traz a forma de pagamento: só o XML.
             'pagamento' => $dados['pagamento'] ?? null,
             'pagamentos' => $dados['pagamentos'] ?? [],
+            'previsto' => $dados['previsto'] ?? null,
         ];
     }
 

@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-pecas-fotos';
+    private const MIGRACOES = '2026-10-pagamento-previsto';
 
     private static ?PDO $pdo = null;
 
@@ -123,6 +123,7 @@ final class Db
             self::garantirBritadorEPagamento($pdo);
             self::garantirFinPro($pdo);
             self::garantirFotosDasPecas($pdo);
+            self::garantirPagamentoPrevisto($pdo);
             // A planilha do estoque entra uma vez, só num estoque ainda vazio.
             Estoque::importarPlanilha($pdo);
 
@@ -600,6 +601,14 @@ final class Db
         } catch (Throwable $e) {
             $pdo->rollBack();
             throw $e;
+        }
+    }
+
+    /** Venda paga depois (prefeitura): o dia em que o pagamento é esperado (nf_previsto). */
+    private static function garantirPagamentoPrevisto(PDO $pdo): void
+    {
+        if (!in_array('nf_previsto', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_previsto DATE NULL AFTER nf_documento');
         }
     }
 

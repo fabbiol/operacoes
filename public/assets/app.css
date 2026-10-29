@@ -931,4 +931,5 @@ p.limpeza-aviso, .limpeza-aviso p { display: flex; flex-wrap: wrap; align-items:
 
 /* Carga com mais de um material: as linhas dos outros materiais no formulário da ordem. */
 .outros-materiais, .outras-formas { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.atalhos-prazo { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
 .outros-materiais summary, .outras-formas summary { font-weight: 700; cursor: pointer; }

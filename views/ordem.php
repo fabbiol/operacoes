@@ -28,6 +28,9 @@
     <?php if (!empty($ordem['nf_pagamento'])): ?>
         <div><dt>Forma de pagamento</dt><dd><?= e(function_exists('pagamentos_texto') ? pagamentos_texto($ordem) : (string) $ordem['nf_pagamento']) ?></dd></div>
     <?php endif; ?>
+    <?php if (!empty($ordem['nf_previsto'])): ?>
+        <div><dt>Pagamento previsto para</dt><dd><?= e(date('d/m/Y', (int) strtotime((string) $ordem['nf_previsto']))) ?></dd></div>
+    <?php endif; ?>
     <div><dt><?= (int) ($ordem['retroescavadeira_id'] ?? 0) > 0 ? 'Escavadeira hidráulica' : 'Pá carregadeira' ?></dt><dd><?= e($ordem['pa_nome'] ?: 'Escolhida ao iniciar') ?></dd></div>
     <div><dt>Operador</dt><dd><?= e($ordem['operador'] ?: '—') ?></dd></div>
 </dl>
@@ -158,6 +161,8 @@ if (!empty($grupo) && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $grupo[
         foreach ((function_exists('pagamentos_da_nota') ? pagamentos_da_nota($ordem) : []) as $n => $parte) {
             $linhasPagamento[$n] = ['forma' => $parte['forma'], 'valor' => formatar_quantidade($parte['valor'])];
         }
+        $previstoPagamento = (string) ($ordem['nf_previsto'] ?? '');
+        $basePrevisto = (string) ($ordem['nf_emitida_data'] ?: substr((string) $ordem['data'], 0, 10));
         require __DIR__ . '/trecho_pagamentos.php';
         ?>
         <button type="submit" class="btn secundario"><?= $ordem['nf_valor'] !== null ? 'Corrigir valor' : 'Salvar valor' ?></button>
