@@ -129,7 +129,7 @@ $travado = !empty($travado);
         <?php if (!$travado): ?>
             <input type="hidden" name="tem_outros" value="1">
         <?php endif; ?>
-        <details class="outros-materiais"<?= $outros !== [] ? ' open' : '' ?>>
+        <details class="outros-materiais"<?= array_filter($outros, static fn ($l): bool => is_array($l) && ((int) ($l['material_id'] ?? 0) > 0 || trim((string) ($l['quantidade'] ?? '')) !== '')) !== [] ? ' open' : '' ?>>
             <summary>+ Outro material nesta carga</summary>
             <p class="dica">Para a nota com mais de um material no mesmo caminhão: a carga sai inteira, numa viagem só, na unidade escolhida acima. Até <?= $maxOutros ?> materiais além do primeiro.</p>
             <?php for ($n = 0; $n < $maxOutros; $n++): ?>
