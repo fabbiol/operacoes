@@ -727,9 +727,14 @@ function despachar(string $path, string $method): void
     if (preg_match('#^ordens/(\d+)/valor$#', $path, $m) && $method === 'POST') {
         csrf_check();
         try {
-            Operacoes::definirValor((int) $m[1], (string) ($_POST['nf_valor'] ?? ''));
-            if (trim((string) ($_POST['nf_pagamento'] ?? '')) !== '') {
-                Operacoes::definirPagamento((int) $m[1], (string) $_POST['nf_pagamento']);
+            if (isset($_POST['tem_pagamentos'])) {
+                // A ficha da ordem: valor, forma e as outras formas juntos.
+                Operacoes::corrigirPagamento((int) $m[1], $_POST);
+            } else {
+                Operacoes::definirValor((int) $m[1], (string) ($_POST['nf_valor'] ?? ''));
+                if (trim((string) ($_POST['nf_pagamento'] ?? '')) !== '') {
+                    Operacoes::definirPagamento((int) $m[1], (string) $_POST['nf_pagamento']);
+                }
             }
             flash_set('Valor da nota salvo.');
             finpro_enviar((int) $m[1]);
@@ -1988,6 +1993,23 @@ function tela_ordem_form(?int $id, string $method): void
     render('ordem_form', dados_formulario(null, $post, $erro));
 }
 
+/**
+ * As partes do pagamento nas linhas do formulário: a linha 0 é o valor da primeira forma (a forma fica no campo
+ * "Forma de pagamento"); as outras, forma e valor.
+ *
+ * @param list<array{forma: string, valor: string|float}> $partes
+ * @return array<int, array{forma?: string, valor: string}>
+ */
+function linhas_de_pagamento(array $partes): array
+{
+    $linhas = [];
+    foreach (array_values($partes) as $n => $parte) {
+        $linhas[$n] = ['forma' => (string) $parte['forma'], 'valor' => formatar_quantidade($parte['valor'])];
+    }
+
+    return $linhas;
+}
+
 /** Lê a nota fiscal (PDF ou XML) e abre a nova ordem já preenchida, para conferir e lançar. */
 function tela_ler_nota(string $method): void
 {
@@ -2017,8 +2039,9 @@ function tela_ler_nota(string $method): void
         'nf_emitida_data' => (string) ($nota['data_emissao'] ?? ''),
         'nf_chave' => (string) ($nota['chave'] ?? ''),
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
-        'nf_pagamento' => (string) ($nota['pagamento'] ?? ''),
+        'nf_pagamento' => (string) ($nota['pagamentos'][0]['forma'] ?? $nota['pagamento'] ?? ''),
         'nf_documento' => NotaFiscal::formatarDocumento($nota['documento'] ?? null),
+        'pagamentos' => linhas_de_pagamento(array_slice($nota['pagamentos'] ?? [], 0, Operacoes::MAX_FORMAS)),
         'outros' => array_map(static fn (array $item): array => [
             'material_id' => NotaFiscal::materialDoCadastro($item['material'], $dados['materiais']) ?? 0,
             'quantidade' => $item['quantidade'] !== null ? formatar_quantidade($item['quantidade']) : '',
@@ -2089,6 +2112,9 @@ function leitura_da_nota(array $nota, ?int $materialId): array
         $avisos[] = !empty($nota['data_emissao'])
             ? 'O ' . ($nota['origem'] === 'xml' ? 'XML' : 'PDF') . ' desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. A nota conta no vendido desse dia. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
             : 'Não achei a hora em que a nota foi emitida. Preencha "Nota emitida em", se souber.';
+    }
+    if (count($nota['pagamentos'] ?? []) > 1) {
+        $avisos[] = 'A nota foi paga em ' . count($nota['pagamentos']) . ' formas: confira os valores em "Outras formas de pagamento".';
     }
     if (($nota['pagamento'] ?? null) === null) {
         $avisos[] = 'Escolha a forma de pagamento: ' . ($nota['origem'] === 'xml' ? 'o XML' : 'o PDF') . ' da nota não traz essa informação.';
@@ -2582,6 +2608,9 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     ? (string) ($post['nf_documento'] ?? '')
                     : NotaFiscal::formatarDocumento(is_array($ordem) ? ($ordem['nf_documento'] ?? null) : null),
                 'fracionado' => $post !== null ? isset($post['fracionado']) : (is_array($ordem) && (int) ($ordem['fracionado'] ?? 0) === 1),
+                'pagamentos' => $post !== null
+                    ? (is_array($post['pagamentos'] ?? null) ? $post['pagamentos'] : [])
+                    : (is_array($ordem) ? linhas_de_pagamento(Operacoes::pagamentosDaOrdem((int) $ordem['id'])) : []),
                 'outros' => $post !== null
                     ? array_values(array_filter(is_array($post['outros'] ?? null) ? $post['outros'] : [], 'is_array'))
                     : (is_array($ordem) ? array_map(static fn (array $item): array => [

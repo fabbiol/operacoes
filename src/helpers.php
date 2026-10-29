@@ -975,6 +975,40 @@ function materiais_nomes(array $ordem): string
     return implode(' + ', array_merge([(string) ($ordem['material_nome'] ?? '')], array_column(outros_materiais($ordem), 'material')));
 }
 
+/**
+ * As partes da nota paga em mais de uma forma, lidas da coluna pagamentos que Operacoes::sqlBase traz em JSON.
+ * Nota de uma forma só: lista vazia (a forma está em nf_pagamento e o valor em nf_valor).
+ *
+ * @return list<array{forma: string, valor: float}>
+ */
+function pagamentos_da_nota(array $ordem): array
+{
+    $lista = json_decode((string) ($ordem['pagamentos'] ?? ''), true);
+    if (!is_array($lista)) {
+        return [];
+    }
+    usort($lista, static fn (array $a, array $b): int => (int) ($a['posicao'] ?? 0) <=> (int) ($b['posicao'] ?? 0));
+
+    return array_map(static fn (array $item): array => [
+        'forma' => (string) ($item['forma'] ?? ''),
+        'valor' => (float) ($item['valor'] ?? 0),
+    ], $lista);
+}
+
+/** "Pix R$ 1.000,00 + Cartão R$ 905,60", ou só o nome da forma na nota de uma forma; vazio sem forma. */
+function pagamentos_texto(array $ordem): string
+{
+    $partes = pagamentos_da_nota($ordem);
+    if ($partes === []) {
+        return formas_pagamento()[(string) ($ordem['nf_pagamento'] ?? '')] ?? '';
+    }
+
+    return implode(' + ', array_map(
+        static fn (array $parte): string => (formas_pagamento()[$parte['forma']] ?? $parte['forma']) . ' R$ ' . formatar_quantidade($parte['valor']),
+        $partes
+    ));
+}
+
 /** Formas de pagamento da nota, na ordem em que aparecem na tela. */
 function formas_pagamento(): array
 {

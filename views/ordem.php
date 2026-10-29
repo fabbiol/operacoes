@@ -26,7 +26,7 @@
         <div><dt>Valor da nota</dt><dd>R$ <?= e(formatar_quantidade((string) $ordem['nf_valor'])) ?></dd></div>
     <?php endif; ?>
     <?php if (!empty($ordem['nf_pagamento'])): ?>
-        <div><dt>Forma de pagamento</dt><dd><?= e((function_exists('formas_pagamento') ? formas_pagamento() : [])[$ordem['nf_pagamento']] ?? (string) $ordem['nf_pagamento']) ?></dd></div>
+        <div><dt>Forma de pagamento</dt><dd><?= e(function_exists('pagamentos_texto') ? pagamentos_texto($ordem) : (string) $ordem['nf_pagamento']) ?></dd></div>
     <?php endif; ?>
     <div><dt><?= (int) ($ordem['retroescavadeira_id'] ?? 0) > 0 ? 'Escavadeira hidráulica' : 'Pá carregadeira' ?></dt><dd><?= e($ordem['pa_nome'] ?: 'Escolhida ao iniciar') ?></dd></div>
     <div><dt>Operador</dt><dd><?= e($ordem['operador'] ?: '—') ?></dd></div>
@@ -153,6 +153,13 @@ if (!empty($grupo) && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $grupo[
                 <?php endforeach; ?>
             </select>
         </label>
+        <?php
+        $linhasPagamento = [];
+        foreach ((function_exists('pagamentos_da_nota') ? pagamentos_da_nota($ordem) : []) as $n => $parte) {
+            $linhasPagamento[$n] = ['forma' => $parte['forma'], 'valor' => formatar_quantidade($parte['valor'])];
+        }
+        require __DIR__ . '/trecho_pagamentos.php';
+        ?>
         <button type="submit" class="btn secundario"><?= $ordem['nf_valor'] !== null ? 'Corrigir valor' : 'Salvar valor' ?></button>
         <p class="nota"><?= $ordem['nf_valor'] !== null ? 'Se o valor estiver errado, corrija aqui.' : 'Esta nota está sem valor e não entra no vendido do dia. Preencha o valor total da nota.' ?></p>
     </form>

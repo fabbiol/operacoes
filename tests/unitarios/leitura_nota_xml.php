@@ -34,5 +34,8 @@ ok(NotaFiscal::lerXml($comPag('<detPag><tPag>18</tPag></detPag>'))['pagamento'] 
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>04</tPag></detPag>'))['pagamento'] === 'cartao', 'tPag 04 (débito) é Cartão');
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>99</tPag></detPag><detPag><tPag>01</tPag></detPag>'))['pagamento'] === 'dinheiro', 'pula o "outros" e pega a forma conhecida');
 ok(NotaFiscal::lerXml($comPag('<detPag><tPag>90</tPag></detPag>'))['pagamento'] === null, '"sem pagamento" fica para escolher');
+$duas = NotaFiscal::lerXml($comPag('<detPag><tPag>17</tPag><vPag>1000.00</vPag></detPag><detPag><tPag>03</tPag><vPag>500.00</vPag></detPag><detPag><tPag>04</tPag><vPag>405.60</vPag></detPag>'));
+ok($duas['pagamento'] === 'pix' && $duas['pagamentos'] === [['forma' => 'pix', 'valor' => 1000.0], ['forma' => 'cartao', 'valor' => 905.6]], 'nota paga em Pix e cartão (crédito + débito somados): as partes com os valores', json_encode($duas['pagamentos']));
+ok(NotaFiscal::lerXml($comPag('<detPag><tPag>17</tPag><vPag>100.00</vPag></detPag>'))['pagamentos'] === [], 'uma forma só: sem partes');
 
 fim();

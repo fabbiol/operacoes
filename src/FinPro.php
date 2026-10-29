@@ -16,12 +16,28 @@ final class FinPro
         return env_str('FINPRO_URL') !== '' && env_str('FINPRO_TOKEN') !== '';
     }
 
-    /** Vai para o Fin Pro: a ordem principal (não as viagens seguintes do fracionado), não cancelada, Pix ou Transferência. */
+    /**
+     * Vai para o Fin Pro: a ordem principal (não as viagens seguintes do fracionado), não cancelada, paga por Pix ou
+     * Transferência, ou com alguma parte em Pix ou Transferência (nota paga em mais de uma forma).
+     */
     public static function elegivel(array $ordem): bool
     {
         return (int) ($ordem['ordem_principal_id'] ?? 0) === 0
             && ($ordem['status'] ?? '') !== 'cancelado'
-            && in_array($ordem['nf_pagamento'] ?? null, self::FORMAS, true);
+            && self::formaDoFinPro($ordem) !== null;
+    }
+
+    /** A forma que o Fin Pro espera (pix ou transferencia): a da nota, ou a primeira parte em Pix/Transferência. */
+    private static function formaDoFinPro(array $ordem): ?string
+    {
+        $formas = array_merge([(string) ($ordem['nf_pagamento'] ?? '')], array_column(pagamentos_da_nota($ordem), 'forma'));
+        foreach ($formas as $forma) {
+            if (in_array($forma, self::FORMAS, true)) {
+                return $forma;
+            }
+        }
+
+        return null;
     }
 
     /** Põe a ordem na fila (ou de volta nela, para mandar os dados novos); false se ela não vai para o Fin Pro. */
@@ -171,7 +187,12 @@ final class FinPro
             'material' => self::material($ordem),
             // O mesmo dia em que a nota conta no vendido (Operacoes::vendas).
             'emitida_em' => (string) ($ordem['nf_emitida_em'] ?: ($ordem['nf_emitida_data'] ?: substr((string) $ordem['data'], 0, 10))),
-            'forma' => (string) $ordem['nf_pagamento'],
+            'forma' => (string) self::formaDoFinPro($ordem),
+            // Nota paga em mais de uma forma: as partes; o Fin Pro espera o comprovante só da parte em Pix/Transferência.
+            'pagamentos' => pagamentos_da_nota($ordem) === [] ? '' : (string) json_encode(array_map(
+                static fn (array $parte): array => ['forma' => $parte['forma'], 'valor' => number_format($parte['valor'], 2, '.', '')],
+                pagamentos_da_nota($ordem)
+            )),
             'chave' => (string) ($ordem['nf_chave'] ?? ''),
             // CNPJ/CPF do cliente, só os números; vazio quando a ordem não tem.
             'documento' => (string) ($ordem['nf_documento'] ?? ''),

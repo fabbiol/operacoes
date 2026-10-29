@@ -1,5 +1,16 @@
 # O que mudou
 
+## Outubro de 2026: nota paga em mais de uma forma
+
+- A nota pode ser paga em **mais de uma forma** (até 4), com o valor de cada uma: por exemplo, Pix R$ 1.000,00 e Cartão R$ 905,60. No formulário, toque em **+ Outra forma de pagamento**. A soma precisa bater com o valor da nota. Lendo o XML, as formas e os valores já vêm preenchidos.
+- A ficha mostra todas as formas, e o Monitor da TV conta cada parte do vendido na sua forma.
+- A nota com alguma parte em Pix ou Transferência vai para o Fin Pro com as partes. Lá, só a parte em Pix ou Transferência espera o comprovante, e dá para guardar a foto do comprovante do cartão.
+
+### Ao publicar esta versão
+1. **Publique antes o Fin Pro** (serviço "fin"), que entende as partes do pagamento. Depois, a Operações.
+2. Pode publicar com o turno rodando. O banco ganha sozinho o lugar das formas; as notas que já existem continuam com uma forma.
+3. No Easypanel, toque em **Implantar** nos dois serviços. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: carga com mais de um material
 
 - A ordem aceita **mais de um material na mesma carga** (até 5), cada um com a sua quantidade: no formulário, toque em **+ Outro material nesta carga**. **Ler a nota fiscal** já preenche todos os materiais da nota.
