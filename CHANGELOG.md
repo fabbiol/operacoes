@@ -1,5 +1,17 @@
 # O que mudou
 
+## Outubro de 2026: venda com empenho (nota emitida depois)
+
+- Para a venda com empenho (a prefeitura manda o empenho, a carga sai e a nota é emitida um ou dois dias depois), marque **Nota fiscal sai depois (empenho)** na Nova ordem. O número da nota fica opcional, a forma de pagamento já vem como Transferência, e dá para anexar o **PDF ou a foto do empenho**.
+- A ordem é liberada e carregada normalmente. A fila e o tablet mostram "NF a emitir (empenho)".
+- A ficha mostra **Aguardando nota fiscal**. Quando a nota chegar, leia o PDF ou o XML ali mesmo (ou preencha à mão), toque em +15 ou +30 dias para o pagamento previsto e em **Lançar a nota fiscal**.
+- O **Painel** lista as vendas que ainda esperam a nota, para ninguém esquecer.
+- O vendido conta no dia da nota. A nota só vai para o Fin Pro depois de lançada, e lá aparece como A prazo.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco ganha sozinho o lugar do empenho; as ordens que já existem não mudam.
+2. No Easypanel, toque em **Implantar** só na Operações ("operacoes"). O Fin Pro não muda. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: venda paga depois (prefeitura)
 
 - Para a venda paga depois (a prefeitura paga por transferência em 15 ou 30 dias), a ordem tem o campo **Pagamento previsto para**. Os botões **+15 dias** e **+30 dias** contam a partir do dia da nota. Vazio quer dizer pago na hora, como sempre.

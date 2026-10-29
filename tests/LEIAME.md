@@ -69,6 +69,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `trocar_nome` — trocar o nome de uma pessoa leva o histórico junto; pessoa de `APP_USUARIOS` não troca.
 - `entrada_por_foto` — entrada pela foto no tablet autorizado, senha, limite de tentativas, tablet revogado, aparelho não autorizado.
 - `varias_formas` — nota paga em mais de uma forma: valor de cada forma, soma igual ao valor da nota, mesma forma duas vezes, vendido por forma, envio ao Fin Pro (só com parte em Pix/Transferência), correção do valor sozinho bloqueada e correção das formas.
+- `empenho` — venda com empenho: lança e libera sem a nota, Fin Pro só depois da nota, lista do Painel, lançar a nota (recusas, viagem 2 do fracionado, nota repetida, lançar de novo) e vendido no dia da nota.
 - `pagamento_previsto` — venda paga depois: dia previsto gravado e enviado ao Fin Pro, recusa de data inválida, antes da nota ou mais de um ano depois, correção na ficha que troca, mantém e tira o dia.
 - `varios_materiais` — carga com mais de um material: grava até 5, recusa o mesmo material duas vezes, linha incompleta e fracionado; corrigir troca ou mantém os outros; soma no total e no carregado do dia; correção do carregado só na carga de um material; o Fin Pro recebe os materiais juntos.
 - `troca_operador` — troca registrada pelo operador: serviço novo com o prazo dito na primeira vez, o mesmo serviço não se repete, avisos com 100, 50, 25 e 8 h, vencida, serviço de outra máquina e máquina sem horímetro.
@@ -84,6 +85,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 - `problema_maquina` — "Como ficou a máquina?" ao soltar, Painel, Manutenção, ficha, resolver, liberar com problema.
 - `lavra_encerrar_horimetro` — encerrar viagem como problema, Oficina, horímetro com ponto de milhar, entrada digitada errada.
 - `varias_formas` — "+ Outra forma de pagamento": soma errada recusada sem perder o digitado, ficha com as formas e correção na ficha depois de carregar.
+- `empenho` — "Nota fiscal sai depois (empenho)": Transferência já escolhida, PDF do empenho, fila e Painel com a venda sem nota, nota lida do XML na ficha e lançada com +30 dias.
 - `pagamento_previsto` — "Pagamento previsto para": botão +15 dias no formulário, ficha com o dia, +30 dias contado do dia da nota no quadro da ficha.
 - `varios_materiais` — nota com Brita 1 e Pó de pedra: "+ Outro material" no formulário, os dois no cartão do pátio, finalizar uma vez só, Controle com os dois e a soma.
 - `troca` — manutenção pelo operador no tablet: primeira troca com o prazo, aviso no tablet e no Painel quando faltam 40 h, segunda troca só escolhendo na lista.
