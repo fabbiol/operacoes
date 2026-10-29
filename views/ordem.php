@@ -204,7 +204,7 @@ if (!empty($grupo) && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $grupo[
             $basePrevisto = '';
             require __DIR__ . '/trecho_previsto.php';
             ?>
-            <button type="submit" class="btn">Lançar a nota fiscal</button>
+            <button type="submit" class="btn primario">Lançar a nota fiscal</button>
         </form>
     </section>
 <?php endif; ?>
