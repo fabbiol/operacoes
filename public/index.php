@@ -2041,6 +2041,7 @@ function tela_ler_nota(string $method): void
         'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
         'nf_pagamento' => (string) ($nota['pagamentos'][0]['forma'] ?? $nota['pagamento'] ?? ''),
         'nf_documento' => NotaFiscal::formatarDocumento($nota['documento'] ?? null),
+        'nf_previsto' => (string) ($nota['previsto'] ?? ''),
         'pagamentos' => linhas_de_pagamento(array_slice($nota['pagamentos'] ?? [], 0, Operacoes::MAX_FORMAS)),
         'outros' => array_map(static fn (array $item): array => [
             'material_id' => NotaFiscal::materialDoCadastro($item['material'], $dados['materiais']) ?? 0,
@@ -2112,6 +2113,9 @@ function leitura_da_nota(array $nota, ?int $materialId): array
         $avisos[] = !empty($nota['data_emissao'])
             ? 'O ' . ($nota['origem'] === 'xml' ? 'XML' : 'PDF') . ' desta nota mostra só a data da emissão (' . date('d/m/Y', (int) strtotime((string) $nota['data_emissao'])) . '), sem a hora. A nota conta no vendido desse dia. Para gravar a hora, leia o XML da nota ou preencha "Nota emitida em".'
             : 'Não achei a hora em que a nota foi emitida. Preencha "Nota emitida em", se souber.';
+    }
+    if (($nota['previsto'] ?? null) !== null) {
+        $avisos[] = 'A nota vence em ' . date('d/m/Y', (int) strtotime((string) $nota['previsto'])) . ': confira "Pagamento previsto para".';
     }
     if (count($nota['pagamentos'] ?? []) > 1) {
         $avisos[] = 'A nota foi paga em ' . count($nota['pagamentos']) . ' formas: confira os valores em "Outras formas de pagamento".';
@@ -2604,6 +2608,7 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     ? (string) ($post['nf_valor'] ?? '')
                     : (is_array($ordem) && $ordem['nf_valor'] !== null ? formatar_quantidade((string) $ordem['nf_valor']) : ''),
                 'nf_pagamento' => (string) ($fonte['nf_pagamento'] ?? ''),
+                'nf_previsto' => (string) ($fonte['nf_previsto'] ?? ''),
                 'nf_documento' => $post !== null
                     ? (string) ($post['nf_documento'] ?? '')
                     : NotaFiscal::formatarDocumento(is_array($ordem) ? ($ordem['nf_documento'] ?? null) : null),

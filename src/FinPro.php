@@ -193,6 +193,8 @@ final class FinPro
                 static fn (array $parte): array => ['forma' => $parte['forma'], 'valor' => number_format($parte['valor'], 2, '.', '')],
                 pagamentos_da_nota($ordem)
             )),
+            // Venda paga depois (prefeitura): o dia em que o pagamento é esperado; vazio = na hora.
+            'previsto' => (string) ($ordem['nf_previsto'] ?? ''),
             'chave' => (string) ($ordem['nf_chave'] ?? ''),
             // CNPJ/CPF do cliente, só os números; vazio quando a ordem não tem.
             'documento' => (string) ($ordem['nf_documento'] ?? ''),

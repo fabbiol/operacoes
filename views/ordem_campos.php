@@ -119,7 +119,7 @@ $travado = !empty($travado);
         </label>
     </div>
     <?php if (!$viagemSeguinte && !$travado): ?>
-        <?php $linhasPagamento = $valor['pagamentos'] ?? []; require __DIR__ . '/trecho_pagamentos.php'; ?>
+        <?php $linhasPagamento = $valor['pagamentos'] ?? []; $previstoPagamento = (string) ($valor['nf_previsto'] ?? ''); $basePrevisto = ''; require __DIR__ . '/trecho_pagamentos.php'; ?>
     <?php endif; ?>
     <?php
     $outros = $valor['outros'] ?? [];

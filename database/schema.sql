@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     nf_pagamento VARCHAR(16) NULL,
     nf_arquivo VARCHAR(80) NULL,
     nf_documento VARCHAR(14) NULL,
+    -- Venda paga depois (prefeitura: transferência em 15 ou 30 dias): o dia em que o pagamento é esperado.
+    nf_previsto DATE NULL,
     material_id INT UNSIGNED NOT NULL,
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,

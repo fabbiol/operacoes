@@ -31,14 +31,14 @@ T.executar(async () => {
 
   // Ficha da ordem concluída: corrigir o valor.
   await p.goto(BASE + '/ordens/' + id);
-  ok(await p.locator('form.valor-nota button').innerText() === 'Corrigir valor', 'ficha concluída: Corrigir valor');
+  ok(await p.locator('form.valor-nota button[type=submit]').innerText() === 'Corrigir valor', 'ficha concluída: Corrigir valor');
   await p.fill('form.valor-nota input[name=nf_valor]', 'abc');
   await espera(1300);
-  await Promise.all([p.waitForNavigation(), p.click('form.valor-nota button')]);
+  await Promise.all([p.waitForNavigation(), p.click('form.valor-nota button[type=submit]')]);
   ok(/precisa ser um número/.test(await txt(p)) && sql(`SELECT nf_valor FROM fila_carregamentos WHERE id=${id}`) === '512.30', 'valor inválido é recusado');
   await p.fill('form.valor-nota input[name=nf_valor]', 'R$ 1.500,00');
   await espera(1300);
-  await Promise.all([p.waitForNavigation(), p.click('form.valor-nota button')]);
+  await Promise.all([p.waitForNavigation(), p.click('form.valor-nota button[type=submit]')]);
   ok(p.url().endsWith('/ordens/' + id) && sql(`SELECT nf_valor FROM fila_carregamentos WHERE id=${id}`) === '1500.00', 'ficha corrige para R$ 1.500,00');
   await T.capturar(p, 'valor_ficha', { fullPage: true });
 
@@ -47,7 +47,7 @@ T.executar(async () => {
   ok(await p.locator('input[name=nf_valor]').count() === 1, 'ordem travada: um campo de valor só', await p.locator('input[name=nf_valor]').count());
   await p.fill('form.valor-nota input[name=nf_valor]', '900');
   await espera(1300);
-  await Promise.all([p.waitForNavigation(), p.click('form.valor-nota button')]);
+  await Promise.all([p.waitForNavigation(), p.click('form.valor-nota button[type=submit]')]);
   ok(sql(`SELECT CONCAT(nf_valor,'|',status) FROM fila_carregamentos WHERE id=${id2}`) === '900.00|aguardando_conferencia', 'valor salvo sem mexer na situação');
 
   // Ordem liberada: o valor continua no formulário de edição, sem o quadro extra.

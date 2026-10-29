@@ -42,7 +42,7 @@ T.executar(async () => {
   sql(`UPDATE fila_carregamentos SET status='concluido' WHERE id=${id2}`);
   await p.goto(BASE + '/ordens/' + id2);
   await p.selectOption('form.valor-nota select[name=nf_pagamento]', 'dinheiro');
-  await enviar(p, 'form.valor-nota button');
+  await enviar(p, 'form.valor-nota button[type=submit]');
   ok(sql(`SELECT CONCAT(nf_valor,'|',nf_pagamento) FROM fila_carregamentos WHERE id=${id2}`) === '300.00|dinheiro', 'ficha corrige a forma para Dinheiro');
 
   // Vendido por forma: as notas de exemplo, sem forma, ficam em "sem_forma".

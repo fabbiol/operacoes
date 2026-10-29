@@ -1,5 +1,17 @@
 # O que mudou
 
+## Outubro de 2026: venda paga depois (prefeitura)
+
+- Para a venda paga depois (a prefeitura paga por transferência em 15 ou 30 dias), a ordem tem o campo **Pagamento previsto para**. Os botões **+15 dias** e **+30 dias** contam a partir do dia da nota. Vazio quer dizer pago na hora, como sempre.
+- Lendo o XML, "Depósito bancário" vira **Transferência (TED/DOC)**, e o vencimento da nota preenche o dia previsto.
+- A ficha mostra o dia previsto. Para corrigir, use o quadro do valor na ficha. O Monitor continua contando a venda no dia da nota.
+- No Fin Pro, a nota aparece como **A prazo** até o dia previsto, separada das que deveriam ter sido pagas na hora. Passado o dia sem pagamento, aparece como **Atrasada**, com a contagem no alto da tela.
+
+### Ao publicar esta versão
+1. **Publique antes o Fin Pro** (serviço "fin"), que entende o dia previsto. Depois, a Operações.
+2. Pode publicar com o turno rodando. O banco ganha sozinho o lugar do dia previsto; as notas que já existem continuam como pagas na hora.
+3. No Easypanel, toque em **Implantar** nos dois serviços. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: nota paga em mais de uma forma
 
 - A nota pode ser paga em **mais de uma forma** (até 4), com o valor de cada uma: por exemplo, Pix R$ 1.000,00 e Cartão R$ 905,60. No formulário, toque em **+ Outra forma de pagamento**. A soma precisa bater com o valor da nota. Lendo o XML, as formas e os valores já vêm preenchidos.

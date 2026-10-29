@@ -137,7 +137,7 @@ T.executar(async () => {
   sql(`UPDATE fila_carregamentos SET status='concluido' WHERE id=${id3}`);
   await p.goto(BASE + '/ordens/' + id3);
   await p.selectOption('form.valor-nota select[name=nf_pagamento]', 'pix');
-  await enviar(p, 'form.valor-nota button');
+  await enviar(p, 'form.valor-nota button[type=submit]');
   ok(recebidos.length === 6 && ultimo().origem_id === id3 && ultimo().forma === 'pix', 'o quadro do valor também manda a forma corrigida');
 
   // 9. CNPJ/CPF digitado: com dígito errado é recusado; o CPF certo, com pontuação, vai só com os números.
