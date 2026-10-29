@@ -113,6 +113,18 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     CONSTRAINT fk_fila_pa FOREIGN KEY (pa_carregadeira_id) REFERENCES pas_carregadeiras (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Nota paga em mais de uma forma (Pix + cartão, dinheiro + Pix...): uma linha por forma, com o valor de cada uma;
+-- a soma é o valor da nota. fila_carregamentos.nf_pagamento fica com a primeira forma. Nota de uma forma só não tem linha aqui.
+CREATE TABLE IF NOT EXISTS nota_pagamentos (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    ordem_id INT UNSIGNED NOT NULL,
+    posicao TINYINT UNSIGNED NOT NULL,
+    forma VARCHAR(16) NOT NULL,
+    valor DECIMAL(12,2) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_nota_pagamentos (ordem_id, posicao)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Carga com mais de um material na mesma nota (sai inteira, nunca fracionada): o primeiro material fica em
 -- fila_carregamentos.material_id/quantidade_autorizada; os outros (até 4), aqui, na mesma unidade da ordem.
 CREATE TABLE IF NOT EXISTS ordem_materiais (

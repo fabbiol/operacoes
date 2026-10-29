@@ -6,6 +6,8 @@ final class Operacoes
 {
     // Materiais numa mesma carga (o primeiro e mais 4 em ordem_materiais). Para mais, uma nota por vez.
     public const MAX_MATERIAIS = 5;
+    // Formas de pagamento numa mesma nota (Pix + cartão...), cada uma com o seu valor.
+    public const MAX_FORMAS = 4;
 
     public static function contagens(): array
     {
@@ -305,6 +307,7 @@ final class Operacoes
                 ]);
                 $id = (int) $pdo->lastInsertId();
                 self::gravarOutros($id, $dados['outros']);
+                self::gravarPagamentos($id, $dados['pagamentos']);
                 $pdo->commit();
 
                 return $id;
@@ -407,6 +410,7 @@ final class Operacoes
             $id,
         ]);
         self::gravarOutros($id, $dados['outros']);
+        self::gravarPagamentos($id, $dados['pagamentos']);
     }
 
     public static function liberar(int $id, string $responsavel): void
@@ -444,6 +448,9 @@ final class Operacoes
         if ($principal['status'] === 'cancelado') {
             throw new InvalidArgumentException('Esta nota foi cancelada e não entra no vendido.');
         }
+        if (pagamentos_da_nota($principal) !== []) {
+            throw new InvalidArgumentException('Esta nota tem mais de uma forma de pagamento: corrija o valor e as formas na ficha da ordem.');
+        }
         $preco = self::valorDaNota(['nf_valor' => $valor], null);
         if ($preco === null) {
             throw new InvalidArgumentException('Informe o valor da nota, como 476,40.');
@@ -456,6 +463,9 @@ final class Operacoes
     /** Forma de pagamento corrigida na ficha; como o valor, vai para a viagem 1 da nota. */
     public static function definirPagamento(int $id, string $forma): void
     {
+        if (self::pagamentosDaOrdem(self::grupo(self::exigir($id))) !== []) {
+            throw new InvalidArgumentException('Esta nota tem mais de uma forma de pagamento: corrija as formas na ficha da ordem.');
+        }
         $principal = self::exigir(self::grupo(self::exigir($id)));
         if ($principal['status'] === 'cancelado') {
             throw new InvalidArgumentException('Esta nota foi cancelada e não entra no vendido.');
@@ -740,14 +750,23 @@ final class Operacoes
         $linha = $comando->fetch() ?: [];
 
         // O mesmo vendido, dividido pela forma de pagamento da nota ("sem_forma" nas notas lançadas antes do campo).
+        // Nota paga em mais de uma forma: cada parte conta na sua forma.
         $formas = Db::pdo()->prepare(
-            "SELECT COALESCE(nf_pagamento, 'sem_forma') AS forma, COALESCE(SUM(nf_valor), 0) AS valor
-             FROM fila_carregamentos
-             WHERE ordem_principal_id IS NULL AND status <> 'cancelado'
-               AND COALESCE(DATE(nf_emitida_em), nf_emitida_data, DATE(data)) = ?
-             GROUP BY COALESCE(nf_pagamento, 'sem_forma')"
+            "SELECT forma, COALESCE(SUM(valor), 0) AS valor FROM (
+                 SELECT COALESCE(f.nf_pagamento, 'sem_forma') AS forma, f.nf_valor AS valor
+                 FROM fila_carregamentos f
+                 WHERE f.ordem_principal_id IS NULL AND f.status <> 'cancelado'
+                   AND COALESCE(DATE(f.nf_emitida_em), f.nf_emitida_data, DATE(f.data)) = ?
+                   AND NOT EXISTS (SELECT 1 FROM nota_pagamentos np WHERE np.ordem_id = f.id)
+                 UNION ALL
+                 SELECT np.forma, np.valor
+                 FROM nota_pagamentos np JOIN fila_carregamentos f ON f.id = np.ordem_id
+                 WHERE f.ordem_principal_id IS NULL AND f.status <> 'cancelado'
+                   AND COALESCE(DATE(f.nf_emitida_em), f.nf_emitida_data, DATE(f.data)) = ?
+             ) partes
+             GROUP BY forma"
         );
-        $formas->execute([$dia]);
+        $formas->execute([$dia, $dia]);
         $porForma = [];
         foreach ($formas->fetchAll() as $forma) {
             $porForma[(string) $forma['forma']] = round((float) $forma['valor'], 2);
@@ -1067,8 +1086,9 @@ final class Operacoes
             'nf_emitida_em' => $emitidaEm = self::emissaoDaNota($post, $atual),
             'nf_emitida_data' => self::dataDaNota($post, $atual, $emitidaEm),
             'nf_chave' => self::chaveDaNota($post, $atual),
-            'nf_valor' => self::valorDaNota($post, $atual),
-            'nf_pagamento' => self::pagamentoDaNota($post, $atual),
+            'nf_valor' => $valorNota = self::valorDaNota($post, $atual),
+            'nf_pagamento' => $forma = self::pagamentoDaNota($post, $atual),
+            'pagamentos' => self::partesDoPagamento($post, $atual, $forma, $valorNota),
             'nf_documento' => self::documentoDaNota($post, $atual),
             'fracionado' => $fracionado,
             'material_id' => $materialId,
@@ -1219,15 +1239,140 @@ final class Operacoes
         if ($bruto === '') {
             return null;
         }
+
+        return self::lerReais($bruto, 'O valor da nota precisa ser um número, como 476,40.');
+    }
+
+    /** "1.905,60", "1905,60" ou "1905.60" em "1905.60". */
+    private static function lerReais(string $bruto, string $erro): string
+    {
+        $bruto = trim(str_replace(['R$', ' ', "\xc2\xa0"], '', $bruto));
         if (str_contains($bruto, ',') && str_contains($bruto, '.')) {
             $bruto = str_replace('.', '', $bruto);
         }
         $bruto = str_replace(',', '.', $bruto);
         if (!preg_match('/^\d{1,10}(\.\d{1,2})?$/', $bruto)) {
-            throw new InvalidArgumentException('O valor da nota precisa ser um número, como 476,40.');
+            throw new InvalidArgumentException($erro);
         }
 
         return number_format((float) $bruto, 2, '.', '');
+    }
+
+    /**
+     * Nota paga em mais de uma forma: a primeira forma é a de nf_pagamento, com o valor em "pagamentos[0][valor]";
+     * as outras vêm em "pagamentos[n][forma]" e "pagamentos[n][valor]". A soma precisa bater com o valor da nota.
+     * Sem outra forma preenchida: lista vazia (nota de uma forma só). Formulário sem as linhas: fica o que estava.
+     *
+     * @return list<array{forma: string, valor: string}>
+     */
+    private static function partesDoPagamento(array $post, ?array $atual, ?string $forma, ?string $valorNota): array
+    {
+        if (!array_key_exists('tem_pagamentos', $post)) {
+            return $atual !== null ? self::pagamentosDaOrdem((int) $atual['id']) : [];
+        }
+        $linhas = is_array($post['pagamentos'] ?? null) ? $post['pagamentos'] : [];
+        $outras = [];
+        for ($n = 1; $n < self::MAX_FORMAS; $n++) {
+            $linha = is_array($linhas[$n] ?? null) ? $linhas[$n] : [];
+            $outra = trim((string) ($linha['forma'] ?? ''));
+            $bruto = trim((string) ($linha['valor'] ?? ''));
+            if ($outra === '' && $bruto === '') {
+                continue;
+            }
+            if (!isset(formas_pagamento()[$outra])) {
+                throw new InvalidArgumentException('Escolha a forma de cada valor em "Outras formas de pagamento".');
+            }
+            if ($bruto === '') {
+                throw new InvalidArgumentException('Informe quanto foi pago em ' . formas_pagamento()[$outra] . '.');
+            }
+            $outras[] = ['forma' => $outra, 'valor' => self::lerValorDaForma($bruto, $outra)];
+        }
+        if ($outras === []) {
+            return [];
+        }
+        if ($forma === null) {
+            throw new InvalidArgumentException('Escolha a forma de pagamento da nota (a primeira forma) antes das outras.');
+        }
+        $primeiro = trim((string) (is_array($linhas[0] ?? null) ? ($linhas[0]['valor'] ?? '') : ''));
+        if ($primeiro === '') {
+            throw new InvalidArgumentException('Informe quanto foi pago em ' . formas_pagamento()[$forma] . '.');
+        }
+        $partes = [['forma' => $forma, 'valor' => self::lerValorDaForma($primeiro, $forma)], ...$outras];
+        if (count(array_unique(array_column($partes, 'forma'))) !== count($partes)) {
+            throw new InvalidArgumentException('A mesma forma de pagamento aparece duas vezes. Some os valores numa linha só.');
+        }
+        if ($valorNota === null) {
+            throw new InvalidArgumentException('Preencha o valor da nota: com mais de uma forma de pagamento, a soma das formas precisa bater com ele.');
+        }
+        $soma = array_sum(array_map('floatval', array_column($partes, 'valor')));
+        if (abs($soma - (float) $valorNota) > 0.004) {
+            throw new InvalidArgumentException('A soma das formas de pagamento (R$ ' . formatar_quantidade($soma) . ') não bate com o valor da nota (R$ '
+                . formatar_quantidade($valorNota) . '). Confira os valores.');
+        }
+
+        return $partes;
+    }
+
+    private static function lerValorDaForma(string $bruto, string $forma): string
+    {
+        $valor = self::lerReais($bruto, 'O valor pago em ' . formas_pagamento()[$forma] . ' precisa ser um número, como 1.000,00.');
+        if ((float) $valor <= 0) {
+            throw new InvalidArgumentException('O valor pago em ' . formas_pagamento()[$forma] . ' precisa ser maior que zero.');
+        }
+
+        return $valor;
+    }
+
+    /** @return list<array{forma: string, valor: string}> */
+    public static function pagamentosDaOrdem(int $id): array
+    {
+        $busca = Db::pdo()->prepare('SELECT forma, valor FROM nota_pagamentos WHERE ordem_id = ? ORDER BY posicao ASC, id ASC');
+        $busca->execute([$id]);
+
+        return array_map(static fn (array $linha): array => [
+            'forma' => (string) $linha['forma'],
+            'valor' => number_format((float) $linha['valor'], 2, '.', ''),
+        ], $busca->fetchAll());
+    }
+
+    /** @param list<array{forma: string, valor: string}> $partes */
+    private static function gravarPagamentos(int $id, array $partes): void
+    {
+        $pdo = Db::pdo();
+        $pdo->prepare('DELETE FROM nota_pagamentos WHERE ordem_id = ?')->execute([$id]);
+        $inserir = $pdo->prepare('INSERT INTO nota_pagamentos (ordem_id, posicao, forma, valor) VALUES (?, ?, ?, ?)');
+        foreach (array_values($partes) as $n => $parte) {
+            $inserir->execute([$id, $n + 1, $parte['forma'], $parte['valor']]);
+        }
+    }
+
+    /**
+     * O valor e as formas de pagamento corrigidos na ficha (também depois de a pá carregar): mesmo formulário de
+     * "Corrigir dados", só com o valor, a forma e as outras formas.
+     */
+    public static function corrigirPagamento(int $id, array $post): void
+    {
+        $principal = self::exigir(self::grupo(self::exigir($id)));
+        if ($principal['status'] === 'cancelado') {
+            throw new InvalidArgumentException('Esta nota foi cancelada e não entra no vendido.');
+        }
+        $valor = self::valorDaNota($post, $principal);
+        if ($valor === null) {
+            throw new InvalidArgumentException('Preencha o valor total da nota.');
+        }
+        $forma = self::pagamentoDaNota($post, $principal);
+        $partes = self::partesDoPagamento($post, $principal, $forma, $valor);
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("UPDATE fila_carregamentos SET nf_valor = ?, nf_pagamento = ? WHERE id = ? AND status <> 'cancelado'")
+                ->execute([$valor, $forma, (int) $principal['id']]);
+            self::gravarPagamentos((int) $principal['id'], $partes);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
     }
 
     /** Forma de pagamento (opcional ao lançar, obrigatória para liberar). Formulário sem o campo: fica a que estava. */
@@ -1429,6 +1574,8 @@ final class Operacoes
                 m.material AS material_nome,
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT(\'posicao\', om.posicao, \'quantidade\', om.quantidade, \'material\', m2.material))
                    FROM ordem_materiais om JOIN materiais m2 ON m2.id = om.material_id WHERE om.ordem_id = f.id) AS outros_materiais,
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT(\'posicao\', np.posicao, \'forma\', np.forma, \'valor\', np.valor))
+                   FROM nota_pagamentos np WHERE np.ordem_id = f.id) AS pagamentos,
                 COALESCE(p.maquina, r.maquina) AS pa_nome,
                 COALESCE(p.marca, r.marca) AS pa_marca,
                 COALESCE(p.modelo, r.modelo) AS pa_modelo,

@@ -181,25 +181,15 @@ final class NotaFiscal
             'data_emissao' => $soData,
             'valor' => self::texto($nota, './*[local-name()="total"]/*[local-name()="ICMSTot"]/*[local-name()="vNF"]'),
             'pagamento' => self::pagamentoDoXml($nota),
+            'pagamentos' => self::pagamentosDoXml($nota),
         ], $itens);
     }
 
     /** Forma de pagamento do grupo <pag> (código tPag da NF-e); sem uma forma conhecida, a pessoa escolhe. */
     private static function pagamentoDoXml(SimpleXMLElement $nota): ?string
     {
-        $formas = [
-            '01' => 'dinheiro',
-            '02' => 'cheque',
-            '03' => 'cartao',
-            '04' => 'cartao',
-            '05' => 'prazo',
-            '14' => 'prazo',
-            '15' => 'boleto',
-            '17' => 'pix',
-            '18' => 'transferencia',
-        ];
         foreach (self::nos($nota, './*[local-name()="pag"]/*[local-name()="detPag"]/*[local-name()="tPag"]') as $codigo) {
-            $forma = $formas[trim((string) $codigo)] ?? null;
+            $forma = self::FORMAS_TPAG[trim((string) $codigo)] ?? null;
             if ($forma !== null) {
                 return $forma;
             }
@@ -207,6 +197,42 @@ final class NotaFiscal
 
         return null;
     }
+
+    /**
+     * Nota paga em mais de uma forma: cada <detPag> com forma conhecida e valor (vPag), somado por forma.
+     * Com uma forma só (ou sem os valores), lista vazia: vale a forma de pagamentoDoXml.
+     *
+     * @return list<array{forma: string, valor: float}>
+     */
+    private static function pagamentosDoXml(SimpleXMLElement $nota): array
+    {
+        $porForma = [];
+        foreach (self::nos($nota, './*[local-name()="pag"]/*[local-name()="detPag"]') as $detalhe) {
+            $forma = self::FORMAS_TPAG[self::texto($detalhe, './*[local-name()="tPag"]')] ?? null;
+            $valor = (float) self::texto($detalhe, './*[local-name()="vPag"]');
+            if ($forma !== null && $valor > 0) {
+                $porForma[$forma] = round(($porForma[$forma] ?? 0) + $valor, 2);
+            }
+        }
+        if (count($porForma) < 2) {
+            return [];
+        }
+
+        return array_map(static fn (string $forma, float $valor): array => ['forma' => $forma, 'valor' => $valor], array_keys($porForma), $porForma);
+    }
+
+    /** Código tPag da NF-e na forma de pagamento do sistema (90, "sem pagamento", e 99, "outros", ficam de fora). */
+    private const FORMAS_TPAG = [
+        '01' => 'dinheiro',
+        '02' => 'cheque',
+        '03' => 'cartao',
+        '04' => 'cartao',
+        '05' => 'prazo',
+        '14' => 'prazo',
+        '15' => 'boleto',
+        '17' => 'pix',
+        '18' => 'transferencia',
+    ];
 
     /** @return list<SimpleXMLElement> */
     private static function nos(SimpleXMLElement $base, string $caminho): array
@@ -766,6 +792,7 @@ final class NotaFiscal
             'data_emissao' => $dados['data_emissao'] ?? (isset($dados['emitida_em']) ? substr((string) $dados['emitida_em'], 0, 10) : null),
             // O PDF da Próspera não traz a forma de pagamento: só o XML.
             'pagamento' => $dados['pagamento'] ?? null,
+            'pagamentos' => $dados['pagamentos'] ?? [],
         ];
     }
 

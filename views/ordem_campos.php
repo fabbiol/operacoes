@@ -118,6 +118,9 @@ $travado = !empty($travado);
             </select>
         </label>
     </div>
+    <?php if (!$viagemSeguinte && !$travado): ?>
+        <?php $linhasPagamento = $valor['pagamentos'] ?? []; require __DIR__ . '/trecho_pagamentos.php'; ?>
+    <?php endif; ?>
     <?php
     $outros = $valor['outros'] ?? [];
     $maxOutros = (defined('Operacoes::MAX_MATERIAIS') ? (int) Operacoes::MAX_MATERIAIS : 5) - 1;
