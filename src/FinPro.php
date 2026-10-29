@@ -24,6 +24,8 @@ final class FinPro
     {
         return (int) ($ordem['ordem_principal_id'] ?? 0) === 0
             && ($ordem['status'] ?? '') !== 'cancelado'
+            // Venda com empenho: vai quando a nota for lançada.
+            && trim((string) ($ordem['nf'] ?? '')) !== ''
             && self::formaDoFinPro($ordem) !== null;
     }
 

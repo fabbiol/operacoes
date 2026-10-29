@@ -79,6 +79,9 @@ CREATE TABLE IF NOT EXISTS fila_carregamentos (
     nf_documento VARCHAR(14) NULL,
     -- Venda paga depois (prefeitura: transferência em 15 ou 30 dias): o dia em que o pagamento é esperado.
     nf_previsto DATE NULL,
+    -- Venda com empenho (prefeitura): a carga sai com o empenho e a nota é emitida depois (nf fica vazia até lá).
+    -- O PDF ou a foto do empenho: empenhos/<id>.pdf|jpg em storage.
+    empenho_arquivo VARCHAR(80) NULL,
     material_id INT UNSIGNED NOT NULL,
     quantidade_autorizada DECIMAL(12,2) NOT NULL,
     unidade ENUM('t', 'm3', 'un') NOT NULL,

@@ -932,4 +932,6 @@ p.limpeza-aviso, .limpeza-aviso p { display: flex; flex-wrap: wrap; align-items:
 /* Carga com mais de um material: as linhas dos outros materiais no formulário da ordem. */
 .outros-materiais, .outras-formas { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
 .atalhos-prazo { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+.notas-pendentes { border-color: #f1dcae; border-left-color: #c98a12; background: #fffaf0; }
+.notas-pendentes h2 span { background: #c98a12; }
 .outros-materiais summary, .outras-formas summary { font-weight: 700; cursor: pointer; }

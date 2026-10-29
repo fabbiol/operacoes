@@ -35,7 +35,7 @@
                 <?php if ((int) ($ordem['fracionado'] ?? 0) === 1): ?>
                     <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span></p>
                 <?php endif; ?>
-                <p class="meta">Pedido <?= e($ordem['pedido']) ?> · NF <?= e($ordem['nf']) ?></p>
+                <p class="meta">Pedido <?= e($ordem['pedido']) ?> · <?= e(function_exists('nf_texto') ? nf_texto($ordem) : 'NF ' . $ordem['nf']) ?></p>
                 <?php // Na publicação pela Hostinger as telas sobem antes do index.php, onde está a função.
                 $recado = function_exists('observacao_recente') ? observacao_recente($ordem['observacoes'] ?? null) : ''; ?>
                 <?php if ($recado !== ''): ?>

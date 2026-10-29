@@ -12,7 +12,14 @@
         <div><dt>CNPJ/CPF do cliente</dt><dd><?= e($documento) ?></dd></div>
     <?php endif; ?>
     <div><dt>Pedido</dt><dd><?= e($ordem['pedido']) ?></dd></div>
+    <?php if (trim((string) $ordem['nf']) === ''): ?>
+        <div><dt>Nota fiscal</dt><dd>Aguardando nota fiscal (venda com empenho)</dd></div>
+    <?php else: ?>
     <div><dt>Nota fiscal</dt><dd><?= e($ordem['nf']) ?><?php if (!empty($ordem['nf_emitida_em'])): ?> · emitida em <?= e(quando((string) $ordem['nf_emitida_em'])) ?><?php elseif (!empty($ordem['nf_emitida_data'])): ?> · emitida em <?= e(date('d/m/Y', (int) strtotime((string) $ordem['nf_emitida_data']))) ?><?php endif; ?><?php if (!empty($ordem['nf_arquivo'])): ?> · <a href="<?= e(url('ordens/' . $ordem['id'] . '/nota')) ?>" target="_blank" rel="noopener">PDF da nota</a><?php endif; ?></dd></div>
+    <?php endif; ?>
+    <?php if (!empty($ordem['empenho_arquivo'])): ?>
+        <div><dt>Empenho</dt><dd><a href="<?= e(url('ordens/' . $ordem['id'] . '/empenho')) ?>" target="_blank" rel="noopener">Ver o empenho</a></dd></div>
+    <?php endif; ?>
     <div><dt>Material</dt><dd><?php
         $fracionado = (int) ($ordem['fracionado'] ?? 0) === 1;
         $rotuloQuantidade = $fracionado && (int) ($ordem['ordem_principal_id'] ?? 0) > 0 ? 'saldo ' : '';
@@ -140,7 +147,69 @@ if (!empty($grupo) && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && $grupo[
     <a class="btn secundario" href="<?= e(url('fila')) ?>">Voltar à fila</a>
 </div>
 
-<?php if ($ordem['status'] !== 'cancelado' && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && (empty($editavel) || !empty($formulario['travado']))): ?>
+<?php $aguardandoNota = $ordem['status'] !== 'cancelado' && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && trim((string) $ordem['nf']) === ''; ?>
+<?php if ($aguardandoNota): ?>
+    <?php $lida = is_array($notaDepois ?? null) ? $notaDepois : []; ?>
+    <section class="bloco nota-depois" id="nota-fiscal">
+        <h2>Aguardando nota fiscal</h2>
+        <p class="nota">Venda com empenho: a carga sai antes da nota. Quando a nota for emitida, leia o PDF ou o XML (ou preencha à mão) e toque em <strong>Lançar a nota fiscal</strong>.</p>
+        <?php if (!empty($lida['mensagem'])): ?>
+            <div class="leitura-nota">
+                <p class="aviso"><?= e((string) $lida['mensagem']) ?></p>
+                <?php if (($lida['avisos'] ?? []) !== []): ?>
+                    <ul class="aviso atencao">
+                        <?php foreach ($lida['avisos'] as $aviso): ?>
+                            <li><?= e((string) $aviso) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+        <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/nota-fiscal/ler')) ?>" class="formulario ler-nota" enctype="multipart/form-data">
+            <?= csrf_field() ?>
+            <label class="campo">
+                <span>Ler a nota fiscal</span>
+                <input type="file" name="nota" accept=".pdf,.xml,application/pdf,application/xml,text/xml" required>
+            </label>
+            <button type="submit" class="btn secundario">Ler nota</button>
+        </form>
+        <form method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/nota-fiscal')) ?>" class="formulario lancar-nota">
+            <?= csrf_field() ?>
+            <input type="hidden" name="nf_chave" value="<?= e((string) ($lida['nf_chave'] ?? '')) ?>">
+            <input type="hidden" name="nf_emitida_data" value="<?= e((string) ($lida['nf_emitida_data'] ?? '')) ?>">
+            <input type="hidden" name="nota_arquivo" value="<?= e((string) ($lida['nota_arquivo'] ?? '')) ?>">
+            <div class="grade">
+                <label class="campo">
+                    <span>Número da nota</span>
+                    <input type="text" name="nf" maxlength="60" required value="<?= e((string) ($lida['nf'] ?? '')) ?>">
+                </label>
+                <label class="campo">
+                    <span>Nota emitida em</span>
+                    <input type="datetime-local" name="nf_emitida_em" step="1" value="<?= e((string) ($lida['nf_emitida_em'] ?? '')) ?>">
+                    <?php if (($lida['nf_emitida_em'] ?? '') === '' && ($lida['nf_emitida_data'] ?? '') !== ''): ?>
+                        <small class="dica">A nota é de <?= e(date('d/m/Y', (int) strtotime((string) $lida['nf_emitida_data']))) ?> (o PDF não traz a hora).</small>
+                    <?php endif; ?>
+                </label>
+                <label class="campo">
+                    <span>Valor da nota (R$)</span>
+                    <input type="text" name="nf_valor" inputmode="decimal" maxlength="16" required placeholder="0,00" value="<?= e((string) ($lida['nf_valor'] ?? '')) ?>">
+                </label>
+                <label class="campo">
+                    <span>CNPJ/CPF do cliente</span>
+                    <input type="text" name="nf_documento" maxlength="18" autocomplete="off" placeholder="Opcional" value="<?= e((string) ($lida['nf_documento'] ?? ($documento ?? ''))) ?>">
+                </label>
+            </div>
+            <?php
+            $previstoPagamento = (string) ($lida['nf_previsto'] ?? ($ordem['nf_previsto'] ?? ''));
+            $basePrevisto = '';
+            require __DIR__ . '/trecho_previsto.php';
+            ?>
+            <button type="submit" class="btn primario">Lançar a nota fiscal</button>
+        </form>
+    </section>
+<?php endif; ?>
+
+<?php if (!$aguardandoNota && $ordem['status'] !== 'cancelado' && (int) ($ordem['ordem_principal_id'] ?? 0) === 0 && (empty($editavel) || !empty($formulario['travado']))): ?>
     <form class="valor-nota bloco" method="post" action="<?= e(url('ordens/' . $ordem['id'] . '/valor')) ?>">
         <?= csrf_field() ?>
         <label class="campo">

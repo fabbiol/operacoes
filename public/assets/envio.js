@@ -122,6 +122,18 @@
 })();
 
 (function () {
+    // Venda com empenho: a nota fica opcional e a forma de pagamento já vem como Transferência.
+    document.addEventListener('change', function (evento) {
+        var caixa = evento.target;
+        if (!caixa.matches || !caixa.matches('[name=nota_depois]') || !caixa.form) return;
+        var nf = caixa.form.querySelector('[name=nf]');
+        if (nf) nf.required = !caixa.checked;
+        var forma = caixa.form.querySelector('select[name=nf_pagamento]');
+        if (caixa.checked && forma && forma.value === '') forma.value = 'transferencia';
+    });
+})();
+
+(function () {
     // Pagamento previsto: +15 ou +30 dias a partir do dia da nota (ou de hoje, sem ele).
     document.addEventListener('click', function (evento) {
         var botao = evento.target.closest('[data-prazo]');

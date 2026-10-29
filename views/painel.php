@@ -44,6 +44,23 @@
     </section>
 <?php endif; ?>
 
+<?php if (($semNota ?? []) !== []): ?>
+    <section class="problemas-painel notas-pendentes" aria-label="Vendas com empenho aguardando a nota fiscal">
+        <h2>Aguardando nota fiscal <span><?= count($semNota) ?></span></h2>
+        <ul>
+            <?php foreach ($semNota as $pendente): ?>
+                <li>
+                    <a href="<?= e(url('ordens/' . (int) $pendente['id'] . '#nota-fiscal')) ?>">
+                        <strong><?= e((string) $pendente['cliente']) ?></strong>
+                        <span>Pedido/empenho <?= e((string) $pendente['pedido']) ?></span>
+                        <small><?= e((string) $pendente['ordem']) ?> · <?= e(quando((string) $pendente['data'])) ?></small>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </section>
+<?php endif; ?>
+
 <?php if ($autorizar > 0 || $conferir > 0): ?>
     <nav class="parado" aria-label="Esperando o administrativo">
         <?php if ($autorizar > 0): ?>

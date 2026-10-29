@@ -1,8 +1,7 @@
 <?php
 // Nota paga em mais de uma forma (Pix + cartão, dinheiro + Pix...): o valor da forma escolhida em "Forma de pagamento"
 // e as outras formas, cada uma com o seu valor. A soma precisa bater com o valor da nota. Recebe $linhasPagamento.
-// Antes, o dia previsto do pagamento da venda paga depois (prefeitura). Recebe $previstoPagamento e $basePrevisto
-// (o dia da nota, para os botões +15/+30; vazio: o formulário tem os campos da nota).
+// Antes, o dia previsto do pagamento da venda paga depois (trecho_previsto.php: recebe $previstoPagamento e $basePrevisto).
 $maxFormas = defined('Operacoes::MAX_FORMAS') ? (int) Operacoes::MAX_FORMAS : 4;
 $linhasPagamento = is_array($linhasPagamento ?? null) ? $linhasPagamento : [];
 $temOutras = false;
@@ -12,17 +11,7 @@ foreach ($linhasPagamento as $n => $linha) {
     }
 }
 ?>
-<div class="grade previsto-pagamento" data-base="<?= e((string) ($basePrevisto ?? '')) ?>">
-    <label class="campo">
-        <span>Pagamento previsto para</span>
-        <input type="date" name="nf_previsto" value="<?= e((string) ($previstoPagamento ?? '')) ?>">
-        <small class="dica">Só para venda paga depois (ex.: prefeitura). Vazio: pago na hora.</small>
-    </label>
-    <div class="atalhos-prazo">
-        <button type="button" class="btn secundario" data-prazo="15">+15 dias</button>
-        <button type="button" class="btn secundario" data-prazo="30">+30 dias</button>
-    </div>
-</div>
+<?php require __DIR__ . '/trecho_previsto.php'; ?>
 <input type="hidden" name="tem_pagamentos" value="1">
 <details class="outras-formas"<?= $temOutras ? ' open' : '' ?>>
     <summary>+ Outra forma de pagamento</summary>

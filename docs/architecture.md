@@ -30,7 +30,7 @@ src/               classes de domínio, uma por assunto
   Oficina.php      máquina na oficina (bloqueia assumir e começar trabalho), ordem de serviço e disponibilidade do mês
   Estoque.php      estoque das pilhas (conchas lançadas pela pá)
   Britador.php     britador secundário: britagens e problemas
-  NotaFiscal.php   leitura da NF-e (XML e PDF) e o PDF guardado com a ordem (storage/notas/)
+  NotaFiscal.php   leitura da NF-e (XML e PDF), o PDF guardado com a ordem (storage/notas/) e o empenho (storage/empenhos/)
   FinPro.php       envio das notas Pix e Transferência ao Fin Pro (fila finpro_envios, cURL com prazo de 8 s)
   Dashboard.php    dados do Monitor da TV
   Cadastro.php, Pessoas.php, Fotos.php, Tablets.php
@@ -59,7 +59,7 @@ Tamanho em linhas (19/10/2026): `public/index.php` 2.177, `src/Lavra.php` 1.244,
 - O esquema está em `database/schema.sql`. As colunas acrescentadas depois que a tabela já existia são criadas pelas funções `garantir*()` de `src/Db.php`.
 - No primeiro acesso depois de uma publicação, `Db::migrar()` roda o schema e as `garantir*()`, protegido por `GET_LOCK`. A marca da versão fica na tabela `schema_versao` (linha 1: hash do schema + `Db::MIGRACOES`; linha 2: a planilha do estoque já foi tratada e não volta). Ao criar ou mudar uma `garantir*()`, troque `Db::MIGRACOES`.
 - As `garantir*()` precisam poder rodar mais de uma vez, e o código precisa aceitar linhas antigas (colunas novas com NULL ou valor padrão).
-- Arquivos fora do banco: fotos em `storage/fotos/`, PDFs das notas em `storage/notas/` (os lidos e ainda não lançados em `storage/notas/pendentes/`, apagados depois de um dia) e sessões em `storage/sessoes/`. Em produção ficam num volume do Docker.
+- Arquivos fora do banco: fotos em `storage/fotos/`, PDFs das notas em `storage/notas/` (os lidos e ainda não lançados em `storage/notas/pendentes/`, apagados depois de um dia), empenhos (PDF ou foto) em `storage/empenhos/` e sessões em `storage/sessoes/`. Em produção ficam num volume do Docker.
 - Fuso: PHP em `America/Cuiaba` e conexão MySQL com `time_zone = '-04:00'`.
 
 ## Decisões

@@ -421,9 +421,10 @@ final class Operacoes
         if (!in_array($ordem['status'], ['aguardando_autorizacao', 'saldo'], true)) {
             throw new InvalidArgumentException('Só dá para liberar uma ordem que ainda aguarda autorização.');
         }
-        foreach (['cliente', 'pedido', 'nf', 'material_id', 'quantidade_autorizada'] as $campo) {
+        // A nota pode faltar: venda com empenho, a nota é emitida depois.
+        foreach (['cliente', 'pedido', 'material_id', 'quantidade_autorizada'] as $campo) {
             if ($ordem[$campo] === null || $ordem[$campo] === '') {
-                throw new InvalidArgumentException('Confira cliente, pedido, nota, material e quantidade antes de liberar.');
+                throw new InvalidArgumentException('Confira cliente, pedido, material e quantidade antes de liberar.');
             }
         }
         // A forma é da nota: a viagem seguinte do fracionado usa a da primeira.
@@ -438,6 +439,73 @@ final class Operacoes
         );
         $comando->execute([$responsavel, agora_sql(), $id, $ordem['status']]);
         self::exigirAlteracao($comando);
+    }
+
+    /**
+     * A nota da venda com empenho, lançada na ficha depois de a carga sair: número, emissão, chave, valor, CNPJ/CPF e o
+     * dia previsto do pagamento. Vai para a viagem 1; o número, a emissão, a chave e o CNPJ/CPF também para as outras
+     * viagens do fracionado. Devolve o id da viagem 1.
+     */
+    public static function lancarNota(int $id, array $post): int
+    {
+        $principal = self::exigir(self::grupo(self::exigir($id)));
+        if ($principal['status'] === 'cancelado') {
+            throw new InvalidArgumentException('Esta ordem foi cancelada.');
+        }
+        $nf = (string) limpar_texto((string) ($post['nf'] ?? ''), 60, true, 'o número da nota fiscal');
+        $emitidaEm = self::emissaoDaNota($post, null);
+        $dataNota = self::dataDaNota($post, null, $emitidaEm);
+        if ($dataNota === null) {
+            throw new InvalidArgumentException('Informe quando a nota foi emitida.');
+        }
+        $chave = self::chaveDaNota($post, null);
+        $valor = self::valorDaNota($post, null);
+        if ($valor === null) {
+            throw new InvalidArgumentException('Preencha o valor da nota.');
+        }
+        $documento = self::documentoDaNota($post, $principal);
+        $previsto = self::previstoDaNota($post, $principal, $dataNota);
+        $grupo = (int) $principal['id'];
+        $repetida = self::ordemComNota($chave, $nf, $grupo);
+        if ($repetida !== null) {
+            throw new InvalidArgumentException('Essa nota fiscal já foi lançada no carregamento ' . $repetida['ordem'] . '.');
+        }
+
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            // Dois toques ao mesmo tempo: só o primeiro lança.
+            $trava = $pdo->prepare('SELECT nf FROM fila_carregamentos WHERE id = ? FOR UPDATE');
+            $trava->execute([$grupo]);
+            if (trim((string) $trava->fetchColumn()) !== '') {
+                throw new InvalidArgumentException('Esta ordem já tem nota fiscal. Para corrigir, use Corrigir dados.');
+            }
+            $pdo->prepare("UPDATE fila_carregamentos SET nf = ?, nf_emitida_em = ?, nf_emitida_data = ?, nf_chave = ?, nf_documento = ?
+                           WHERE (id = ? OR ordem_principal_id = ?) AND nf = ''")
+                ->execute([$nf, $emitidaEm, $dataNota, $chave, $documento, $grupo, $grupo]);
+            $pdo->prepare('UPDATE fila_carregamentos SET nf_valor = ?, nf_previsto = ? WHERE id = ?')
+                ->execute([$valor, $previsto, $grupo]);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+
+        return $grupo;
+    }
+
+    /**
+     * Vendas com empenho que ainda esperam a nota fiscal (a carga já pode ter saído), das mais antigas.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function aguardandoNota(): array
+    {
+        return Db::pdo()->query(
+            "SELECT id, ordem, cliente, pedido, data, status FROM fila_carregamentos
+             WHERE nf = '' AND status <> 'cancelado' AND COALESCE(ordem_principal_id, 0) = 0
+             ORDER BY data, id"
+        )->fetchAll();
     }
 
     /**
@@ -1084,7 +1152,8 @@ final class Operacoes
             'data' => parse_data_hora((string) ($post['data'] ?? '')),
             'cliente' => limpar_texto((string) ($post['cliente'] ?? ''), 160, true, 'o cliente'),
             'pedido' => limpar_texto((string) ($post['pedido'] ?? ''), 60, true, 'o pedido'),
-            'nf' => limpar_texto((string) ($post['nf'] ?? ''), 60, true, 'a nota fiscal'),
+            // Venda com empenho ("nota_depois"): a carga sai antes da nota, que é lançada depois na ficha.
+            'nf' => (string) limpar_texto((string) ($post['nf'] ?? ''), 60, !isset($post['nota_depois']), 'a nota fiscal'),
             'nf_emitida_em' => $emitidaEm = self::emissaoDaNota($post, $atual),
             'nf_emitida_data' => $dataNota = self::dataDaNota($post, $atual, $emitidaEm),
             'nf_chave' => self::chaveDaNota($post, $atual),

@@ -747,6 +747,45 @@ function despachar(string $path, string $method): void
             : '/ordens/' . $m[1]);
     }
 
+    if (preg_match('#^ordens/(\d+)/nota-fiscal/ler$#', $path, $m) && $method === 'POST') {
+        tela_ler_nota_depois((int) $m[1]);
+        return;
+    }
+
+    if (preg_match('#^ordens/(\d+)/nota-fiscal$#', $path, $m) && $method === 'POST') {
+        csrf_check();
+        try {
+            $principal = Operacoes::lancarNota((int) $m[1], $_POST);
+            NotaFiscal::ligarPdf($principal, (string) ($_POST['nota_arquivo'] ?? ''));
+            flash_set('Nota fiscal lançada.');
+            finpro_enviar($principal);
+            redirect('/ordens/' . $m[1]);
+        } catch (InvalidArgumentException $e) {
+            // Volta com o que foi digitado.
+            $campos = ['nf', 'nf_emitida_em', 'nf_emitida_data', 'nf_chave', 'nf_valor', 'nf_documento', 'nf_previsto', 'nota_arquivo'];
+            tela_ordem((int) $m[1], 'GET', array_map(static fn ($v): string => is_string($v) ? $v : '', array_intersect_key($_POST, array_flip($campos))) + ['erro' => $e->getMessage()]);
+            return;
+        }
+    }
+
+    if (preg_match('#^ordens/(\d+)/empenho$#', $path, $m)) {
+        $arquivo = NotaFiscal::arquivoEmpenho(Operacoes::buscar((int) $m[1]) ?? []);
+        if ($arquivo === null) {
+            http_response_code(404);
+            exit;
+        }
+        if ($arquivo['tipo'] !== 'application/pdf') {
+            Fotos::servir($arquivo['caminho'], $arquivo['tipo'], Fotos::LADO_DOCUMENTO);
+        }
+        session_write_close();
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="empenho-' . $m[1] . '.pdf"');
+        header('Content-Length: ' . (string) filesize($arquivo['caminho']));
+        header('Cache-Control: private, no-store');
+        readfile($arquivo['caminho']);
+        exit;
+    }
+
     if (preg_match('#^ordens/(\d+)/nota$#', $path, $m)) {
         $arquivo = NotaFiscal::arquivoPdf(Operacoes::buscar((int) $m[1]) ?? []);
         if ($arquivo === null) {
@@ -1137,6 +1176,7 @@ function painel_marca(): string
 
     return marca_de([
         'contagens' => Operacoes::contagens(),
+        'semNota' => array_column(Operacoes::aguardandoNota(), 'id'),
         'carregando' => array_map(static fn (array $ordem): array => [
             (int) $ordem['id'],
             (string) $ordem['status'],
@@ -1871,6 +1911,7 @@ function tela_painel(): void
         'autorizar' => (int) ($contagens['aguardando_autorizacao'] ?? 0),
         'saldos' => (int) ($contagens['saldo'] ?? 0),
         'problemas' => Problemas::abertos(),
+        'semNota' => Operacoes::aguardandoNota(),
         'avisosManutencao' => Horimetro::avisosDeTodas(),
         'limpezas' => Lavra::limpezasAbertas(),
         'vendas' => Operacoes::vendas($dia),
@@ -1919,16 +1960,24 @@ function tela_lavra_fila(): void
     ]);
 }
 
-function tela_ordem(int $id, string $method): void
+/** @param array<string, mixed>|null $notaDepois a nota da venda com empenho lida ou digitada, para conferir na ficha */
+function tela_ordem(int $id, string $method, ?array $notaDepois = null): void
 {
     if ($method === 'POST') {
         csrf_check();
         try {
+            $empenho = NotaFiscal::receberEmpenho();
             Operacoes::atualizar($id, $_POST);
             flash_set('Ordem atualizada.');
+            if ($empenho !== null && !NotaFiscal::ligarEmpenho($id, $empenho)) {
+                flash_set('Ordem atualizada, mas o empenho não foi guardado. Tente de novo.', 'erro');
+            }
             finpro_enviar($id);
             redirect('/ordens/' . $id);
         } catch (InvalidArgumentException $e) {
+            if (isset($empenho['tmp']) && is_file($empenho['tmp'])) {
+                @unlink($empenho['tmp']);
+            }
             $ordem = ordem_ou_404($id);
             render('ordem_form', dados_formulario($ordem, $_POST, $e->getMessage()));
             return;
@@ -1946,6 +1995,44 @@ function tela_ordem(int $id, string $method): void
         'editavel' => $editavel,
         'formulario' => $editavel ? dados_formulario($ordem, null, null) : null,
         'finpro' => $finpro !== null ? ['texto' => $finpro, 'reenviar' => FinPro::elegivel($ordem)] : null,
+        'notaDepois' => $notaDepois,
+        'erro' => $notaDepois['erro'] ?? null,
+    ]);
+}
+
+/** Venda com empenho: lê o PDF ou o XML da nota emitida depois e volta à ficha com os campos para conferir. */
+function tela_ler_nota_depois(int $id): void
+{
+    csrf_check();
+    try {
+        $nota = NotaFiscal::receber();
+    } catch (InvalidArgumentException $e) {
+        tela_ordem($id, 'GET', ['erro' => $e->getMessage()]);
+        return;
+    }
+    $avisos = [];
+    if ($nota['nf'] === null) {
+        $avisos[] = 'Não achei o número da nota. Preencha o número.';
+    }
+    if ($nota['valor'] === null) {
+        $avisos[] = 'Não achei o valor da nota. Preencha o valor.';
+    }
+    $repetida = Operacoes::ordemComNota($nota['chave'], $nota['nf'], Operacoes::grupo(ordem_ou_404($id)));
+    if ($repetida !== null) {
+        $avisos[] = 'Já existe o carregamento ' . $repetida['ordem'] . ' com esta nota. Confira antes de lançar.';
+    }
+    tela_ordem($id, 'GET', [
+        'nf' => (string) ($nota['nf'] ?? ''),
+        'nf_emitida_em' => data_hora_para_input($nota['emitida_em']),
+        'nf_emitida_data' => (string) ($nota['data_emissao'] ?? ''),
+        'nf_chave' => (string) ($nota['chave'] ?? ''),
+        'nf_valor' => $nota['valor'] !== null ? formatar_quantidade($nota['valor']) : '',
+        'nf_documento' => NotaFiscal::formatarDocumento($nota['documento'] ?? null),
+        'nf_previsto' => (string) ($nota['previsto'] ?? ''),
+        'nota_arquivo' => $nota['origem'] === 'pdf' ? (NotaFiscal::guardarPdf() ?? '') : '',
+        'mensagem' => ($nota['nf'] !== null ? 'Nota ' . $nota['nf'] : 'Nota') . ' lida ' . ($nota['origem'] === 'xml' ? 'do XML' : 'do PDF')
+            . '. Confira os campos e toque em Lançar a nota fiscal.',
+        'avisos' => $avisos,
     ]);
 }
 
@@ -1980,12 +2067,19 @@ function tela_ordem_form(?int $id, string $method): void
     if ($method === 'POST') {
         csrf_check();
         try {
+            $empenho = NotaFiscal::receberEmpenho();
             $novo = Operacoes::criar($_POST, Auth::usuario());
             flash_set(isset($_POST['liberar']) ? 'Ordem lançada e liberada para o pátio.' : 'Ordem lançada. Falta liberar para o pátio.');
             NotaFiscal::ligarPdf($novo, (string) ($_POST['nota_arquivo'] ?? ''));
+            if ($empenho !== null && !NotaFiscal::ligarEmpenho($novo, $empenho)) {
+                flash_set('Ordem lançada, mas o empenho não foi guardado. Envie de novo em Corrigir dados.', 'erro');
+            }
             finpro_enviar($novo);
             redirect('/ordens/' . $novo);
         } catch (InvalidArgumentException $e) {
+            if (isset($empenho['tmp']) && is_file($empenho['tmp'])) {
+                @unlink($empenho['tmp']);
+            }
             $erro = $e->getMessage();
         }
     }
@@ -2609,6 +2703,7 @@ function dados_formulario(?array $ordem, ?array $post, ?string $erro): array
                     : (is_array($ordem) && $ordem['nf_valor'] !== null ? formatar_quantidade((string) $ordem['nf_valor']) : ''),
                 'nf_pagamento' => (string) ($fonte['nf_pagamento'] ?? ''),
                 'nf_previsto' => (string) ($fonte['nf_previsto'] ?? ''),
+                'nota_depois' => $post !== null ? isset($post['nota_depois']) : (is_array($ordem) && trim((string) $ordem['nf']) === ''),
                 'nf_documento' => $post !== null
                     ? (string) ($post['nf_documento'] ?? '')
                     : NotaFiscal::formatarDocumento(is_array($ordem) ? ($ordem['nf_documento'] ?? null) : null),
