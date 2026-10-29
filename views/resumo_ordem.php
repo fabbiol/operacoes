@@ -8,7 +8,7 @@
     <?php if ((int) ($ordem['fracionado'] ?? 0) === 1): ?>
         <p class="meta"><span class="selo fracionado">Fracionado · viagem <?= (int) ($ordem['viagem'] ?? 1) ?></span> O cliente leva só uma parte: ao finalizar, informe quanto foi carregado.</p>
     <?php endif; ?>
-    <p class="meta">Pedido <?= e($ordem['pedido']) ?> · NF <?= e($ordem['nf']) ?><?php if ($ordem['pa_nome']): ?> · <?= e($ordem['pa_nome']) ?><?php endif; ?></p>
+    <p class="meta">Pedido <?= e($ordem['pedido']) ?> · <?= e(function_exists('nf_texto') ? nf_texto($ordem) : 'NF ' . $ordem['nf']) ?><?php if ($ordem['pa_nome']): ?> · <?= e($ordem['pa_nome']) ?><?php endif; ?></p>
     <?php if (trim((string) ($ordem['observacoes'] ?? '')) !== ''): ?>
         <div class="obs-ordem">
             <strong>Observações</strong>

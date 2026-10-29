@@ -1009,6 +1009,14 @@ function pagamentos_texto(array $ordem): string
     ));
 }
 
+/** "NF 6859", ou "NF a emitir (empenho)" na venda com empenho que ainda espera a nota. */
+function nf_texto(array $ordem): string
+{
+    $nf = trim((string) ($ordem['nf'] ?? ''));
+
+    return $nf !== '' ? 'NF ' . $nf : 'NF a emitir (empenho)';
+}
+
 /** Formas de pagamento da nota, na ordem em que aparecem na tela. */
 function formas_pagamento(): array
 {

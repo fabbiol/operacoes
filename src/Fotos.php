@@ -11,6 +11,8 @@ final class Fotos
 {
     public const LADO_PESSOA = 640;
     public const LADO_MAQUINA = 960;
+    // Foto de documento (empenho): maior, para o texto continuar legível.
+    public const LADO_DOCUMENTO = 1800;
     private const MAX_ENVIO = 10 * 1024 * 1024;
     // Câmera de celular chega a uns 50 megapixels. Acima disso, a foto não é aberta (ocuparia gigas de memória).
     private const MAX_PIXELS = 50_000_000;

@@ -8,7 +8,7 @@ final class Db
      * Versão das mudanças que só este arquivo sabe fazer (as funções garantir*()).
      * TROQUE este valor sempre que criar ou mudar uma garantir*(): é ele que faz a atualização rodar de novo.
      */
-    private const MIGRACOES = '2026-10-pagamento-previsto';
+    private const MIGRACOES = '2026-10-empenho';
 
     private static ?PDO $pdo = null;
 
@@ -124,6 +124,7 @@ final class Db
             self::garantirFinPro($pdo);
             self::garantirFotosDasPecas($pdo);
             self::garantirPagamentoPrevisto($pdo);
+            self::garantirEmpenho($pdo);
             // A planilha do estoque entra uma vez, só num estoque ainda vazio.
             Estoque::importarPlanilha($pdo);
 
@@ -609,6 +610,14 @@ final class Db
     {
         if (!in_array('nf_previsto', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
             $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN nf_previsto DATE NULL AFTER nf_documento');
+        }
+    }
+
+    /** Venda com empenho (prefeitura): o PDF ou a foto do empenho (empenho_arquivo). */
+    private static function garantirEmpenho(PDO $pdo): void
+    {
+        if (!in_array('empenho_arquivo', self::colunasDe($pdo, 'fila_carregamentos'), true)) {
+            $pdo->exec('ALTER TABLE fila_carregamentos ADD COLUMN empenho_arquivo VARCHAR(80) NULL AFTER nf_previsto');
         }
     }
 

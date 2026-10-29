@@ -77,6 +77,88 @@ final class NotaFiscal
         Db::pdo()->prepare('UPDATE fila_carregamentos SET nf_arquivo = ? WHERE id = ?')->execute(['notas/' . $ordemId . '.pdf', $ordemId]);
     }
 
+    /**
+     * O empenho (PDF ou foto) do campo "empenho" do formulário da ordem, conferido antes de gravar a ordem.
+     * Sem arquivo, null. A foto é reduzida (Fotos::LADO_DOCUMENTO, ainda legível); o PDF fica como veio.
+     *
+     * @return array{tmp: string, ext: string}|null
+     */
+    public static function receberEmpenho(): ?array
+    {
+        $arquivo = $_FILES['empenho'] ?? null;
+        if (!is_array($arquivo) || (int) ($arquivo['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        $tmp = (string) ($arquivo['tmp_name'] ?? '');
+        $recebido = (int) ($arquivo['error'] ?? 0) === UPLOAD_ERR_OK && $tmp !== '' && is_uploaded_file($tmp);
+        if (!$recebido || (string) file_get_contents($tmp, false, null, 0, 5) !== '%PDF-') {
+            $mime = $recebido ? (string) (new finfo(FILEINFO_MIME_TYPE))->file($tmp) : '';
+            if ($recebido && !str_starts_with($mime, 'image/')) {
+                throw new InvalidArgumentException('O empenho precisa ser PDF ou foto (JPG, PNG ou WebP).');
+            }
+
+            return Fotos::receberArquivo($arquivo, Fotos::LADO_DOCUMENTO);
+        }
+        if ((int) ($arquivo['size'] ?? 0) > self::TAMANHO_MAXIMO) {
+            throw new InvalidArgumentException('O PDF do empenho passou do limite de 5 MB.');
+        }
+        $destino = tempnam(sys_get_temp_dir(), 'opemp');
+        if ($destino === false || !move_uploaded_file($tmp, $destino)) {
+            throw new InvalidArgumentException('Não foi possível receber o empenho. Tente de novo.');
+        }
+
+        return ['tmp' => $destino, 'ext' => 'pdf'];
+    }
+
+    /**
+     * Guarda o empenho recebido em storage/empenhos/<id>.<ext> (troca o anterior) e liga à ordem.
+     * false se não conseguiu guardar (a ordem continua gravada, sem o empenho).
+     *
+     * @param array{tmp: string, ext: string} $recebido
+     */
+    public static function ligarEmpenho(int $ordemId, array $recebido): bool
+    {
+        $pasta = OPERACOES_ROOT . '/storage/empenhos';
+        $final = $pasta . '/' . $ordemId . '.' . $recebido['ext'];
+        $guardado = (is_dir($pasta) || @mkdir($pasta, 0775, true) || is_dir($pasta))
+            && (@rename($recebido['tmp'], $final) || (@copy($recebido['tmp'], $final) && @unlink($recebido['tmp'])));
+        if (is_file($recebido['tmp'])) {
+            @unlink($recebido['tmp']);
+        }
+        if (!$guardado) {
+            return false;
+        }
+        foreach (glob($pasta . '/' . $ordemId . '.*') ?: [] as $antigo) {
+            if ($antigo !== $final) {
+                @unlink($antigo);
+            }
+        }
+        Db::pdo()->prepare('UPDATE fila_carregamentos SET empenho_arquivo = ? WHERE id = ?')
+            ->execute(['empenhos/' . $ordemId . '.' . $recebido['ext'], $ordemId]);
+
+        return true;
+    }
+
+    /**
+     * O arquivo do empenho da ordem, conferido para não sair de storage/empenhos; null se não tem.
+     *
+     * @return array{caminho: string, tipo: string}|null
+     */
+    public static function arquivoEmpenho(array $ordem): ?array
+    {
+        $relativo = (string) ($ordem['empenho_arquivo'] ?? '');
+        if (!preg_match('#^empenhos/(\d+)\.(pdf|jpg|png|webp)$#', $relativo, $partes) || (int) $partes[1] !== (int) ($ordem['id'] ?? 0)) {
+            return null;
+        }
+        $arquivo = OPERACOES_ROOT . '/storage/' . $relativo;
+        if (!is_file($arquivo)) {
+            return null;
+        }
+        $tipos = ['pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
+
+        return ['caminho' => $arquivo, 'tipo' => $tipos[$partes[2]]];
+    }
+
     /** Caminho do PDF da nota da ordem, conferido para não sair da pasta storage/notas; null se não tem. */
     public static function arquivoPdf(array $ordem): ?string
     {

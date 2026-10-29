@@ -41,7 +41,7 @@ $travado = !empty($travado);
     </div>
 <?php endif; ?>
 
-<form method="post" action="<?= e($acao) ?>" class="formulario">
+<form method="post" action="<?= e($acao) ?>" class="formulario" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <input type="hidden" name="nf_chave" value="<?= e($valor['nf_chave'] ?? '') ?>">
     <input type="hidden" name="nf_emitida_data" value="<?= e($valor['nf_emitida_data'] ?? '') ?>">
@@ -67,8 +67,19 @@ $travado = !empty($travado);
         </label>
         <label class="campo">
             <span>Nota fiscal</span>
-            <input type="text" name="nf" maxlength="60" required value="<?= e($valor['nf'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
+            <input type="text" name="nf" maxlength="60" <?= empty($valor['nota_depois']) ? 'required' : '' ?> value="<?= e($valor['nf'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
         </label>
+        <?php if (!$viagemSeguinte && !$travado): ?>
+            <label class="check">
+                <input type="checkbox" name="nota_depois" value="1" <?= !empty($valor['nota_depois']) ? 'checked' : '' ?>>
+                <span>Nota fiscal sai depois (empenho): a carga sai antes, e a nota é lançada depois na ficha</span>
+            </label>
+            <label class="campo">
+                <span>Empenho (PDF ou foto)</span>
+                <input type="file" name="empenho" accept="application/pdf,image/jpeg,image/png,image/webp">
+                <small class="dica">Opcional. Para a venda com empenho (prefeitura): fica guardado na ordem.<?= is_array($ordem) && !empty($ordem['empenho_arquivo']) ? ' Já tem um; enviar outro troca.' : '' ?></small>
+            </label>
+        <?php endif; ?>
         <label class="campo">
             <span>Nota emitida em</span>
             <input type="datetime-local" name="nf_emitida_em" step="1" value="<?= e($valor['nf_emitida_em'] ?? '') ?>" <?= $travado ? 'disabled' : '' ?>>
