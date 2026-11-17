@@ -690,12 +690,14 @@ final class NotaFiscal
             return [];
         }
         $itens = [];
+        $bloco = '';
         for ($i = $comeco; $i < count($linhas); $i++) {
             $linha = $linhas[$i];
             $compacta = self::compacto($linha);
             if (str_contains($compacta, 'DADOSADICIONAIS') || str_contains($compacta, 'CALCULODOISSQN')) {
                 break;
             }
+            $bloco .= ' ' . $linha;
             if (preg_match('/^\s*\S+\s+(.+?)\s+\d{8}\s+\d{2,4}\s+\d{4}\s+(\S{1,6})\s+([\d.]+,\d+)/u', $linha, $item)) {
                 $unidade = $item[2];
                 // Coluna estreita: a unidade pode continuar na linha de baixo ("TO" + "N").
@@ -709,13 +711,25 @@ final class NotaFiscal
                     'unidade' => $unidade,
                     'pedido' => '',
                 ];
-            } elseif (preg_match('/^\s*\S+\s+-\s+(.+?)\s+CST\s+\d{2,3}\s+([\d.]+,\d+)\s/u', $linha, $item)) {
-                // DANFE com IBS/CBS (desde 11/2026): "código - descrição  CST 020  quantidade ..." e, embaixo, "CFOP 5101  M3".
-                $unidade = preg_match('/\bCFOP\s+\d{4}\s+(\S{1,6})/u', (string) ($linhas[$i + 1] ?? ''), $un) ? $un[1] : '';
+            }
+        }
+        if ($itens === []) {
+            // DANFE com IBS/CBS (desde 11/2026): o item ocupa várias linhas, às vezes em escada e com pontilhado:
+            // "código - descrição  CST 020  quantidade  unitário  total ..." e, mais abaixo, "CFOP 5101  M3" (ou "[M3]").
+            // Sem o pontilhado (o ponto do milhar, entre números, fica) e numa linha só, o item se lê em sequência.
+            $bloco = (string) preg_replace(['/(?<!\d)\.|\.(?!\d)/u', '/\s+/u'], ' ', $bloco);
+            preg_match_all(
+                '/(?:^|\s)\d{4,}\s*-\s*(.+?)\s+CST\s*\d{2,3}\s+([\d.]+,\d+)\s.*?CFOP\s*\d{4}\s*\[?([A-Za-z][A-Za-z0-9³]{0,5})/u',
+                $bloco,
+                $achados,
+                PREG_SET_ORDER
+            );
+            foreach ($achados as $item) {
                 $itens[] = [
-                    'material' => trim($item[1]),
+                    // O pdftotext separa o T do resto da palavra ("BRIT A"), como nos títulos ("PRODUT O").
+                    'material' => (string) preg_replace('/(?<=\p{L})T (?=\p{L})/u', 'T', trim($item[1])),
                     'quantidade' => str_replace(',', '.', str_replace('.', '', $item[2])),
-                    'unidade' => $unidade,
+                    'unidade' => $item[3],
                     'pedido' => '',
                 ];
             }
