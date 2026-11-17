@@ -1,5 +1,13 @@
 # O que mudou
 
+## Novembro de 2026: PDF da nota no modelo novo (IBS/CBS)
+
+- O PDF da nota mudou de desenho com a reforma tributária (colunas de IBS/CBS). O sistema voltou a achar o material, a quantidade e a unidade nesse PDF. As notas no modelo antigo continuam sendo lidas.
+
+### Ao publicar esta versão
+1. Pode publicar com o turno rodando. O banco não muda.
+2. No Easypanel, toque em **Implantar** só na Operações ("operacoes"). O Fin Pro não muda. Os tablets não precisam de app novo.
+
 ## Outubro de 2026: venda com empenho (nota emitida depois)
 
 - Para a venda com empenho (a prefeitura manda o empenho, a carga sai e a nota é emitida um ou dois dias depois), marque **Nota fiscal sai depois (empenho)** na Nova ordem. O número da nota fica opcional, a forma de pagamento já vem como Transferência, e dá para anexar o **PDF ou a foto do empenho**.

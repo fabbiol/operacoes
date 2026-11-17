@@ -58,6 +58,7 @@ Para ver o que o `rodar.sh` faz quando o banco não está no ar, aponte para uma
 **unitarios** (`tests/unitarios/`, PHP puro, sem banco)
 - `leitura_nota_xml` — regra de unidades e datas na leitura do XML da nota (soma só toneladas, nota com mais de um material, nota paga em mais de uma forma, depósito bancário e vencimento das duplicatas, unidade desconhecida, leiaute antigo só com a data).
 - `documento_nota` — CNPJ/CPF do cliente: dígitos verificadores, formatação e leitura do destinatário no XML e no PDF das notas sintéticas (a parte do PDF precisa do `pdftotext`).
+- `itens_nota_pdf` — material, quantidade e unidade no texto do DANFE em PDF: leiaute antigo e o leiaute com IBS/CBS (11/2026), em linhas fictícias.
 - `quantidade` — quantidade digitada: "1.500" é milhar, vírgula ou ponto com até 2 casas, mais casas é recusado.
 
 **integracao** (`tests/integracao/`, banco temporário; PHP direto no código ou HTTP puro)

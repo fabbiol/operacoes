@@ -709,6 +709,15 @@ final class NotaFiscal
                     'unidade' => $unidade,
                     'pedido' => '',
                 ];
+            } elseif (preg_match('/^\s*\S+\s+-\s+(.+?)\s+CST\s+\d{2,3}\s+([\d.]+,\d+)\s/u', $linha, $item)) {
+                // DANFE com IBS/CBS (desde 11/2026): "código - descrição  CST 020  quantidade ..." e, embaixo, "CFOP 5101  M3".
+                $unidade = preg_match('/\bCFOP\s+\d{4}\s+(\S{1,6})/u', (string) ($linhas[$i + 1] ?? ''), $un) ? $un[1] : '';
+                $itens[] = [
+                    'material' => trim($item[1]),
+                    'quantidade' => str_replace(',', '.', str_replace('.', '', $item[2])),
+                    'unidade' => $unidade,
+                    'pedido' => '',
+                ];
             }
         }
 
