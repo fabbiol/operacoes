@@ -1,6 +1,6 @@
 <?php
 // @sem-ambiente
-// Itens do DANFE em PDF (texto do pdftotext -layout): leiaute antigo e o leiaute com IBS/CBS, de 11/2026. Dados fictícios.
+// Itens do DANFE em PDF (texto do pdftotext -layout): leiaute antigo e os leiautes com IBS/CBS, de 11/2026. Dados fictícios.
 require __DIR__ . '/../lib/ok.php';
 require dirname(__DIR__, 2) . '/src/helpers.php';
 require dirname(__DIR__, 2) . '/src/NotaFiscal.php';
@@ -27,5 +27,20 @@ $novo = $itens([
 ok(count($novo) === 2, 'leiaute IBS/CBS: um item por produto', json_encode($novo));
 ok(($novo[0] ?? null) === ['material' => 'BRITA 01 COMERCIAL', 'quantidade' => '7.000', 'unidade' => 'M3', 'pedido' => ''], 'material, quantidade e unidade da linha do CFOP', json_encode($novo[0] ?? null));
 ok(($novo[1]['quantidade'] ?? '') === '1250.500' && ($novo[1]['unidade'] ?? '') === 'TON', 'quantidade com milhar', json_encode($novo[1] ?? null));
+
+// O mesmo leiaute, saído em escada e com pontilhado (nota 7302), e o T separado do resto da palavra.
+$escada = $itens([
+    '      DESCRIÇÃO DO PRODUT O / SERVIÇO                     CST / CFOP          QT D / UN          VLR UNIT',
+    '2000000000202 - BRIT A 01 COMERCIAL        CST . . . 020',
+    '                                                     . . . . . . . .13,000',
+    '                                                                     . . . . . . . . .158,80',
+    '                                                                                       . . . . . .2064,40',
+    '                                                                                                 . . . . . ICMS',
+    '                            [NCM 25171000] CFOP . 5101',
+    '                                                   . . . . . . . . . . [M3]',
+    '                                                                        . . . . . . . . . IBS',
+    'DADOS ADICIONAIS',
+]);
+ok($escada === [['material' => 'BRITA 01 COMERCIAL', 'quantidade' => '13.000', 'unidade' => 'M3', 'pedido' => '']], 'leiaute em escada com pontilhado', json_encode($escada));
 
 fim();

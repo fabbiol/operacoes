@@ -2,7 +2,7 @@
 
 ## Novembro de 2026: PDF da nota no modelo novo (IBS/CBS)
 
-- O PDF da nota mudou de desenho com a reforma tributária (colunas de IBS/CBS). O sistema voltou a achar o material, a quantidade e a unidade nesse PDF. As notas no modelo antigo continuam sendo lidas.
+- O PDF da nota mudou de desenho com a reforma tributária (colunas de IBS/CBS). O sistema voltou a achar o material, a quantidade e a unidade nesse PDF, inclusive quando o quadro do produto sai em escada e com pontilhado (como na nota 7302). As notas no modelo antigo continuam sendo lidas.
 
 ### Ao publicar esta versão
 1. Pode publicar com o turno rodando. O banco não muda.
